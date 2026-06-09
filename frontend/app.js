@@ -4,7 +4,11 @@
 // Flujo: URL /room/:token → GET /api/room/:token → render controls → POST /api/room/:token/command
 // ─────────────────────────────────────────────────────────────────────────────
 
-const API = '/api';
+// URL base del backend.
+// En local (file:// o localhost:3000): usa '/api' (mismo origen).
+// En Netlify sin proxy: pon la URL completa en window.NEXO_API_URL dentro de index.html.
+// En Netlify con proxy en netlify.toml: deja window.NEXO_API_URL = '' y Netlify redirige.
+const API = ((window.NEXO_API_URL || '').replace(/\/$/, '') || '') + '/api';
 
 // ── DATOS MOCK para modo estático (sin servidor) ──────────────────────────────
 // Se usa cuando el archivo se abre directo desde el disco (file://)

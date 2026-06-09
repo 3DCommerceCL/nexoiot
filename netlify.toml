@@ -1,0 +1,28 @@
+# ─── Nexo IoT — Configuración Netlify ────────────────────────────────────────
+# IMPORTANTE: Solo el frontend (archivos estáticos) se despliega aquí.
+# El backend Express (Node.js) debe correr en un servidor separado:
+#   Railway → https://railway.app  (recomendado, gratis)
+#   Render  → https://render.com   (gratis con limitaciones)
+#   Fly.io  → https://fly.io
+
+[build]
+  publish = "frontend"
+  command = ""
+
+# ── SPA ROUTING ───────────────────────────────────────────────────────────────
+# /room/TOKEN → sirve index.html; el JS lee el token desde window.location.pathname
+[[redirects]]
+  from   = "/room/*"
+  to     = "/index.html"
+  status = 200
+
+# ── PROXY AL BACKEND (opcional) ───────────────────────────────────────────────
+# Descomenta esto cuando tengas el backend desplegado.
+# Reemplaza la URL con la de tu servidor en Railway/Render.
+# Esto evita problemas de CORS porque Netlify hace de intermediario.
+#
+# [[redirects]]
+#   from   = "/api/*"
+#   to     = "https://TU-BACKEND.railway.app/api/:splat"
+#   status = 200
+#   force  = true
