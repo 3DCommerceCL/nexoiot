@@ -11,7 +11,9 @@ require('dotenv').config({ path: path.join(__dirname, '../.env') });
 const CLIENT_ID     = process.env.TUYA_CLIENT_ID     || '';
 const CLIENT_SECRET = process.env.TUYA_CLIENT_SECRET || '';
 const BASE_URL      = process.env.TUYA_BASE_URL      || 'https://openapi.tuyaus.com';
-const DEMO_MODE     = process.env.DEMO_MODE !== 'false'; // true por defecto (seguro)
+// DEMO_MODE=false  (o 0, no, off) activa el modo live con Tuya real
+const _dm       = (process.env.DEMO_MODE ?? 'true').toLowerCase().trim();
+const DEMO_MODE = !['false', '0', 'no', 'off'].includes(_dm);
 
 // ── CACHÉ DE TOKEN ────────────────────────────────────────────────────────────
 let _cache = { token: null, expiresAt: 0 };

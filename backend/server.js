@@ -273,10 +273,11 @@ app.get('/api/admin/rooms', adminAuth, (req, res) => {
 // ── HEALTH CHECK ──────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({
-    status:  'ok',
-    mode:    tuya.isDemoMode() ? 'demo' : 'live',
-    uptime:  Math.round(process.uptime()),
-    version: '1.0.0',
+    status:       'ok',
+    mode:         tuya.isDemoMode() ? 'demo' : 'live',
+    demo_env_raw: process.env.DEMO_MODE ?? '(no definido)',
+    uptime:       Math.round(process.uptime()),
+    version:      '1.0.0',
   });
 });
 
