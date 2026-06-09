@@ -18,7 +18,26 @@ const ADMIN_KEY = process.env.ADMIN_API_KEY || 'change_me';
 const HOTEL_URL = process.env.HOTEL_URL || `http://localhost:${PORT}`;
 
 // ── MIDDLEWARE ────────────────────────────────────────────────────────────────
-app.use(cors());
+const ALLOWED_ORIGINS = [
+  'https://niglet.netlify.app',                       // frontend en producción
+  'https://nexoiot-production.up.railway.app',        // mismo Railway (health checks, etc.)
+  /^http:\/\/localhost(:\d+)?$/,                       // desarrollo local (cualquier puerto)
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+];
+
+app.use(cors({
+  origin: (origin, cb) => {
+    // Permitir requests sin origin (curl, Postman, Railway health checks)
+    if (!origin) return cb(null, true);
+    const allowed = ALLOWED_ORIGINS.some(o =>
+      typeof o === 'string' ? o === origin : o.test(origin)
+    );
+    cb(allowed ? null : new Error(`CORS bloqueado: ${origin}`), allowed);
+  },
+  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'X-Admin-Key'],
+  credentials: false,
+}));
 app.use(express.json());
 
 // Sirve la web app del huésped como archivos estáticos
