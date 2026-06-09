@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0F0F0F">
+<meta name="description" content="Control de habitación — Nexo IoT">
+<title>Nexo IoT — Control de habitación</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── PANTALLA DE CARGA ──────────────────────────────────────────────────── -->
+<div id="loading-screen">
+  <div class="loader-ring"></div>
+  <p class="loader-text">Cargando tu habitación…</p>
+</div>
+
+<!-- ── PANTALLA DE ERROR ──────────────────────────────────────────────────── -->
+<div id="error-screen" class="hidden">
+  <div class="err-icon" id="err-icon">🔒</div>
+  <div class="err-title" id="err-title">Enlace inválido</div>
+  <div class="err-sub" id="err-sub">Solicita un nuevo acceso en recepción.</div>
+</div>
+
+<!-- ── APP PRINCIPAL ──────────────────────────────────────────────────────── -->
+<div id="app" class="hidden">
+
+  <!-- DEMO BANNER (solo en modo offline) -->
+  <div class="demo-banner" id="demo-banner">
+    🔵 Modo demostración — los cambios no se aplican a dispositivos reales
+  </div>
+
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-top">
+      <span class="hotel-name" id="hotel-name">Nexo IoT</span>
+      <button class="checkout-btn" aria-label="Información de check-out">
+        🚪 Check-out
+      </button>
+    </div>
+    <div class="room-name"  id="room-name">Habitación</div>
+    <div class="guest-name" id="guest-name">Bienvenido</div>
+    <div class="checkout-info" id="checkout-info"></div>
+    <div class="clock-row">
+      <span class="clock-ico">🕐</span>
+      <span id="live-clock">--:--:--</span>
+      <span id="checkout-countdown" class="countdown"></span>
+    </div>
+    <div class="door-status" id="door-status"></div>
+  </header>
+
+  <!-- ESCENAS RÁPIDAS -->
+  <div class="scenes-bar" role="group" aria-label="Escenas rápidas">
+    <button class="scene-btn" data-scene="night"   aria-label="Escena noche">
+      <span class="scene-ico">🌙</span>Noche
+    </button>
+    <button class="scene-btn" data-scene="morning" aria-label="Escena mañana">
+      <span class="scene-ico">☀️</span>Mañana
+    </button>
+    <button class="scene-btn" data-scene="relax"   aria-label="Escena relax">
+      <span class="scene-ico">🎬</span>Relax
+    </button>
+    <button class="scene-btn" data-scene="off"     aria-label="Apagar todo">
+      <span class="scene-ico">⚡</span>Apagar todo
+    </button>
+  </div>
+
+  <!-- LABEL SECCIÓN -->
+  <div class="section-label">Controles</div>
+
+  <!-- GRID DE DISPOSITIVOS (poblado por JS) -->
+  <div class="device-grid" id="device-grid" role="main" aria-label="Controles de habitación"></div>
+
+  <!-- FOOTER -->
+  <footer class="app-footer">
+    <a href="https://nexoiot.cl" target="_blank" rel="noopener">Nexo IoT</a> · nexoiot.cl
+  </footer>
+
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container" aria-live="polite"></div>
+
+<script src="app.js"></script>
+</body>
+</html>

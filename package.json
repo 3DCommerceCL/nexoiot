@@ -1,0 +1,17 @@
+{
+  "name": "nexo-room-app",
+  "version": "1.0.0",
+  "description": "Sistema de control de habitación para hoteles - Nexo IoT",
+  "main": "backend/server.js",
+  "engines": { "node": ">=18.0.0" },
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev":   "node --watch backend/server.js"
+  },
+  "dependencies": {
+    "cors":               "^2.8.5",
+    "dotenv":             "^16.4.5",
+    "express":            "^4.19.2",
+    "express-rate-limit": "^7.3.1"
+  }
+}

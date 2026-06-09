@@ -1,0 +1,45 @@
+{
+  "101": {
+    "name":  "Habitación 101",
+    "hotel": "Hotel Demo Plaza",
+    "floor": 1,
+    "devices": {
+      "puerta": {
+        "deviceId": "eb24a9f06a4c32ba51p42s",
+        "type":     "door_sensor",
+        "label":    "Sensor de Puerta"
+      },
+      "led_cama": {
+        "deviceId": "ebc06c6118bf9128ec9i9s",
+        "type":     "switch",
+        "label":    "LED Bajo Cama"
+      },
+      "luz_techo": {
+        "deviceId": "eba435f5b263f3d00eerya",
+        "type":     "light",
+        "label":    "Luz Techo"
+      },
+      "luz_velador1": {
+        "deviceId": "eba6a890c60baf97desmep",
+        "type":     "light",
+        "label":    "Luz Velador 1"
+      },
+      "luz_velador2": {
+        "deviceId": "eb8b2178103676296ca2hk",
+        "type":     "light_rgb",
+        "label":    "Luz Velador 2"
+      },
+      "cortina": {
+        "deviceId": "ebaf8a7cc5374f6b26n4v6",
+        "type":     "curtain",
+        "label":    "Cortina"
+      },
+      "enchufe": {
+        "deviceId": "ebeffe2c971f4f2b88ciac",
+        "type":     "switch_3ch",
+        "label":    "Enchufe USB",
+        "channels": ["Entrada 1", "Entrada 2"]
+      }
+    }
+  }
+}
