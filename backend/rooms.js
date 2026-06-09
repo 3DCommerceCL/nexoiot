@@ -11,10 +11,34 @@ const crypto = require('crypto');
 const ROOMS_FILE  = path.join(__dirname, 'data/rooms.json');
 const TOKENS_FILE = path.join(__dirname, 'data/tokens.json');
 
+// Token de demo preincluido — siempre disponible para pruebas
+const SEED_TOKENS = {
+  DEMO1234: {
+    roomId:    '101',
+    guestName: 'Demo Huésped',
+    phone:     '+56900000000',
+    checkin:   '2026-01-01T14:00:00Z',
+    checkout:  '2030-12-31T12:00:00Z',
+    active:    true,
+    createdAt: '2026-01-01T00:00:00Z',
+  },
+};
+
 // ── I/O JSON ──────────────────────────────────────────────────────────────────
 function readJSON(file) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
-  catch { return {}; }
+  catch {
+    // Si tokens.json no existe (primer arranque en Railway), sembrarlo
+    if (file === TOKENS_FILE) {
+      try {
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, JSON.stringify(SEED_TOKENS, null, 2), 'utf8');
+        console.log('[rooms] tokens.json creado con token de demo');
+      } catch {}
+      return { ...SEED_TOKENS };
+    }
+    return {};
+  }
 }
 
 function writeJSON(file, data) {

@@ -1,4 +1,5 @@
 node_modules/
 .env
 *.log
-backend/data/tokens.json
+# tokens.json se incluye en git para el token de demo.
+# Los tokens de producción se crean vía API y viven en el filesystem de Railway.
