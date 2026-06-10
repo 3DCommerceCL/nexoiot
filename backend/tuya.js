@@ -160,7 +160,13 @@ async function debugAuth() {
       results[url] = { error: err.message };
     }
   }
-  return { client_id: CLIENT_ID, configured_url: BASE_URL, regions: results };
+  const s = CLIENT_SECRET || '';
+  return {
+    client_id:        CLIENT_ID,
+    secret_preview:   s ? `${s.slice(0,4)}...${s.slice(-4)} (${s.length} chars)` : '(vacío)',
+    configured_url:   BASE_URL,
+    regions:          results,
+  };
 }
 
 module.exports = { getDeviceStatus, sendCommand, isDemoMode: () => DEMO_MODE, debugAuth };
