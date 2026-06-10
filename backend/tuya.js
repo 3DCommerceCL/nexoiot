@@ -139,19 +139,28 @@ async function sendCommand(deviceId, commands) {
   }
 }
 
-// ── DEBUG: retorna respuesta cruda del token Tuya (para diagnóstico) ──────────
+// ── DEBUG: prueba autenticación Tuya en las 3 regiones principales ───────────
 async function debugAuth() {
-  const timestamp = Date.now().toString();
-  const nonce     = crypto.randomBytes(16).toString('hex');
-  const sign      = calcSign(CLIENT_ID, CLIENT_SECRET, '', timestamp, nonce, 'GET', '/v1.0/token?grant_type=1', '');
-  const headers   = { 'client_id': CLIENT_ID, 'sign': sign, 'sign_method': 'HMAC-SHA256', 't': timestamp, 'nonce': nonce };
-  try {
-    const res  = await fetch(`${BASE_URL}/v1.0/token?grant_type=1`, { headers });
-    const data = await res.json();
-    return { httpStatus: res.status, body: data, base_url: BASE_URL, client_id: CLIENT_ID };
-  } catch (err) {
-    return { error: err.message, base_url: BASE_URL };
+  const REGIONS = [
+    'https://openapi.tuyaus.com',
+    'https://openapi.tuyaeu.com',
+    'https://openapi.tuyain.com',
+  ];
+  const results = {};
+  for (const url of REGIONS) {
+    const timestamp = Date.now().toString();
+    const nonce     = crypto.randomBytes(16).toString('hex');
+    const sign      = calcSign(CLIENT_ID, CLIENT_SECRET, '', timestamp, nonce, 'GET', '/v1.0/token?grant_type=1', '');
+    const headers   = { 'client_id': CLIENT_ID, 'sign': sign, 'sign_method': 'HMAC-SHA256', 't': timestamp, 'nonce': nonce };
+    try {
+      const res  = await fetch(`${url}/v1.0/token?grant_type=1`, { headers, signal: AbortSignal.timeout(8000) });
+      const data = await res.json();
+      results[url] = { code: data.code, msg: data.msg, success: data.success };
+    } catch (err) {
+      results[url] = { error: err.message };
+    }
   }
+  return { client_id: CLIENT_ID, configured_url: BASE_URL, regions: results };
 }
 
 module.exports = { getDeviceStatus, sendCommand, isDemoMode: () => DEMO_MODE, debugAuth };
