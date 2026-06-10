@@ -16,12 +16,12 @@
       },
       "luz_techo": {
         "deviceId": "eba435f5b263f3d00eerya",
-        "type":     "light",
+        "type":     "light_rgb",
         "label":    "Luz Techo"
       },
       "luz_velador1": {
         "deviceId": "eba6a890c60baf97desmep",
-        "type":     "light",
+        "type":     "light_rgb",
         "label":    "Luz Velador 1"
       },
       "luz_velador2": {

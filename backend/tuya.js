@@ -21,21 +21,25 @@ let _cache = { token: null, expiresAt: 0 };
 // ── ESTADO MOCK (demo offline) ────────────────────────────────────────────────
 // Se actualiza en memoria cuando se envían comandos en modo demo
 const _mock = {
-  'eba6a890c60baf97desmep': [ // Luz velador
+  'eba6a890c60baf97desmep': [ // Luz velador 1 (RGB)
     { code: 'switch_led',      value: false },
     { code: 'bright_value_v2', value: 500  },
-    { code: 'colour_temp_v2',  value: 500  },
+    { code: 'work_mode',       value: 'white' },
+    { code: 'temp_value_v2',   value: 500  },
+    { code: 'colour_data_v2',  value: { h: 0, s: 1000, v: 1000 } },
   ],
-  'eba435f5b263f3d00eerya': [ // Luz techo
+  'eba435f5b263f3d00eerya': [ // Luz techo (RGB)
     { code: 'switch_led',      value: false },
     { code: 'bright_value_v2', value: 500  },
-    { code: 'colour_temp_v2',  value: 500  },
+    { code: 'work_mode',       value: 'white' },
+    { code: 'temp_value_v2',   value: 500  },
+    { code: 'colour_data_v2',  value: { h: 0, s: 1000, v: 1000 } },
   ],
   'eb8b2178103676296ca2hk': [ // LED ambiente RGB
     { code: 'switch_led',      value: false },
     { code: 'bright_value_v2', value: 500  },
     { code: 'work_mode',       value: 'white' },
-    { code: 'colour_temp_v2',  value: 500  },
+    { code: 'temp_value_v2',   value: 500  },
     { code: 'colour_data_v2',  value: { h: 0, s: 1000, v: 1000 } },
   ],
   'ebaf8a7cc5374f6b26n4v6': [ // Cortina
@@ -46,8 +50,10 @@ const _mock = {
     { code: 'switch_1',        value: false },
     { code: 'switch_2',        value: false },
   ],
-  'ebc06c6118bf9128ec9i9s': [ // LED Bajo Cama (relay)
-    { code: 'switch_1',        value: false },
+  'ebc06c6118bf9128ec9i9s': [ // LED Bajo Cama (RGB)
+    { code: 'switch_led',      value: false },
+    { code: 'work_mode',       value: 'white' },
+    { code: 'colour_data_v2',  value: { h: 0, s: 1000, v: 1000 } },
   ],
   'eb24a9f06a4c32ba51p42s': [ // Sensor puerta
     { code: 'doorcontact_state', value: false },
@@ -106,14 +112,15 @@ async function getAccessToken() {
 // ── GET ESTADO DEL DISPOSITIVO ────────────────────────────────────────────────
 async function getDeviceStatus(deviceId) {
   if (DEMO_MODE) {
-    return _mock[deviceId] ? [..._mock[deviceId]] : [];
+    return { online: true, status: _mock[deviceId] ? [..._mock[deviceId]] : [] };
   }
   try {
-    const token = await getAccessToken();
-    return await request('GET', `/v1.0/devices/${deviceId}/status`, null, token);
+    const token  = await getAccessToken();
+    const result = await request('GET', `/v1.0/devices/${deviceId}`, null, token);
+    return { online: !!result.online, status: result.status || [] };
   } catch (err) {
     console.error(`[Tuya] getDeviceStatus(${deviceId}):`, err.message);
-    return null; // null = dispositivo offline
+    return null; // null = error de comunicación con Tuya
   }
 }
 

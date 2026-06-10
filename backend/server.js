@@ -184,13 +184,14 @@ app.get('/api/room/:token', async (req, res) => {
 
   const devices = {};
   deviceKeys.forEach(([name, dev], i) => {
-    const raw = statusResults[i].status === 'fulfilled' ? statusResults[i].value : null;
+    const raw    = statusResults[i].status === 'fulfilled' ? statusResults[i].value : null;
+    const online = raw !== null && raw.online;
     devices[name] = {
       label:     dev.label,
       type:      dev.type,
       channels:  dev.channels || null,
-      available: raw !== null,
-      state:     statusToState(dev.type, raw),
+      available: online,
+      state:     online ? statusToState(dev.type, raw.status) : null,
     };
   });
 

@@ -21,16 +21,16 @@ const STATIC_DEMO = {
   demoMode:  true,
   devices: {
     led_cama: {
-      label: 'LED Bajo Cama', type: 'switch', available: true,
-      state: { on: false }
+      label: 'LED Bajo Cama', type: 'light_rgb', available: false,
+      state: null
     },
     luz_techo: {
-      label: 'Luz Techo', type: 'light', available: true,
-      state: { on: true, intensity: 80, colorTemp: 70 }
+      label: 'Luz Techo', type: 'light_rgb', available: true,
+      state: { on: true, intensity: 80, mode: 'white', colorTemp: 70, hue: 0, saturation: 1000 }
     },
     luz_velador1: {
-      label: 'Luz Velador 1', type: 'light', available: true,
-      state: { on: false, intensity: 70, colorTemp: 30 }
+      label: 'Luz Velador 1', type: 'light_rgb', available: true,
+      state: { on: false, intensity: 70, mode: 'white', colorTemp: 30, hue: 0, saturation: 1000 }
     },
     luz_velador2: {
       label: 'Luz Velador 2', type: 'light_rgb', available: true,
@@ -54,17 +54,8 @@ const app = {
   config:  {},   // { key: { type, label, channels, available } }
   devices: {},   // { key: estado normalizado del dispositivo }
   _timers: {},   // debounce timers para sliders
+  _wheelOpen: {}, // { key: bool } — selector de color RGB abierto/cerrado
 };
-
-// ── COLORES LED (paleta de 6 presets) ─────────────────────────────────────────
-const LED_COLORS = [
-  { label: 'Cálido',  bg: '#FFA040', ct: 0,   hue: null },   // colorTemp cálido
-  { label: 'Neutro',  bg: '#FFE8C0', ct: 50,  hue: null },   // colorTemp neutro
-  { label: 'Frío',    bg: '#C8E8FF', ct: 100, hue: null },   // colorTemp frío
-  { label: 'Rojo',    bg: '#FF4040', ct: null, hue: 0,   sat: 1000 },
-  { label: 'Violeta', bg: '#A855F7', ct: null, hue: 270, sat: 1000 },
-  { label: 'Azul',    bg: '#4488FF', ct: null, hue: 240, sat: 1000 },
-];
 
 // ── ESCENAS RÁPIDAS ───────────────────────────────────────────────────────────
 const SCENES = {
@@ -82,7 +73,7 @@ const SCENES = {
     { dev: 'luz_techo',    cmd: { on: true, intensity: 70, colorTemp: 80 } },
   ],
   relax: [
-    { dev: 'luz_velador2', cmd: { on: true, hue: 270, saturation: 800 }, optimistic: { on: true, hue: 270 } },
+    { dev: 'luz_velador2', cmd: { on: true, hue: 270, saturation: 800 }, optimistic: { on: true, hue: 270, mode: 'colour' } },
     { dev: 'led_cama',     cmd: { on: true } },
     { dev: 'luz_velador1', cmd: { on: true, intensity: 15, colorTemp: 5 } },
     { dev: 'luz_techo',    cmd: { on: false } },
@@ -293,23 +284,27 @@ function buildLightCard(key) {
 }
 
 // ── LED RGB CARD ──────────────────────────────────────────────────────────────
+const WHEEL_RADIUS = 56; // px, debe coincidir con el tamaño definido en CSS
+
 function buildLEDCard(key) {
   const s   = app.devices[key] || {};
   const cfg = app.config[key];
   const on  = s.on;
   const int = s.intensity ?? 50;
   const ct  = s.colorTemp ?? 50;
-  const hue = s.hue;
+  const mode = s.mode ?? 'white';
+  const hue  = s.hue ?? 0;
+  const sat  = s.saturation ?? 1000;
+  const wheelOpen = !!app._wheelOpen[key];
 
-  const swatches = LED_COLORS.map((c, i) => {
-    const isActive = c.hue !== null
-      ? (on && hue !== undefined && Math.abs(hue - c.hue) < 30)
-      : (on && s.mode !== 'colour' && Math.abs(ct - c.ct) < 25);
-    return `<div class="color-swatch ${isActive ? 'active' : ''}"
-      style="background:${c.bg}"
-      data-key="${key}" data-color-idx="${i}"
-      title="${c.label}"></div>`;
-  }).join('');
+  const isColour    = mode === 'colour';
+  const colorPreview = `hsl(${hue}, 100%, 50%)`;
+
+  // Posición del cursor sobre la rueda de color (hue=0 arriba, sentido horario)
+  const r     = (sat / 1000) * WHEEL_RADIUS;
+  const angle = (hue * Math.PI) / 180;
+  const cx    = Math.sin(angle) * r;
+  const cy    = -Math.cos(angle) * r;
 
   return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
@@ -327,7 +322,21 @@ function buildLEDCard(key) {
           data-key="${key}" data-action="intensity">
         <span class="slider-val">${int}%</span>
       </div>
-      <div class="color-palette">${swatches}</div>` : ''}
+      <div class="ct-row">
+        <button class="ct-btn ${!isColour && ct < 33 ? 'active' : ''}" data-key="${key}" data-ct="5">Cálido</button>
+        <button class="ct-btn ${!isColour && ct >= 33 && ct < 66 ? 'active' : ''}" data-key="${key}" data-ct="50">Neutro</button>
+        <button class="ct-btn ${!isColour && ct >= 66 ? 'active' : ''}" data-key="${key}" data-ct="95">Frío</button>
+        <button class="ct-btn color-toggle-btn ${wheelOpen ? 'open' : ''}" data-key="${key}" data-action="toggle-wheel"
+          style="${isColour ? `border-color:${colorPreview};color:${colorPreview}` : ''}">
+          <span class="color-dot" style="background:${colorPreview}"></span> Color
+        </button>
+      </div>
+      ${wheelOpen ? `
+      <div class="color-wheel-wrap">
+        <div class="color-wheel" data-key="${key}" data-action="pick-color">
+          <div class="color-wheel-cursor" style="transform: translate(${cx}px, ${cy}px); background:${colorPreview}"></div>
+        </div>
+      </div>` : ''}` : ''}
   </div>`;
 }
 
@@ -454,7 +463,7 @@ function handleGridClick(e) {
   if (ctBtn) {
     const key = ctBtn.dataset.key;
     const ct  = parseInt(ctBtn.dataset.ct);
-    const cmd = { colorTemp: ct };
+    const cmd = { colorTemp: ct, mode: 'white' };
     if (!app.devices[key]?.on) cmd.on = true;
     doCmd(key, cmd);
     return;
@@ -471,15 +480,25 @@ function handleGridClick(e) {
     return;
   }
 
-  // Swatch de color LED
-  const swatch = e.target.closest('[data-color-idx]');
-  if (swatch) {
-    const key = swatch.dataset.key;
-    const c   = LED_COLORS[parseInt(swatch.dataset.colorIdx)];
-    const cmd = { on: true };
-    if (c.hue !== null)  { cmd.hue = c.hue; cmd.saturation = c.sat ?? 1000; }
-    else                 { cmd.colorTemp = c.ct; }
-    doCmd(key, cmd);
+  // Toggle del selector de color (rueda)
+  const wheelBtn = e.target.closest('[data-action="toggle-wheel"]');
+  if (wheelBtn) {
+    const key = wheelBtn.dataset.key;
+    app._wheelOpen[key] = !app._wheelOpen[key];
+    updateCard(key);
+    return;
+  }
+
+  // Click en la rueda de color → calcular hue desde el ángulo
+  const wheel = e.target.closest('[data-action="pick-color"]');
+  if (wheel) {
+    const key  = wheel.dataset.key;
+    const rect = wheel.getBoundingClientRect();
+    const dx   = e.clientX - (rect.left + rect.width / 2);
+    const dy   = e.clientY - (rect.top  + rect.height / 2);
+    let hue    = Math.atan2(dx, -dy) * (180 / Math.PI);
+    if (hue < 0) hue += 360;
+    doCmd(key, { on: true, hue: Math.round(hue), saturation: 1000, mode: 'colour' });
     return;
   }
 
