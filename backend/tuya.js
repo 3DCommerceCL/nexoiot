@@ -139,4 +139,19 @@ async function sendCommand(deviceId, commands) {
   }
 }
 
-module.exports = { getDeviceStatus, sendCommand, isDemoMode: () => DEMO_MODE };
+// ── DEBUG: retorna respuesta cruda del token Tuya (para diagnóstico) ──────────
+async function debugAuth() {
+  const timestamp = Date.now().toString();
+  const nonce     = crypto.randomBytes(16).toString('hex');
+  const sign      = calcSign(CLIENT_ID, CLIENT_SECRET, '', timestamp, nonce, 'GET', '/v1.0/token?grant_type=1', '');
+  const headers   = { 'client_id': CLIENT_ID, 'sign': sign, 'sign_method': 'HMAC-SHA256', 't': timestamp, 'nonce': nonce };
+  try {
+    const res  = await fetch(`${BASE_URL}/v1.0/token?grant_type=1`, { headers });
+    const data = await res.json();
+    return { httpStatus: res.status, body: data, base_url: BASE_URL, client_id: CLIENT_ID };
+  } catch (err) {
+    return { error: err.message, base_url: BASE_URL };
+  }
+}
+
+module.exports = { getDeviceStatus, sendCommand, isDemoMode: () => DEMO_MODE, debugAuth };

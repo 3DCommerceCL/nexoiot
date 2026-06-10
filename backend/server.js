@@ -270,6 +270,12 @@ app.get('/api/admin/rooms', adminAuth, (req, res) => {
   res.json(Object.keys(r).map(id => ({ id, name: r[id].name, floor: r[id].floor })));
 });
 
+// ── DEBUG TUYA AUTH (admin only, temporal) ────────────────────────────────────
+app.get('/api/debug/tuya-auth', adminAuth, async (_req, res) => {
+  const result = await tuya.debugAuth();
+  res.json(result);
+});
+
 // ── HEALTH CHECK ──────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({
