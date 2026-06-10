@@ -1,0 +1,99 @@
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Nexo IoT — Pantalla de TV de la habitación                                  */
+/* Diseñada para 16:9 (1920x1080), unidades en vw para escalar a cualquier res */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --bg:     #0F0F0F;
+  --teal:   #1D9E75;
+  --teal-l: rgba(29,158,117,.15);
+  --text:   #F0F0F0;
+  --text2:  #909090;
+  --font:   system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.hidden { display: none !important; }
+
+/* ── PANTALLA DE BIENVENIDA ───────────────────────────────────────────────── */
+.tv-screen {
+  display: flex;
+  align-items: center;
+  width: 100vw; height: 100vh;
+  padding: 5vw;
+  gap: 4vw;
+}
+
+.tv-left {
+  flex: 1.6;
+  display: flex; flex-direction: column;
+  gap: 1.6vw;
+}
+
+.tv-brand { display: flex; align-items: center; gap: 1vw; }
+.tv-logo {
+  width: 3.2vw; height: 3.2vw; min-width: 40px; min-height: 40px;
+  border-radius: 0.6vw;
+  background: var(--teal-l); color: var(--teal);
+  border: 2px solid var(--teal);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 1.6vw;
+}
+.tv-logo.lg { width: 6vw; height: 6vw; font-size: 3vw; }
+
+.tv-hotel {
+  font-size: 1.3vw; font-weight: 700; letter-spacing: 0.3vw;
+  text-transform: uppercase; color: var(--text2);
+}
+
+.tv-title {
+  font-size: 4.2vw; font-weight: 800; line-height: 1.15; letter-spacing: -0.05vw;
+}
+
+.tv-accent { width: 6vw; height: 5px; background: var(--teal); border-radius: 3px; }
+
+.tv-desc {
+  font-size: 1.4vw; color: var(--text2); line-height: 1.6; max-width: 38vw;
+}
+
+.tv-icons { display: flex; gap: 2.5vw; margin-top: 1vw; }
+.tv-icon-item {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.6vw;
+}
+.tv-icon-item svg  { width: 3vw; height: 3vw; color: var(--teal); }
+.tv-icon-item span { font-size: 1.2vw; font-weight: 600; color: var(--text2); }
+
+/* ── BLOQUE QR ────────────────────────────────────────────────────────────── */
+.tv-right {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 1.2vw;
+}
+.tv-qr-box {
+  background: #fff; border-radius: 1.2vw;
+  width: min(28vw, 420px); aspect-ratio: 1 / 1;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.2vw;
+}
+.tv-qr-box img { width: 100%; height: 100%; object-fit: contain; }
+.tv-qr-caption {
+  font-size: 1.2vw; color: var(--text2); text-align: center; max-width: 26vw;
+}
+
+/* ── PANTALLA SIN HUÉSPED ─────────────────────────────────────────────────── */
+.tv-empty {
+  width: 100vw; height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 1.2vw;
+  text-align: center;
+}
+.tv-empty h2 { font-size: 2.4vw; font-weight: 800; }
+.tv-empty p  { font-size: 1.4vw; color: var(--text2); }

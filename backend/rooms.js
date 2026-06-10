@@ -124,4 +124,15 @@ function listActiveTokens() {
     }));
 }
 
-module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getRooms };
+// ── TOKEN ACTIVO MÁS RECIENTE DE UNA HABITACIÓN ──────────────────────────────
+// Usado por la pantalla de TV para mostrar el QR del huésped actual.
+function getActiveTokenForRoom(roomId) {
+  const tokens = getTokens();
+  const now = new Date();
+  const candidates = Object.entries(tokens)
+    .filter(([, t]) => t.roomId === roomId && t.active && new Date(t.checkout) >= now)
+    .sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt));
+  return candidates.length ? candidates[0][0] : null;
+}
+
+module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms };

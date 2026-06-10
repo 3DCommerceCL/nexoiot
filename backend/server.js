@@ -13,9 +13,10 @@ const tuya      = require('./tuya');
 const rooms     = require('./rooms');
 
 const app       = express();
-const PORT      = process.env.PORT      || 3000;
-const ADMIN_KEY = process.env.ADMIN_API_KEY || 'change_me';
-const HOTEL_URL = process.env.HOTEL_URL || `http://localhost:${PORT}`;
+const PORT        = process.env.PORT      || 3000;
+const ADMIN_KEY   = process.env.ADMIN_API_KEY || 'change_me';
+const HOTEL_URL   = process.env.HOTEL_URL || `http://localhost:${PORT}`;
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://3dcommercecl.github.io/nexoiot').replace(/\/$/, '');
 
 // ── MIDDLEWARE ────────────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
@@ -237,6 +238,26 @@ app.post('/api/room/:token/command', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Error al ejecutar el comando', detail: err.message });
   }
+});
+
+// ── API: GET /api/tv/:roomId ──────────────────────────────────────────────────
+// Usado por la pantalla de TV de la habitación: link de acceso del huésped activo.
+app.get('/api/tv/:roomId', (req, res) => {
+  const allRooms = rooms.getRooms();
+  const room = allRooms[req.params.roomId];
+  if (!room) {
+    return res.status(404).json({ error: 'Habitación no encontrada' });
+  }
+
+  const token = rooms.getActiveTokenForRoom(req.params.roomId);
+
+  res.json({
+    roomId:    req.params.roomId,
+    roomName:  room.name,
+    hotelName: room.hotel || process.env.HOTEL_NAME || 'Nexo IoT',
+    active:    !!token,
+    url:       token ? `${FRONTEND_URL}/?token=${token}` : null,
+  });
 });
 
 // ── ADMIN: POST /api/admin/token ──────────────────────────────────────────────
