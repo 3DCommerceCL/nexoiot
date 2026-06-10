@@ -515,6 +515,7 @@ function handleGridClick(e) {
     const ct  = parseInt(ctBtn.dataset.ct);
     const cmd = { colorTemp: ct, mode: 'white' };
     if (!app.devices[key]?.on) cmd.on = true;
+    app._wheelOpen[key] = false; // cerrar la rueda de color al elegir temperatura
     doCmd(key, cmd);
     return;
   }
@@ -534,8 +535,18 @@ function handleGridClick(e) {
   const wheelBtn = e.target.closest('[data-action="toggle-wheel"]');
   if (wheelBtn) {
     const key = wheelBtn.dataset.key;
-    app._wheelOpen[key] = !app._wheelOpen[key];
-    updateCard(key);
+    const wasOpen   = !!app._wheelOpen[key];
+    const isColour  = app.devices[key]?.mode === 'colour';
+    app._wheelOpen[key] = !wasOpen;
+
+    // Al abrir la rueda, activar modo color de inmediato (deselecciona Cálido/Neutro/Frío)
+    if (!wasOpen && !isColour) {
+      const hue = app.devices[key]?.hue ?? 0;
+      const sat = app.devices[key]?.saturation ?? 1000;
+      doCmd(key, { on: true, hue, saturation: sat, mode: 'colour' });
+    } else {
+      updateCard(key);
+    }
     return;
   }
 

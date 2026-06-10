@@ -254,6 +254,7 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--r);
   padding: 16px 14px;
+  min-width: 0;
   transition: border-color .15s;
   -webkit-tap-highlight-color: transparent;
 }
@@ -313,10 +314,11 @@ input[type=range]:disabled { opacity: .3; pointer-events: none; }
 
 /* ── COLOR TEMP BUTTONS ───────────────────────────────────────────────────── */
 .ct-row {
-  display: flex; gap: 5px; margin-top: 8px;
+  display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px;
 }
 .ct-btn {
-  flex: 1; padding: 6px 4px; border-radius: var(--rsm);
+  flex: 1 1 calc(50% - 3px); min-width: 0; box-sizing: border-box;
+  padding: 6px 4px; border-radius: var(--rsm);
   border: 1px solid var(--border); background: transparent;
   color: var(--text2); font-size: 10px; font-weight: 600;
   cursor: pointer; font-family: var(--font); transition: all .15s;
@@ -328,7 +330,6 @@ input[type=range]:disabled { opacity: .3; pointer-events: none; }
 .color-toggle-btn {
   display: flex; align-items: center; justify-content: center; gap: 5px;
 }
-.color-toggle-btn.open { background: var(--teal-l); border-color: var(--teal); color: var(--teal); }
 .color-dot {
   width: 10px; height: 10px; border-radius: 50%;
   background: #ccc; flex-shrink: 0;
