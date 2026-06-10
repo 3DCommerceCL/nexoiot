@@ -19,7 +19,8 @@ const HOTEL_URL = process.env.HOTEL_URL || `http://localhost:${PORT}`;
 
 // ── MIDDLEWARE ────────────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
-  'https://niglet.netlify.app',                       // frontend en producción
+  'https://niglet.netlify.app',                       // frontend (Netlify, legado)
+  'https://3dcommercecl.github.io',                   // frontend (GitHub Pages)
   'https://nexoiot-production.up.railway.app',        // mismo Railway (health checks, etc.)
   /^http:\/\/localhost(:\d+)?$/,                       // desarrollo local (cualquier puerto)
   /^http:\/\/127\.0\.0\.1(:\d+)?$/,
@@ -200,6 +201,7 @@ app.get('/api/room/:token', async (req, res) => {
     roomName:  room.name,
     hotelName: room.hotel || process.env.HOTEL_NAME || 'Nexo IoT',
     guestName: entry.guestName,
+    checkin:   entry.checkin,
     checkout:  entry.checkout,
     demoMode:  tuya.isDemoMode(),
     devices,

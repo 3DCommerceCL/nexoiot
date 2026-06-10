@@ -17,6 +17,7 @@ const STATIC_DEMO = {
   roomName:  'Habitación 101',
   hotelName: 'Hotel Demo Plaza',
   guestName: 'Demo Huésped',
+  checkin:   new Date(Date.now() - 1 * 86400000).toISOString(), // ayer
   checkout:  new Date(Date.now() + 2 * 86400000).toISOString(), // en 2 días
   demoMode:  true,
   devices: {
@@ -175,12 +176,29 @@ function renderApp(data) {
   document.getElementById('room-name').textContent   = data.roomName;
   document.getElementById('guest-name').textContent  = `Hola, ${data.guestName.split(' ')[0]} 👋`;
 
+  // Sidebar
+  document.getElementById('sidebar-hotel').textContent = data.hotelName;
+  document.getElementById('sidebar-room').textContent  = data.roomName;
+
   const co     = new Date(data.checkout);
   const coDate = co.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
   const coTime = co.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
   document.getElementById('checkout-info').textContent = `📅 Check-out: ${coDate} a las ${coTime}`;
 
   startClock(co);
+
+  // Vista Ajustes
+  document.getElementById('set-hotel').textContent  = data.hotelName;
+  document.getElementById('set-room').textContent   = data.roomName;
+  document.getElementById('set-guest').textContent  = data.guestName;
+  document.getElementById('set-checkout').textContent = `${coDate}, ${coTime}`;
+  document.getElementById('set-mode').textContent   = data.demoMode ? 'Demostración' : 'En vivo';
+  if (data.checkin) {
+    const ci     = new Date(data.checkin);
+    const ciDate = ci.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
+    const ciTime = ci.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
+    document.getElementById('set-checkin').textContent = `${ciDate}, ${ciTime}`;
+  }
 
   // Sensor de puerta en header
   const doorDev = data.devices.puerta;
@@ -201,7 +219,7 @@ function renderApp(data) {
   document.getElementById('app').classList.remove('hidden');
 
   // Listeners de escenas
-  document.querySelectorAll('.scene-btn').forEach(btn => {
+  document.querySelectorAll('.scene-card').forEach(btn => {
     btn.addEventListener('click', () => applyScene(btn.dataset.scene));
   });
 
@@ -210,6 +228,38 @@ function renderApp(data) {
   grid.addEventListener('click',  handleGridClick);
   grid.addEventListener('input',  handleGridInput);
   grid.addEventListener('change', handleGridInput);
+
+  // Navegación (sidebar y vistas)
+  initNav();
+}
+
+// ── NAVEGACIÓN: SIDEBAR Y VISTAS ──────────────────────────────────────────────
+function initNav() {
+  const sidebar  = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebar-backdrop');
+  const burger   = document.getElementById('hamburger-btn');
+
+  function openSidebar()  { sidebar.classList.add('open');    backdrop.classList.add('open'); }
+  function closeSidebar() { sidebar.classList.remove('open'); backdrop.classList.remove('open'); }
+
+  burger.addEventListener('click', openSidebar);
+  backdrop.addEventListener('click', closeSidebar);
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const view = item.dataset.view;
+      document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+      document.getElementById(`view-${view}`)?.classList.remove('hidden');
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      item.classList.add('active');
+      closeSidebar();
+    });
+  });
+
+  // Botón de soporte: llamar a recepción
+  document.getElementById('call-reception-btn')?.addEventListener('click', () => {
+    alert('Para contactar a recepción, marca el interno 0 desde el teléfono de tu habitación o acércate a recepción.');
+  });
 }
 
 // ── RENDER GRID ────────────────────────────────────────────────────────────────
@@ -549,7 +599,7 @@ async function applyScene(sceneName) {
   const scene = SCENES[sceneName];
   if (!scene) return;
 
-  const btn = document.querySelector(`.scene-btn[data-scene="${sceneName}"]`);
+  const btn = document.querySelector(`.scene-card[data-scene="${sceneName}"]`);
   if (btn) btn.classList.add('loading');
 
   // Filtrar solo los dispositivos que existen en esta habitación

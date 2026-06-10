@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0F0F0F">
 <meta name="description" content="Control de habitación — Nexo IoT">
 <title>Nexo IoT — Control de habitación</title>
-<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
 
@@ -26,6 +26,36 @@
   <div class="err-sub" id="err-sub">Solicita un nuevo acceso en recepción.</div>
 </div>
 
+<!-- ── MENÚ LATERAL (sidebar) ────────────────────────────────────────────────── -->
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+<nav class="sidebar" id="sidebar" aria-label="Menú principal">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">N</div>
+    <div>
+      <div class="sidebar-hotel" id="sidebar-hotel">Nexo IoT</div>
+      <div class="sidebar-room"  id="sidebar-room">Habitación</div>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <button class="nav-item active" data-view="room">
+      <span class="nav-ico">🏠</span>Habitación
+    </button>
+    <button class="nav-item" data-view="scenes">
+      <span class="nav-ico">🎬</span>Escenas
+    </button>
+    <button class="nav-item" data-view="climate">
+      <span class="nav-ico">❄️</span>Clima
+      <span class="premium-badge">Premium</span>
+    </button>
+    <button class="nav-item" data-view="settings">
+      <span class="nav-ico">⚙️</span>Ajustes
+    </button>
+    <button class="nav-item" data-view="support">
+      <span class="nav-ico">🎧</span>Soporte
+    </button>
+  </div>
+</nav>
+
 <!-- ── APP PRINCIPAL ──────────────────────────────────────────────────────── -->
 <div id="app" class="hidden">
 
@@ -37,7 +67,10 @@
   <!-- HEADER -->
   <header class="app-header">
     <div class="header-top">
-      <span class="hotel-name" id="hotel-name">Nexo IoT</span>
+      <div class="header-left">
+        <button class="hamburger-btn" id="hamburger-btn" aria-label="Abrir menú">☰</button>
+        <span class="hotel-name" id="hotel-name">Nexo IoT</span>
+      </div>
       <button class="checkout-btn" aria-label="Información de check-out">
         🚪 Check-out
       </button>
@@ -53,27 +86,71 @@
     <div class="door-status" id="door-status"></div>
   </header>
 
-  <!-- ESCENAS RÁPIDAS -->
-  <div class="scenes-bar" role="group" aria-label="Escenas rápidas">
-    <button class="scene-btn" data-scene="night"   aria-label="Escena noche">
-      <span class="scene-ico">🌙</span>Noche
-    </button>
-    <button class="scene-btn" data-scene="morning" aria-label="Escena mañana">
-      <span class="scene-ico">☀️</span>Mañana
-    </button>
-    <button class="scene-btn" data-scene="relax"   aria-label="Escena relax">
-      <span class="scene-ico">🎬</span>Relax
-    </button>
-    <button class="scene-btn" data-scene="off"     aria-label="Apagar todo">
-      <span class="scene-ico">⚡</span>Apagar todo
-    </button>
+  <!-- ── VISTA: HABITACIÓN ────────────────────────────────────────────────── -->
+  <div class="view" id="view-room">
+    <div class="section-label">Controles</div>
+    <div class="device-grid" id="device-grid" role="main" aria-label="Controles de habitación"></div>
   </div>
 
-  <!-- LABEL SECCIÓN -->
-  <div class="section-label">Controles</div>
+  <!-- ── VISTA: ESCENAS ───────────────────────────────────────────────────── -->
+  <div class="view hidden" id="view-scenes">
+    <div class="section-label">Escenas</div>
+    <div class="scenes-grid" role="group" aria-label="Escenas rápidas">
+      <button class="scene-card" data-scene="night" aria-label="Escena noche">
+        <span class="scene-card-ico">🌙</span>
+        <span class="scene-card-title">Noche</span>
+        <span class="scene-card-desc">Apaga las luces principales y enciende el LED bajo cama</span>
+      </button>
+      <button class="scene-card" data-scene="morning" aria-label="Escena mañana">
+        <span class="scene-card-ico">☀️</span>
+        <span class="scene-card-title">Mañana</span>
+        <span class="scene-card-desc">Abre la cortina y enciende las luces en tono cálido</span>
+      </button>
+      <button class="scene-card" data-scene="relax" aria-label="Escena relax">
+        <span class="scene-card-ico">🎬</span>
+        <span class="scene-card-title">Relax</span>
+        <span class="scene-card-desc">Ambiente con luces de color suave y cortina a media altura</span>
+      </button>
+      <button class="scene-card" data-scene="off" aria-label="Apagar todo">
+        <span class="scene-card-ico">⚡</span>
+        <span class="scene-card-title">Apagar todo</span>
+        <span class="scene-card-desc">Apaga todas las luces y enchufes de la habitación</span>
+      </button>
+    </div>
+  </div>
 
-  <!-- GRID DE DISPOSITIVOS (poblado por JS) -->
-  <div class="device-grid" id="device-grid" role="main" aria-label="Controles de habitación"></div>
+  <!-- ── VISTA: CLIMA (Premium) ───────────────────────────────────────────── -->
+  <div class="view hidden" id="view-climate">
+    <div class="premium-lock">
+      <div class="premium-lock-icon">❄️</div>
+      <h3>Control de Clima</h3>
+      <p>Ajusta la temperatura de tu habitación desde el celular. Esta función está disponible en el plan Premium del hotel.</p>
+      <span class="premium-badge-lg">PREMIUM</span>
+    </div>
+  </div>
+
+  <!-- ── VISTA: AJUSTES ───────────────────────────────────────────────────── -->
+  <div class="view hidden" id="view-settings">
+    <div class="section-label">Ajustes</div>
+    <div class="settings-list">
+      <div class="settings-row"><span>Hotel</span><span id="set-hotel">—</span></div>
+      <div class="settings-row"><span>Habitación</span><span id="set-room">—</span></div>
+      <div class="settings-row"><span>Huésped</span><span id="set-guest">—</span></div>
+      <div class="settings-row"><span>Check-in</span><span id="set-checkin">—</span></div>
+      <div class="settings-row"><span>Check-out</span><span id="set-checkout">—</span></div>
+      <div class="settings-row"><span>Modo</span><span id="set-mode">—</span></div>
+    </div>
+  </div>
+
+  <!-- ── VISTA: SOPORTE ───────────────────────────────────────────────────── -->
+  <div class="view hidden" id="view-support">
+    <div class="section-label">Soporte</div>
+    <div class="support-card">
+      <span class="support-card-ico">🎧</span>
+      <p>¿Necesitas ayuda con tu habitación o tienes alguna duda?</p>
+      <button class="support-btn" id="call-reception-btn">📞 Llamar a recepción</button>
+    </div>
+  </div>
 
   <!-- FOOTER -->
   <footer class="app-footer">
@@ -93,6 +170,6 @@
 <script>
   window.NEXO_API_URL = 'https://nexoiot-production.up.railway.app';
 </script>
-<script src="/app.js"></script>
+<script src="./app.js"></script>
 </body>
 </html>

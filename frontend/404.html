@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redirigiendo…</title>
+<script>
+  // GitHub Pages no soporta rutas tipo /room/:token (no hay servidor).
+  // Truco SPA: 404.html redirige a index.html pasando el token como query string.
+  // Ej: /nexoiot/room/abc123 → /nexoiot/?token=abc123
+  var parts = location.pathname.split('/').filter(Boolean); // ej: ['nexoiot','room','abc123']
+  var token = parts.pop();
+  if (parts[parts.length - 1] === 'room') parts.pop();
+  var base = '/' + parts.join('/') + (parts.length ? '/' : '');
+  location.replace(base + '?token=' + encodeURIComponent(token));
+</script>
+</head>
+<body></body>
+</html>
