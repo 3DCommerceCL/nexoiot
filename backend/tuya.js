@@ -57,7 +57,7 @@ const _mock = {
 // ── FIRMA TUYA (HMAC-SHA256) ──────────────────────────────────────────────────
 function calcSign(clientId, secret, accessToken, timestamp, nonce, method, pathWithQuery, bodyStr) {
   const bodyHash    = crypto.createHash('sha256').update(bodyStr || '').digest('hex');
-  const stringToSign = [bodyHash, method.toUpperCase(), '', pathWithQuery].join('\n');
+  const stringToSign = [method.toUpperCase(), bodyHash, '', pathWithQuery].join('\n');
   const message     = clientId + accessToken + timestamp + nonce + stringToSign;
   return crypto.createHmac('sha256', secret).update(message).digest('hex').toUpperCase();
 }
@@ -139,34 +139,4 @@ async function sendCommand(deviceId, commands) {
   }
 }
 
-// ── DEBUG: prueba autenticación Tuya en las 3 regiones principales ───────────
-async function debugAuth() {
-  const REGIONS = [
-    'https://openapi.tuyaus.com',
-    'https://openapi.tuyaeu.com',
-    'https://openapi.tuyain.com',
-  ];
-  const results = {};
-  for (const url of REGIONS) {
-    const timestamp = Date.now().toString();
-    const nonce     = crypto.randomBytes(16).toString('hex');
-    const sign      = calcSign(CLIENT_ID, CLIENT_SECRET, '', timestamp, nonce, 'GET', '/v1.0/token?grant_type=1', '');
-    const headers   = { 'client_id': CLIENT_ID, 'sign': sign, 'sign_method': 'HMAC-SHA256', 't': timestamp, 'nonce': nonce };
-    try {
-      const res  = await fetch(`${url}/v1.0/token?grant_type=1`, { headers, signal: AbortSignal.timeout(8000) });
-      const data = await res.json();
-      results[url] = { code: data.code, msg: data.msg, success: data.success };
-    } catch (err) {
-      results[url] = { error: err.message };
-    }
-  }
-  const s = CLIENT_SECRET || '';
-  return {
-    client_id:        CLIENT_ID,
-    secret_preview:   s ? `${s.slice(0,4)}...${s.slice(-4)} (${s.length} chars)` : '(vacío)',
-    configured_url:   BASE_URL,
-    regions:          results,
-  };
-}
-
-module.exports = { getDeviceStatus, sendCommand, isDemoMode: () => DEMO_MODE, debugAuth };
+module.exports = { getDeviceStatus, sendCommand, isDemoMode: () => DEMO_MODE };

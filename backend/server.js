@@ -78,15 +78,18 @@ function statusToState(type, statuses) {
       return {
         on:        get('switch_led')      ?? false,
         intensity: Math.round((get('bright_value_v2') ?? 500) / 10),  // 0-1000 → 0-100
-        colorTemp: Math.round((get('colour_temp_v2')  ?? 500) / 10),  // 0-1000 → 0-100
+        colorTemp: Math.round((get('temp_value_v2')   ?? 500) / 10),  // 0-1000 → 0-100
       };
     case 'light_rgb': {
-      const cd = get('colour_data_v2') || { h: 0, s: 1000, v: 1000 };
+      let cd = get('colour_data_v2') || { h: 0, s: 1000, v: 1000 };
+      if (typeof cd === 'string') {
+        try { cd = JSON.parse(cd); } catch { cd = { h: 0, s: 1000, v: 1000 }; }
+      }
       return {
         on:        get('switch_led')      ?? false,
         intensity: Math.round((get('bright_value_v2') ?? 500) / 10),
         mode:      get('work_mode')       ?? 'white',
-        colorTemp: Math.round((get('colour_temp_v2')  ?? 500) / 10),
+        colorTemp: Math.round((get('temp_value_v2')   ?? 500) / 10),
         hue:       cd.h ?? 0,
         saturation:cd.s ?? 1000,
       };
@@ -124,14 +127,14 @@ function commandToTuya(type, command) {
     case 'light':
       if ('on'        in command) cmds.push({ code: 'switch_led',      value: command.on });
       if ('intensity' in command) cmds.push({ code: 'bright_value_v2', value: Math.min(1000, Math.max(10, Math.round(command.intensity * 10))) });
-      if ('colorTemp' in command) cmds.push({ code: 'colour_temp_v2',  value: Math.min(1000, Math.max(0,  Math.round(command.colorTemp  * 10))) });
+      if ('colorTemp' in command) cmds.push({ code: 'temp_value_v2',   value: Math.min(1000, Math.max(0,  Math.round(command.colorTemp  * 10))) });
       break;
     case 'light_rgb':
       if ('on'        in command) cmds.push({ code: 'switch_led',      value: command.on });
       if ('intensity' in command) cmds.push({ code: 'bright_value_v2', value: Math.min(1000, Math.max(10, Math.round(command.intensity * 10))) });
       if ('colorTemp' in command) {
         cmds.push({ code: 'work_mode',      value: 'white' });
-        cmds.push({ code: 'colour_temp_v2', value: Math.round(command.colorTemp * 10) });
+        cmds.push({ code: 'temp_value_v2',  value: Math.round(command.colorTemp * 10) });
       }
       if ('hue' in command) {
         cmds.push({ code: 'work_mode',     value: 'colour' });
@@ -268,12 +271,6 @@ app.get('/api/admin/tokens', adminAuth, (req, res) => {
 app.get('/api/admin/rooms', adminAuth, (req, res) => {
   const r = rooms.getRooms();
   res.json(Object.keys(r).map(id => ({ id, name: r[id].name, floor: r[id].floor })));
-});
-
-// ── DEBUG TUYA AUTH (admin only, temporal) ────────────────────────────────────
-app.get('/api/debug/tuya-auth', adminAuth, async (_req, res) => {
-  const result = await tuya.debugAuth();
-  res.json(result);
 });
 
 // ── HEALTH CHECK ──────────────────────────────────────────────────────────────

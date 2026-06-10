@@ -11,7 +11,7 @@
       },
       "led_cama": {
         "deviceId": "ebc06c6118bf9128ec9i9s",
-        "type":     "switch",
+        "type":     "light_rgb",
         "label":    "LED Bajo Cama"
       },
       "luz_techo": {
