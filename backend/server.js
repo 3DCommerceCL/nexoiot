@@ -205,6 +205,7 @@ app.get('/api/room/:token', async (req, res) => {
     checkin:   entry.checkin,
     checkout:  entry.checkout,
     demoMode:  room.demo === true || tuya.isDemoMode(),
+    plan:      room.plan || 'base',
     devices,
   });
 });
@@ -306,6 +307,7 @@ app.get('/api/admin/rooms', adminAuth, (req, res) => {
           name:  r[id].name,
           hotel: r[id].hotel || null,
           floor: r[id].floor,
+          plan:  r[id].plan || 'base',
           guest,
         };
       })

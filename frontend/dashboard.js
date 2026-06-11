@@ -11,11 +11,36 @@ const KEY_STORAGE  = 'nexo_admin_key';
 
 const $ = id => document.getElementById(id);
 
+// ── NIVELES DE PLAN ───────────────────────────────────────────────────────────
+const PLAN_TIERS  = { base: 0, premium: 1, max_comfort: 2 };
+const PLAN_LABELS = { base: 'Base', premium: 'Premium', max_comfort: 'Max Comfort' };
+const planLevel   = plan => PLAN_TIERS[plan] ?? 0;
+
+const PLAN_FEATURES_INFO = {
+  voice: {
+    icon: '🔊', title: 'Control por Voz', minPlan: 'premium', badge: 'PREMIUM',
+    desc: 'Control con Amazon Echo. Disponible en el plan Premium.',
+  },
+  bathroom: {
+    icon: '🚿', title: 'Baño Inteligente', minPlan: 'max_comfort', addonFrom: 'base', badge: 'MAX COMFORT',
+    desc: 'Sensor de presencia + luz inteligente de baño. Incluido en Max Comfort.',
+  },
+  bidet: {
+    icon: '🚽', title: 'Baño Japonés', minPlan: 'max_comfort', badge: 'MAX COMFORT',
+    desc: 'Bidé inteligente con asiento calefaccionado. Incluido en Max Comfort.',
+  },
+  rug: {
+    icon: '🔥', title: 'Alfombra Calefaccionable', minPlan: 'max_comfort', badge: 'MAX COMFORT',
+    desc: 'Alfombra con calefacción para pie de cama o baño. Incluida en Max Comfort.',
+  },
+};
+
 const state = {
   view: 'overview',
   filter: 'all',
   sidebarCollapsed: false,
-  currentRoom: null,   // { id, token, devices }
+  currentRoom: null,   // { id, token, devices, plan }
+  placeholder: {},     // estado local de funciones del plan (no conectadas a dispositivos reales)
 };
 
 let rooms = []; // [{ id, name, hotel, floor, guest: {...} | null }]
@@ -144,13 +169,14 @@ function renderKPIs() {
 
 // ── ROOM GRID ─────────────────────────────────────────────────────────────────
 function buildRoomCard(room) {
+  const planBadge = `<span class="badge badge-plan">${PLAN_LABELS[room.plan] || 'Base'}</span>`;
   if (room.guest) {
     const co = checkoutInfo(room.guest.checkout);
     return `
     <div class="room-card" id="rc-${room.id}">
       <div class="rc-top">
         <span class="rc-num">${room.name}</span>
-        <span class="badge badge-floor">Piso ${room.floor}</span>
+        <div style="display:flex;gap:5px"><span class="badge badge-floor">Piso ${room.floor}</span>${planBadge}</div>
       </div>
       <div class="rc-guest">${room.guest.guestName}</div>
       <div class="rc-checkout ${co.urgency}">${co.urgency === 'today' ? '⚠️' : '🗓'} ${co.label}</div>
@@ -164,7 +190,7 @@ function buildRoomCard(room) {
   <div class="room-card" id="rc-${room.id}" style="border-style:dashed">
     <div class="rc-top">
       <span class="rc-num">${room.name}</span>
-      <span class="badge badge-available">Disponible</span>
+      <div style="display:flex;gap:5px"><span class="badge badge-available">Disponible</span>${planBadge}</div>
     </div>
     <div class="rc-empty">Sin huésped — Piso ${room.floor}</div>
     <button class="btn btn-sm btn-outline-teal" style="margin-top:auto" onclick="openNewStayModal('${room.id}')">+ Asignar estadía</button>
@@ -201,7 +227,14 @@ window.openRoomModal = async function(roomId) {
 
   try {
     const data = await apiFetch(`/room/${room.guest.token}`, { headers: {} });
-    state.currentRoom = { id: room.id, token: room.guest.token, devices: data.devices };
+    state.currentRoom = { id: room.id, token: room.guest.token, devices: data.devices, plan: room.plan || 'base' };
+    state.placeholder = {
+      tv:       { on: false, vol: 30, source: 'cable' },
+      voice:    { on: true },
+      bathroom: { presence: false, lightOn: false, intensity: 60 },
+      bidet:    { on: false, heatedSeat: false, mode: null },
+      rug:      { on: false, level: 'media' },
+    };
     renderDevGrid();
     renderQRSection(room);
   } catch (err) {
@@ -214,9 +247,174 @@ const DEV_ICONS = {
 };
 
 function renderDevGrid() {
-  const { devices } = state.currentRoom;
-  $('dev-grid').innerHTML = Object.entries(devices).map(([key, dev]) => buildDeviceCard(key, dev)).join('');
+  const { devices, plan } = state.currentRoom;
+  const cards = Object.entries(devices).map(([key, dev]) => buildDeviceCard(key, dev));
+  cards.push(buildTVCard());
+  cards.push(buildFeatureCard('voice',    PLAN_FEATURES_INFO.voice,    buildVoiceCard,    plan));
+  cards.push(buildFeatureCard('bathroom', PLAN_FEATURES_INFO.bathroom, buildBathroomCard, plan));
+  cards.push(buildFeatureCard('bidet',    PLAN_FEATURES_INFO.bidet,    buildBidetCard,    plan));
+  cards.push(buildFeatureCard('rug',      PLAN_FEATURES_INFO.rug,      buildRugCard,      plan));
+  $('dev-grid').innerHTML = cards.join('');
 }
+
+// ── FUNCIONES DEL PLAN (placeholders no conectados a dispositivos reales) ────
+function buildFeatureCard(key, info, builder, plan) {
+  if (planLevel(plan) >= planLevel(info.minPlan)) return builder();
+  return buildLockedCard(key, info, plan);
+}
+
+function buildLockedCard(key, info, plan) {
+  const isAddon = info.addonFrom && planLevel(plan) >= planLevel(info.addonFrom);
+  return `<div class="dev-card feature-card locked">
+    <div class="feature-lock-icon">${info.icon}</div>
+    <div class="feature-lock-title">${info.title}</div>
+    <div class="feature-lock-desc">${info.desc}</div>
+    ${isAddon
+      ? `<span class="feature-addon-badge">Disponible como add-on</span>`
+      : `<span class="feature-plan-badge">${info.badge}</span>`}
+  </div>`;
+}
+
+function buildTVCard() {
+  const s = state.placeholder.tv;
+  const sources = [
+    { id: 'cable',   label: 'TV Cable' },
+    { id: 'netflix', label: 'Streaming' },
+    { id: 'hdmi',    label: 'HDMI' },
+  ];
+  return `<div class="dev-card">
+    <div class="dev-card-head">
+      <div class="dev-card-name"><span class="dev-card-ico">📺</span> TV</div>
+      <div class="toggle-sw ${s.on ? 'on' : ''}" onclick="toggleFeature('tv')"></div>
+    </div>
+    <div class="${s.on ? '' : 'dev-dimmed'}">
+      <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? 'Encendida' : 'Apagada'}</div>
+      <div class="slider-wrap">
+        <input type="range" min="0" max="100" value="${s.vol}" ${s.on ? '' : 'disabled'}
+          oninput="this.nextElementSibling.textContent=this.value+'%'"
+          onchange="setFeatureVal('tv','vol',this.value)">
+        <span class="slider-val">${s.vol}%</span>
+      </div>
+      <div class="source-row">
+        ${sources.map(src => `<button class="source-btn ${s.source === src.id ? 'active' : ''}" onclick="setFeatureVal('tv','source','${src.id}')">${src.label}</button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildVoiceCard() {
+  const s = state.placeholder.voice;
+  return `<div class="dev-card">
+    <div class="dev-card-head">
+      <div class="dev-card-name"><span class="dev-card-ico">🔊</span> Control por Voz</div>
+      <div class="toggle-sw ${s.on ? 'on' : ''}" onclick="toggleFeature('voice')"></div>
+    </div>
+    <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? 'Asistente activo (Echo)' : 'Modo privado — solo app'}</div>
+    <div class="feature-row">
+      <span class="feature-row-label"><span class="led-dot ${s.on ? 'on' : ''}"></span>LED indicador</span>
+      <span class="preview-tag">${s.on ? 'Encendido' : 'Apagado'}</span>
+    </div>
+  </div>`;
+}
+
+function buildBathroomCard() {
+  const s = state.placeholder.bathroom;
+  return `<div class="dev-card">
+    <div class="dev-card-head">
+      <div class="dev-card-name"><span class="dev-card-ico">🚿</span> Baño Inteligente</div>
+      <div class="toggle-sw ${s.lightOn ? 'on' : ''}" onclick="toggleFeature('bathroom')"></div>
+    </div>
+    <div class="feature-row" style="cursor:pointer" onclick="togglePresence()">
+      <span class="feature-row-label"><span class="led-dot ${s.presence ? 'on' : ''}"></span>Sensor de presencia</span>
+      <span class="preview-tag">${s.presence ? 'Detectada' : 'Sin presencia'}</span>
+    </div>
+    <div class="${s.lightOn ? '' : 'dev-dimmed'}">
+      <div class="dev-status ${s.lightOn ? 'on-label' : ''}" style="margin-top:6px">${s.lightOn ? 'Luz encendida' : 'Luz apagada'}</div>
+      <div class="slider-wrap">
+        <input type="range" min="5" max="100" value="${s.intensity}" ${s.lightOn ? '' : 'disabled'}
+          oninput="this.nextElementSibling.textContent=this.value+'%'"
+          onchange="setFeatureVal('bathroom','intensity',this.value)">
+        <span class="slider-val">${s.intensity}%</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildBidetCard() {
+  const s = state.placeholder.bidet;
+  return `<div class="dev-card">
+    <div class="dev-card-head">
+      <div class="dev-card-name"><span class="dev-card-ico">🚽</span> Baño Japonés</div>
+      <div class="toggle-sw ${s.on ? 'on' : ''}" onclick="toggleFeature('bidet')"></div>
+    </div>
+    <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? 'Encendido' : 'Apagado'}</div>
+    <div class="${s.on ? '' : 'dev-dimmed'}">
+      <div class="feature-row">
+        <span class="feature-row-label">Asiento calefaccionado</span>
+        <div class="toggle-sw ${s.heatedSeat ? 'on' : ''}" onclick="toggleHeatedSeat()"></div>
+      </div>
+      <div class="source-row">
+        <button class="source-btn ${s.mode === 'wash' ? 'active' : ''}" onclick="setBidetMode('wash')">💧 Lavado</button>
+        <button class="source-btn ${s.mode === 'dry'  ? 'active' : ''}" onclick="setBidetMode('dry')">🌬 Secado</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildRugCard() {
+  const s = state.placeholder.rug;
+  const levels = [{ id: 'baja', label: 'Baja' }, { id: 'media', label: 'Media' }, { id: 'alta', label: 'Alta' }];
+  return `<div class="dev-card">
+    <div class="dev-card-head">
+      <div class="dev-card-name"><span class="dev-card-ico">🔥</span> Alfombra Calefaccionable</div>
+      <div class="toggle-sw ${s.on ? 'on' : ''}" onclick="toggleFeature('rug')"></div>
+    </div>
+    <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? 'Encendida' : 'Apagada'}</div>
+    <div class="level-row ${s.on ? '' : 'dev-dimmed'}">
+      ${levels.map(l => `<button class="level-btn ${s.level === l.id ? 'active' : ''}" onclick="setRugLevel('${l.id}')">${l.label}</button>`).join('')}
+    </div>
+  </div>`;
+}
+
+function previewToast() { showToast('Vista previa — función no conectada a un dispositivo real', ''); }
+
+window.toggleFeature = function(key) {
+  const s = state.placeholder[key];
+  if (key === 'bathroom') s.lightOn = !s.lightOn; else s.on = !s.on;
+  renderDevGrid();
+  previewToast();
+};
+
+window.togglePresence = function() {
+  state.placeholder.bathroom.presence = !state.placeholder.bathroom.presence;
+  renderDevGrid();
+  previewToast();
+};
+
+window.toggleHeatedSeat = function() {
+  state.placeholder.bidet.heatedSeat = !state.placeholder.bidet.heatedSeat;
+  renderDevGrid();
+  previewToast();
+};
+
+window.setBidetMode = function(mode) {
+  const s = state.placeholder.bidet;
+  s.mode = s.mode === mode ? null : mode;
+  renderDevGrid();
+  previewToast();
+};
+
+window.setRugLevel = function(level) {
+  state.placeholder.rug.level = level;
+  renderDevGrid();
+  previewToast();
+};
+
+window.setFeatureVal = function(key, prop, val) {
+  state.placeholder[key][prop] = (prop === 'vol' || prop === 'intensity') ? parseInt(val, 10) : val;
+  if (prop === 'source') renderDevGrid();
+  previewToast();
+};
 
 function buildDeviceCard(key, dev) {
   const ico = DEV_ICONS[dev.type] || '🔧';

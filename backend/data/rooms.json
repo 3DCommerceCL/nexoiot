@@ -3,6 +3,7 @@
     "name":  "Habitación 101",
     "hotel": "Hotel Demo Plaza",
     "floor": 1,
+    "plan":  "premium",
     "devices": {
       "puerta": {
         "deviceId": "eb24a9f06a4c32ba51p42s",
@@ -46,6 +47,7 @@
     "name":  "Habitación Demo",
     "hotel": "Nexo IoT — Demo",
     "floor": 0,
+    "plan":  "max_comfort",
     "demo":  true,
     "devices": {
       "puerta": {

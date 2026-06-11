@@ -430,6 +430,44 @@ input[type=range]:disabled { opacity: .3; pointer-events: none; }
 .toast.error   { border-color: rgba(232,93,93,.5);  color: #FF8080; }
 @keyframes toastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
 
+/* ── FUNCIONES DEL PLAN (placeholders) ────────────────────────────────────── */
+.feature-card.locked {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  justify-content: center; gap: 6px; padding: 22px 12px;
+}
+.feature-lock-icon  { font-size: 28px; opacity: .5; }
+.feature-lock-title { font-size: 12px; font-weight: 700; color: var(--text); }
+.feature-lock-desc  { font-size: 10px; color: var(--text2); line-height: 1.4; }
+.feature-plan-badge {
+  margin-top: 4px; font-size: 9px; font-weight: 800; letter-spacing: .8px;
+  color: #1A1300; background: var(--warn); padding: 3px 9px; border-radius: 10px;
+}
+.feature-addon-badge {
+  margin-top: 4px; font-size: 9px; font-weight: 800; letter-spacing: .5px;
+  color: var(--teal); background: var(--teal-l); padding: 3px 9px; border-radius: 10px;
+}
+.feature-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.feature-row:last-child { border-bottom: none; padding-bottom: 0; }
+.feature-row-label { font-size: 12px; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.led-dot {
+  width: 9px; height: 9px; border-radius: 50%; background: var(--text3);
+  flex-shrink: 0; transition: background .2s, box-shadow .2s;
+}
+.led-dot.on { background: var(--teal); box-shadow: 0 0 6px var(--teal); }
+.preview-tag { font-size: 9px; font-weight: 700; letter-spacing: .5px; color: var(--text3); text-transform: uppercase; }
+.source-row, .level-row { display: flex; gap: 6px; margin-top: 8px; }
+.source-btn, .level-btn {
+  flex: 1; padding: 7px 4px; border-radius: var(--rsm);
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text2); font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: var(--font); transition: all .15s;
+}
+.source-btn.active, .level-btn.active { background: var(--teal-l); border-color: var(--teal); color: var(--teal); }
+.source-btn:hover, .level-btn:hover { color: var(--text); border-color: var(--text3); }
+
 /* ── VISTA: CLIMA (Premium) ───────────────────────────────────────────────── */
 .premium-lock {
   display: flex; flex-direction: column; align-items: center; text-align: center;

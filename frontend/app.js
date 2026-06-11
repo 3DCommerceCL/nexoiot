@@ -20,6 +20,7 @@ const STATIC_DEMO = {
   checkin:   new Date(Date.now() - 1 * 86400000).toISOString(), // ayer
   checkout:  new Date(Date.now() + 2 * 86400000).toISOString(), // en 2 días
   demoMode:  true,
+  plan:      'max_comfort',
   devices: {
     led_cama: {
       label: 'LED Bajo Cama', type: 'light_rgb', available: false,
@@ -54,9 +55,15 @@ const app = {
   token:   null,
   config:  {},   // { key: { type, label, channels, available } }
   devices: {},   // { key: estado normalizado del dispositivo }
+  plan:    'base', // 'base' | 'premium' | 'max_comfort'
   _timers: {},   // debounce timers para sliders
   _wheelOpen: {}, // { key: bool } — selector de color RGB abierto/cerrado
+  _placeholder: {}, // estado local de funciones del plan (no conectadas a dispositivos reales)
 };
+
+// ── NIVELES DE PLAN ───────────────────────────────────────────────────────────
+const PLAN_TIERS = { base: 0, premium: 1, max_comfort: 2 };
+const planLevel = plan => PLAN_TIERS[plan] ?? 0;
 
 // ── ESCENAS RÁPIDAS ───────────────────────────────────────────────────────────
 const SCENES = {
@@ -171,6 +178,8 @@ function renderApp(data) {
     app.devices[key] = dev.state ? { ...dev.state } : {};
   }
 
+  app.plan = data.plan || 'base';
+
   // Header
   document.getElementById('hotel-name').textContent  = data.hotelName;
   document.getElementById('room-name').textContent   = data.roomName;
@@ -214,6 +223,15 @@ function renderApp(data) {
   // Grid de dispositivos
   renderGrid();
 
+  // Funciones del plan (placeholders) y vista de clima
+  renderPlanGrid();
+  renderClimateView();
+
+  // Ocultar el badge "Premium" del menú si el plan ya lo incluye
+  if (planLevel(app.plan) >= PLAN_TIERS.premium) {
+    document.querySelector('.nav-item[data-view="climate"] .premium-badge')?.classList.add('hidden');
+  }
+
   // Mostrar app
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
@@ -228,6 +246,18 @@ function renderApp(data) {
   grid.addEventListener('click',  handleGridClick);
   grid.addEventListener('input',  handleGridInput);
   grid.addEventListener('change', handleGridInput);
+
+  // Delegación de eventos para las funciones del plan (placeholders)
+  const planGrid = document.getElementById('plan-grid');
+  planGrid.addEventListener('click',  handlePlanGridClick);
+  planGrid.addEventListener('input',  handlePlanGridInput);
+  planGrid.addEventListener('change', handlePlanGridInput);
+
+  // Delegación de eventos para la vista de Clima (Premium)
+  const climateContent = document.getElementById('climate-content');
+  climateContent.addEventListener('click',  handlePlanGridClick);
+  climateContent.addEventListener('input',  handlePlanGridInput);
+  climateContent.addEventListener('change', handlePlanGridInput);
 
   // Navegación (sidebar y vistas)
   initNav();
@@ -478,6 +508,326 @@ function buildACCard(key) {
       <button class="ac-btn" data-key="${key}" data-temp="+1" ${on ? '' : 'disabled'}>+</button>
     </div>
   </div>`;
+}
+
+// ── FUNCIONES DEL PLAN (placeholders no conectados a dispositivos reales) ────
+const PLAN_FEATURES_INFO = {
+  voice: {
+    icon: '🔊', title: 'Control por Voz', minPlan: 'premium', badge: 'PREMIUM',
+    desc: 'Controla tu habitación con Amazon Echo. Disponible en el plan Premium del hotel.',
+  },
+  bathroom: {
+    icon: '🚿', title: 'Baño Inteligente', minPlan: 'max_comfort', addonFrom: 'base', badge: 'MAX COMFORT',
+    desc: 'Sensor de presencia + luz inteligente en el baño. Incluido en el plan Max Comfort.',
+  },
+  bidet: {
+    icon: '🚽', title: 'Baño Japonés', minPlan: 'max_comfort', badge: 'MAX COMFORT',
+    desc: 'Bidé inteligente con asiento calefaccionado. Incluido en el plan Max Comfort.',
+  },
+  rug: {
+    icon: '🔥', title: 'Alfombra Calefaccionable', minPlan: 'max_comfort', badge: 'MAX COMFORT',
+    desc: 'Alfombra con calefacción para pie de cama o baño. Incluida en el plan Max Comfort.',
+  },
+};
+
+function renderPlanGrid() {
+  const grid = document.getElementById('plan-grid');
+  grid.innerHTML = [
+    buildTVCard(),
+    buildFeatureCard('voice',    PLAN_FEATURES_INFO.voice,    buildVoiceCard),
+    buildFeatureCard('bathroom', PLAN_FEATURES_INFO.bathroom, buildBathroomCard),
+    buildFeatureCard('bidet',    PLAN_FEATURES_INFO.bidet,    buildBidetCard),
+    buildFeatureCard('rug',      PLAN_FEATURES_INFO.rug,      buildRugCard),
+  ].join('');
+}
+
+function buildFeatureCard(key, info, builder) {
+  if (planLevel(app.plan) >= planLevel(info.minPlan)) return builder();
+  return buildLockedCard(key, info);
+}
+
+function buildLockedCard(key, info) {
+  const isAddon = info.addonFrom && planLevel(app.plan) >= planLevel(info.addonFrom);
+  return `<div class="device-card feature-card locked" id="feature-${key}">
+    <div class="feature-lock-icon">${info.icon}</div>
+    <div class="feature-lock-title">${info.title}</div>
+    <div class="feature-lock-desc">${info.desc}</div>
+    ${isAddon
+      ? `<span class="feature-addon-badge">Disponible como add-on</span>`
+      : `<span class="feature-plan-badge">${info.badge}</span>`}
+  </div>`;
+}
+
+// ── TV ────────────────────────────────────────────────────────────────────────
+function buildTVCard() {
+  const s = app._placeholder.tv ?? (app._placeholder.tv = { on: false, vol: 30, source: 'cable' });
+  const sources = [
+    { id: 'cable',   label: 'TV Cable' },
+    { id: 'netflix', label: 'Streaming' },
+    { id: 'hdmi',    label: 'HDMI' },
+  ];
+  return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-tv">
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-ico">📺</span><span class="card-label">TV</span></div>
+      <div class="toggle ${s.on ? 'on' : ''}" data-feature="tv" data-action="toggle"></div>
+    </div>
+    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? 'Encendida' : 'Apagada'}</div>
+    ${s.on ? `
+      <div class="slider-lbl">Volumen</div>
+      <div class="slider-row">
+        <input type="range" min="0" max="100" value="${s.vol}" data-feature="tv" data-action="vol">
+        <span class="slider-val">${s.vol}%</span>
+      </div>
+      <div class="source-row">
+        ${sources.map(src => `<button class="source-btn ${s.source === src.id ? 'active' : ''}" data-feature="tv" data-action="source" data-source="${src.id}">${src.label}</button>`).join('')}
+      </div>` : ''}
+  </div>`;
+}
+
+// ── CONTROL POR VOZ (Echo) ────────────────────────────────────────────────────
+function buildVoiceCard() {
+  const s = app._placeholder.voice ?? (app._placeholder.voice = { on: true });
+  return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-voice">
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-ico">🔊</span><span class="card-label">Control por Voz</span></div>
+      <div class="toggle ${s.on ? 'on' : ''}" data-feature="voice" data-action="toggle"></div>
+    </div>
+    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? 'Asistente activo (Amazon Echo)' : 'Modo privado — solo control por app'}</div>
+    <div class="feature-row">
+      <span class="feature-row-label"><span class="led-dot ${s.on ? 'on' : ''}"></span>LED indicador</span>
+      <span class="preview-tag">${s.on ? 'Encendido' : 'Apagado'}</span>
+    </div>
+  </div>`;
+}
+
+// ── BAÑO INTELIGENTE (sensor de presencia + luz) ─────────────────────────────
+function buildBathroomCard() {
+  const s = app._placeholder.bathroom ?? (app._placeholder.bathroom = { presence: false, lightOn: false, intensity: 60 });
+  return `<div class="device-card full-width ${s.lightOn ? 'on' : ''}" id="feature-bathroom">
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-ico">🚿</span><span class="card-label">Baño Inteligente</span></div>
+      <div class="toggle ${s.lightOn ? 'on' : ''}" data-feature="bathroom" data-action="toggle"></div>
+    </div>
+    <div class="feature-row" data-action="presence" style="cursor:pointer">
+      <span class="feature-row-label"><span class="led-dot ${s.presence ? 'on' : ''}"></span>Sensor de presencia</span>
+      <span class="preview-tag">${s.presence ? 'Detectada' : 'Sin presencia'}</span>
+    </div>
+    <div class="card-status ${s.lightOn ? 'on' : ''}" style="margin-top:8px">${s.lightOn ? 'Luz encendida' : 'Luz apagada'}</div>
+    ${s.lightOn ? `
+    <div class="slider-lbl">Intensidad</div>
+    <div class="slider-row">
+      <input type="range" min="5" max="100" value="${s.intensity}" data-feature="bathroom" data-action="intensity">
+      <span class="slider-val">${s.intensity}%</span>
+    </div>` : ''}
+  </div>`;
+}
+
+// ── BAÑO JAPONÉS (bidé inteligente) ──────────────────────────────────────────
+function buildBidetCard() {
+  const s = app._placeholder.bidet ?? (app._placeholder.bidet = { on: false, heatedSeat: false, mode: null });
+  return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-bidet">
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-ico">🚽</span><span class="card-label">Baño Japonés</span></div>
+      <div class="toggle ${s.on ? 'on' : ''}" data-feature="bidet" data-action="toggle"></div>
+    </div>
+    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? 'Encendido' : 'Apagado'}</div>
+    ${s.on ? `
+    <div class="feature-row">
+      <span class="feature-row-label">Asiento calefaccionado</span>
+      <div class="toggle ${s.heatedSeat ? 'on' : ''}" data-feature="bidet" data-action="heated"></div>
+    </div>
+    <div class="source-row">
+      <button class="source-btn ${s.mode === 'wash' ? 'active' : ''}" data-feature="bidet" data-action="mode" data-mode="wash">💧 Lavado</button>
+      <button class="source-btn ${s.mode === 'dry'  ? 'active' : ''}" data-feature="bidet" data-action="mode" data-mode="dry">🌬 Secado</button>
+    </div>` : ''}
+  </div>`;
+}
+
+// ── ALFOMBRA CALEFACCIONABLE ──────────────────────────────────────────────────
+function buildRugCard() {
+  const s = app._placeholder.rug ?? (app._placeholder.rug = { on: false, level: 'media' });
+  const levels = [{ id: 'baja', label: 'Baja' }, { id: 'media', label: 'Media' }, { id: 'alta', label: 'Alta' }];
+  return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-rug">
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-ico">🔥</span><span class="card-label">Alfombra Calefaccionable</span></div>
+      <div class="toggle ${s.on ? 'on' : ''}" data-feature="rug" data-action="toggle"></div>
+    </div>
+    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? 'Encendida' : 'Apagada'}</div>
+    ${s.on ? `
+    <div class="level-row">
+      ${levels.map(l => `<button class="level-btn ${s.level === l.id ? 'active' : ''}" data-feature="rug" data-action="level" data-level="${l.id}">${l.label}</button>`).join('')}
+    </div>` : ''}
+  </div>`;
+}
+
+// ── VISTA CLIMA (AC + sensor de ventana + automatizaciones, Premium+) ────────
+function renderClimateView() {
+  const el = document.getElementById('climate-content');
+
+  if (planLevel(app.plan) < PLAN_TIERS.premium) {
+    el.innerHTML = `<div class="premium-lock">
+      <div class="premium-lock-icon">❄️</div>
+      <h3>Control de Clima</h3>
+      <p>Ajusta la temperatura de tu habitación, revisa el sensor de ventana y crea automatizaciones con el aire acondicionado. Esta función está disponible en el plan Premium del hotel.</p>
+      <span class="premium-badge-lg">PREMIUM</span>
+    </div>`;
+    return;
+  }
+
+  const s = app._placeholder.climate ?? (app._placeholder.climate = { acOn: false, temp: 22, windowOpen: false, autoOff: true });
+
+  el.innerHTML = `
+    <div class="section-label">Aire Acondicionado</div>
+    <div class="device-grid">
+      <div class="device-card ${s.acOn ? 'on' : ''}" id="feature-ac">
+        <div class="card-head">
+          <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">Aire Acondicionado</span></div>
+          <div class="toggle ${s.acOn ? 'on' : ''}" data-feature="climate" data-action="ac-toggle"></div>
+        </div>
+        <div class="ac-temp-display"><div class="ac-temp-val ${s.acOn ? 'on' : ''}">${s.temp}°C</div></div>
+        <div class="ac-temp-btns">
+          <button class="ac-btn" data-feature="climate" data-action="ac-temp" data-delta="-1" ${s.acOn ? '' : 'disabled'}>−</button>
+          <span class="ac-range">16 – 30°C</span>
+          <button class="ac-btn" data-feature="climate" data-action="ac-temp" data-delta="1" ${s.acOn ? '' : 'disabled'}>+</button>
+        </div>
+      </div>
+      <div class="device-card ${s.windowOpen ? '' : 'on'}" id="feature-window">
+        <div class="card-head">
+          <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">Sensor de Ventana</span></div>
+        </div>
+        <div class="card-status ${s.windowOpen ? '' : 'on'}">${s.windowOpen ? 'Ventana abierta' : 'Ventana cerrada'}</div>
+        <button class="curtain-btn" style="margin-top:8px;width:100%" data-feature="climate" data-action="window-toggle">Simular ${s.windowOpen ? 'cierre' : 'apertura'}</button>
+      </div>
+    </div>
+    <div class="section-label" style="margin-top:18px">Automatizaciones</div>
+    <div class="device-grid">
+      <div class="device-card full-width">
+        <div class="card-head">
+          <div class="card-ico-name"><span class="card-ico">⚙️</span><span class="card-label">Apagar AC al abrir la ventana</span></div>
+          <div class="toggle ${s.autoOff ? 'on' : ''}" data-feature="climate" data-action="auto-toggle"></div>
+        </div>
+        <div class="card-status">Si está activo, el AC se apaga automáticamente y se notifica a recepción cuando se detecta una ventana abierta.</div>
+      </div>
+    </div>
+  `;
+}
+
+// ── EVENTOS: FUNCIONES DEL PLAN (placeholders) ───────────────────────────────
+function rerenderFeature(key) {
+  const builders = { tv: buildTVCard, voice: buildVoiceCard, bathroom: buildBathroomCard, bidet: buildBidetCard, rug: buildRugCard };
+  const el = document.getElementById(`feature-${key}`);
+  if (el && builders[key]) el.outerHTML = builders[key]();
+}
+
+function showPreviewToast() {
+  showToast('Vista previa — función no conectada a un dispositivo real', '');
+}
+
+function handlePlanGridClick(e) {
+  const tog = e.target.closest('[data-action="toggle"]');
+  if (tog) {
+    const key = tog.dataset.feature;
+    const s = app._placeholder[key];
+    if (key === 'bathroom') s.lightOn = !s.lightOn;
+    else s.on = !s.on;
+    rerenderFeature(key);
+    showPreviewToast();
+    return;
+  }
+
+  const presence = e.target.closest('[data-action="presence"]');
+  if (presence) {
+    app._placeholder.bathroom.presence = !app._placeholder.bathroom.presence;
+    rerenderFeature('bathroom');
+    showPreviewToast();
+    return;
+  }
+
+  const src = e.target.closest('[data-action="source"]');
+  if (src) {
+    app._placeholder.tv.source = src.dataset.source;
+    rerenderFeature('tv');
+    showPreviewToast();
+    return;
+  }
+
+  const heated = e.target.closest('[data-action="heated"]');
+  if (heated) {
+    app._placeholder.bidet.heatedSeat = !app._placeholder.bidet.heatedSeat;
+    rerenderFeature('bidet');
+    showPreviewToast();
+    return;
+  }
+
+  const mode = e.target.closest('[data-action="mode"]');
+  if (mode) {
+    const s = app._placeholder.bidet;
+    s.mode = s.mode === mode.dataset.mode ? null : mode.dataset.mode;
+    rerenderFeature('bidet');
+    showPreviewToast();
+    return;
+  }
+
+  const level = e.target.closest('[data-action="level"]');
+  if (level) {
+    app._placeholder.rug.level = level.dataset.level;
+    rerenderFeature('rug');
+    showPreviewToast();
+    return;
+  }
+
+  const acTog = e.target.closest('[data-action="ac-toggle"]');
+  if (acTog) {
+    app._placeholder.climate.acOn = !app._placeholder.climate.acOn;
+    renderClimateView();
+    showPreviewToast();
+    return;
+  }
+
+  const acTemp = e.target.closest('[data-action="ac-temp"]');
+  if (acTemp && !acTemp.disabled) {
+    const s = app._placeholder.climate;
+    s.temp = Math.min(30, Math.max(16, s.temp + parseInt(acTemp.dataset.delta)));
+    renderClimateView();
+    showPreviewToast();
+    return;
+  }
+
+  const winTog = e.target.closest('[data-action="window-toggle"]');
+  if (winTog) {
+    app._placeholder.climate.windowOpen = !app._placeholder.climate.windowOpen;
+    renderClimateView();
+    showPreviewToast();
+    return;
+  }
+
+  const autoTog = e.target.closest('[data-action="auto-toggle"]');
+  if (autoTog) {
+    app._placeholder.climate.autoOff = !app._placeholder.climate.autoOff;
+    renderClimateView();
+    showPreviewToast();
+    return;
+  }
+}
+
+function handlePlanGridInput(e) {
+  const vol = e.target.closest('input[data-feature="tv"][data-action="vol"]');
+  if (vol) {
+    const val = parseInt(vol.value);
+    const valEl = vol.parentElement?.querySelector('.slider-val');
+    if (valEl) valEl.textContent = val + '%';
+    app._placeholder.tv.vol = val;
+    return;
+  }
+
+  const intensity = e.target.closest('input[data-feature="bathroom"][data-action="intensity"]');
+  if (intensity) {
+    const val = parseInt(intensity.value);
+    const valEl = intensity.parentElement?.querySelector('.slider-val');
+    if (valEl) valEl.textContent = val + '%';
+    app._placeholder.bathroom.intensity = val;
+    return;
+  }
 }
 
 // ── EVENT: CLICK EN EL GRID ───────────────────────────────────────────────────
