@@ -3,94 +3,351 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="theme-color" content="#0F0F0F">
-<title>Nexo IoT — Panel del Hotel</title>
-<link rel="stylesheet" href="./dashboard.css">
+<title>Nexo IoT — Panel Hotel</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0F1117;--card:#1A1D27;--sidebar:#13151F;--border:#2A2D3E;
+  --teal:#1D9E75;--teal-d:#178862;--teal-l:rgba(29,158,117,.13);
+  --purple:#534AB7;--purple-l:rgba(83,74,183,.13);
+  --text:#F0F0F0;--text2:#8B8FA8;--text3:#555A72;
+  --alert:#E85D5D;--alert-l:rgba(232,93,93,.13);
+  --warn:#F0A030;--warn-l:rgba(240,160,48,.13);
+  --font:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+html,body{height:100%;overflow:hidden}
+body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px}
+.hidden{display:none!important}
+
+/* ── SIDEBAR ── */
+.sidebar{width:220px;min-width:220px;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;transition:width .25s,min-width .25s;overflow:hidden;z-index:50}
+.sidebar.collapsed{width:60px;min-width:60px}
+.sb-header{padding:20px 16px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
+.sb-logo{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--text);white-space:nowrap;margin-bottom:6px}
+.sb-logo-dot{width:8px;height:8px;border-radius:50%;background:var(--teal);flex-shrink:0;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.75)}}
+.sb-hotel{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar.collapsed .sb-hotel,.sidebar.collapsed .sb-logo span,.sidebar.collapsed .nav-label{display:none}
+.sidebar.collapsed .sb-logo{justify-content:center}
+.sb-nav{flex:1;padding:12px 0;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;color:var(--text2);border-left:3px solid transparent;transition:all .15s;position:relative;white-space:nowrap;user-select:none}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.nav-item.active{color:var(--teal);background:var(--teal-l);border-left-color:var(--teal)}
+.sidebar.collapsed .nav-item{padding:12px;justify-content:center}
+.nav-icon{font-size:16px;flex-shrink:0}
+.nav-label{font-size:13px;font-weight:500}
+.sb-footer{padding:16px;border-top:1px solid var(--border);flex-shrink:0}
+.sb-status{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--teal);margin-bottom:5px;white-space:nowrap}
+.sb-status-dot{width:7px;height:7px;border-radius:50%;background:var(--teal);flex-shrink:0;animation:pulse 2s infinite}
+.sb-status-line{font-size:11px;color:var(--text3);white-space:nowrap;margin-bottom:2px}
+.sb-version{font-size:10px;color:var(--text3);white-space:nowrap}
+.sidebar.collapsed .sb-footer>*:not(.sb-status){display:none}
+.sidebar.collapsed .sb-status span{display:none}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ── TOP BAR ── */
+.top-bar{height:56px;min-height:56px;background:var(--sidebar);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+.sb-toggle{background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s,background .15s;flex-shrink:0}
+.sb-toggle:hover{color:var(--text);background:rgba(255,255,255,.06)}
+.tb-title{font-size:15px;font-weight:600;color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.clock{font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid transparent;font-family:var(--font);white-space:nowrap}
+.btn-primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn-primary:hover{background:var(--teal-d);border-color:var(--teal-d)}
+.btn-outline{background:transparent;color:var(--text2);border-color:var(--border)}
+.btn-outline:hover{color:var(--text);border-color:var(--text2)}
+.btn-outline-teal{background:transparent;color:var(--teal);border-color:var(--teal)}
+.btn-outline-teal:hover{background:var(--teal-l)}
+.btn-danger-outline{background:transparent;color:var(--alert);border-color:var(--alert)}
+.btn-danger-outline:hover{background:var(--alert-l)}
+.btn-ghost{background:transparent;color:var(--text2);border-color:transparent;padding:5px 10px}
+.btn-ghost:hover{color:var(--teal);background:var(--teal-l)}
+.btn-sm{font-size:11px;padding:5px 10px}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;padding:24px}
+.view{display:none}
+.view.active{display:block}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px;transition:border-color .15s}
+.kpi-card:hover{border-color:var(--text3)}
+.kpi-label{font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.kpi-value{font-size:28px;font-weight:700;color:var(--text);line-height:1;margin-bottom:8px}
+.kpi-prog-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.kpi-prog-fill{height:100%;background:var(--teal);border-radius:2px;transition:width .4s ease}
+.kpi-sub{font-size:11px;color:var(--text2);margin-top:5px}
+
+/* ── SECTION HEADER ── */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.sec-title{font-size:14px;font-weight:600;color:var(--text2)}
+.filter-bar{display:flex;gap:6px;margin-bottom:18px}
+.filter-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .15s}
+.filter-btn:hover{color:var(--text);border-color:var(--text3)}
+.filter-btn.active{background:var(--teal-l);color:var(--teal);border-color:var(--teal)}
+
+/* ── ROOM GRID ── */
+.room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.room-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s,transform .15s;animation:fadeInCard .3s ease both}
+.room-card:hover{border-color:var(--text3);transform:translateY(-1px)}
+@keyframes fadeInCard{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.rc-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rc-num{font-size:22px;font-weight:800;color:var(--text);line-height:1}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.badge-floor{background:rgba(139,143,168,.15);color:var(--text2)}
+.badge-available{background:rgba(139,143,168,.12);color:var(--text2)}
+.rc-guest{font-size:13px;font-weight:500;color:var(--text)}
+.rc-checkout{font-size:11px;font-weight:500;display:flex;align-items:center;gap:4px}
+.rc-checkout.today{color:var(--alert)}
+.rc-checkout.tomorrow{color:var(--warn)}
+.rc-checkout.later{color:var(--text2)}
+.rc-empty{font-size:12px;color:var(--text3);font-style:italic;flex:1}
+.rc-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto}
+.qr-status{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600}
+.qr-dot{width:6px;height:6px;border-radius:50%}
+.qr-status.active .qr-dot{background:var(--teal)}
+.qr-status.active{color:var(--teal)}
+.qr-status.inactive .qr-dot{background:var(--alert)}
+.qr-status.inactive{color:var(--alert)}
+
+/* ── PLACEHOLDER VIEWS ── */
+.placeholder-view{display:flex;flex-direction:column;align-items:center;justify-content:center;height:400px;gap:12px;color:var(--text3)}
+.placeholder-view .ph-ico{font-size:48px;opacity:.4}
+.placeholder-view p{font-size:14px}
+
+/* ── MODALS ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeOverlay .2s ease}
+@keyframes fadeOverlay{from{opacity:0}to{opacity:1}}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:740px;max-height:90vh;overflow-y:auto;animation:slideModal .2s ease}
+@keyframes slideModal{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:22px 24px 0;gap:16px}
+.modal-title{font-size:16px;font-weight:700;color:var(--text)}
+.modal-subtitle{font-size:12px;color:var(--text2);margin-top:3px}
+.modal-close{background:rgba(255,255,255,.06);border:none;color:var(--text2);width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer;flex-shrink:0;transition:all .15s;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{background:rgba(255,255,255,.12);color:var(--text)}
+.modal-body{padding:20px 24px 24px}
+.modal-section{margin-bottom:20px}
+.modal-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:10px}
+
+/* ── DEVICE CONTROLS ── */
+.dev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dev-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:14px}
+.dev-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.dev-card-name{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--text)}
+.dev-card-ico{font-size:15px}
+.toggle-sw{width:36px;height:20px;border-radius:10px;background:var(--border);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle-sw.on{background:var(--teal)}
+.toggle-sw::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle-sw.on::after{transform:translateX(16px)}
+.toggle-sw.disabled{pointer-events:none;opacity:.4}
+.dev-status{font-size:11px;color:var(--text2);margin-bottom:8px}
+.dev-status.on-label{color:var(--teal)}
+.dev-dimmed{opacity:.35;pointer-events:none}
+.slider-wrap{display:flex;align-items:center;gap:8px}
+.slider-val{font-size:11px;color:var(--text2);min-width:28px;text-align:right}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;background:var(--border);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--teal);cursor:pointer;box-shadow:0 0 0 2px rgba(29,158,117,.3)}
+input[type=range]:disabled{opacity:.3;pointer-events:none}
+.curtain-btns{display:flex;gap:5px;margin-bottom:8px}
+.curtain-btn{flex:1;padding:5px 0;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .15s}
+.curtain-btn:hover{color:var(--text);border-color:var(--text3);background:rgba(255,255,255,.04)}
+.curtain-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:4px}
+.curtain-fill{height:100%;background:rgba(66,160,220,.7);border-radius:2px;transition:width .4s ease}
+.curtain-label{font-size:10px;color:var(--text2)}
+.door-badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;display:inline-block}
+.door-badge.closed{background:var(--teal-l);color:var(--teal)}
+.door-badge.open{background:var(--warn-l);color:var(--warn)}
+
+/* ── QR SECTION ── */
+.qr-section{display:flex;gap:20px;align-items:flex-start;padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;flex-wrap:wrap}
+.qr-canvas{background:#fff;padding:8px;border-radius:6px;flex-shrink:0;width:140px;height:140px}
+.qr-canvas img{width:100%;height:100%}
+.qr-info{flex:1;min-width:200px}
+.qr-info-label{font-size:11px;color:var(--text2);margin-bottom:4px}
+.qr-url{font-size:12px;color:var(--teal);font-family:monospace;margin-bottom:14px;word-break:break-all}
+.qr-actions{display:flex;flex-direction:column;gap:8px}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:1/-1}
+.form-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:.3px}
+.form-input{padding:9px 12px;border-radius:7px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color .15s}
+.form-input:focus{border-color:var(--teal)}
+.form-input::placeholder{color:var(--text3)}
+select.form-input{cursor:pointer}
+select.form-input option{background:var(--card);color:var(--text)}
+.form-note{font-size:11px;color:var(--text3);margin-top:4px}
+.form-error{font-size:12px;color:var(--alert);min-height:16px}
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── LOGIN ── */
+.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;display:flex;flex-direction:column;gap:14px}
+.login-desc{font-size:12px;color:var(--text2);line-height:1.5}
+
+/* ── TOAST ── */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text);animation:toastIn .3s ease;pointer-events:all;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:320px}
+.toast.success{border-color:var(--teal);background:rgba(29,158,117,.1)}
+.toast.error{border-color:var(--alert);background:var(--alert-l)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .sidebar{width:60px;min-width:60px}
+  .sidebar .sb-hotel,.sidebar .nav-label,.sidebar .sb-footer>*:not(.sb-status){display:none}
+  .sidebar .sb-logo{justify-content:center}
+  .sidebar .nav-item{padding:12px;justify-content:center}
+  .sidebar .sb-status span{display:none}
+  .sidebar .sb-status{justify-content:center}
+  .kpi-row{grid-template-columns:repeat(2,1fr)}
+  .dev-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:600px){
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .tb-right .clock{display:none}
+  .room-grid{grid-template-columns:1fr 1fr}
+  .dev-grid{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .modal{border-radius:12px}
+}
+</style>
 </head>
 <body>
 
-<!-- ── LOGIN ─────────────────────────────────────────────────────────────── -->
-<div id="login-screen" class="screen">
+<!-- LOGIN -->
+<div class="login-overlay" id="login-screen">
   <div class="login-card">
-    <div class="brand">
-      <div class="brand-logo">N</div>
-      <div>
-        <div class="brand-title">Nexo IoT</div>
-        <div class="brand-sub">Panel del Hotel</div>
-      </div>
-    </div>
-    <p class="login-desc">Ingresa la clave de acceso entregada por Nexo IoT para administrar las habitaciones.</p>
-    <input type="password" id="login-key" placeholder="Clave de acceso" autocomplete="current-password">
-    <button class="btn-primary" id="login-btn">Ingresar</button>
-    <div class="login-error" id="login-error"></div>
+    <div class="sb-logo"><div class="sb-logo-dot"></div><span style="font-size:15px">Nexo IoT</span></div>
+    <p class="login-desc">Ingresa la clave de acceso entregada por Nexo IoT para administrar las habitaciones del hotel.</p>
+    <input class="form-input" type="password" id="login-key" placeholder="Clave de acceso" autocomplete="current-password">
+    <button class="btn btn-primary" style="width:100%;padding:11px" id="login-btn">Ingresar</button>
+    <div class="form-error" id="login-error"></div>
   </div>
 </div>
 
-<!-- ── DASHBOARD ─────────────────────────────────────────────────────────── -->
-<div id="dashboard" class="screen hidden">
-  <header class="dash-header">
-    <div class="brand">
-      <div class="brand-logo">N</div>
-      <div>
-        <div class="brand-title">Nexo IoT</div>
-        <div class="brand-sub" id="dash-hotel">Panel del Hotel</div>
-      </div>
+<!-- SIDEBAR -->
+<aside class="sidebar hidden" id="sidebar">
+  <div class="sb-header">
+    <div class="sb-logo">
+      <div class="sb-logo-dot"></div>
+      <span>Nexo IoT</span>
     </div>
-    <button class="btn-ghost" id="logout-btn">Cerrar sesión</button>
+    <div class="sb-hotel" id="hotel-name">Panel del Hotel</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-item active" data-view="overview">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Vista general</span>
+    </div>
+    <div class="nav-item" data-view="rooms">
+      <span class="nav-icon">🏨</span>
+      <span class="nav-label">Habitaciones</span>
+    </div>
+    <div class="nav-item" data-view="settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Configuración</span>
+    </div>
+  </nav>
+  <div class="sb-footer">
+    <div class="sb-status"><div class="sb-status-dot"></div><span>Sistema activo</span></div>
+    <div class="sb-status-line" id="sb-mode">Conectado</div>
+    <div class="sb-version">Nexo IoT v1.0</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main hidden" id="main">
+  <header class="top-bar">
+    <button class="sb-toggle" id="sb-toggle" title="Colapsar sidebar">☰</button>
+    <div class="tb-title" id="page-title">Vista general</div>
+    <div class="tb-right">
+      <div class="clock" id="clock"></div>
+      <button class="btn btn-primary" id="btn-new-stay">+ Nueva estadía</button>
+      <button class="btn btn-outline" id="logout-btn">Salir</button>
+    </div>
   </header>
 
-  <main class="dash-main">
-    <div class="dash-toolbar">
-      <h1>Habitaciones</h1>
-      <button class="btn-ghost" id="refresh-btn">↻ Actualizar</button>
-    </div>
-    <div class="rooms-grid" id="rooms-grid"></div>
-  </main>
-</div>
+  <div class="content" id="content">
 
-<!-- ── MODAL: NUEVO CHECK-IN ─────────────────────────────────────────────── -->
-<div class="modal-backdrop hidden" id="checkin-modal">
-  <div class="modal">
+    <!-- VIEW: OVERVIEW -->
+    <div class="view active" id="view-overview">
+      <div class="kpi-row" id="kpi-row"></div>
+      <div class="sec-header">
+        <span class="sec-title">Habitaciones — vista rápida</span>
+      </div>
+      <div class="room-grid" id="room-grid-overview"></div>
+    </div>
+
+    <!-- VIEW: ROOMS -->
+    <div class="view" id="view-rooms">
+      <div class="filter-bar" id="filter-bar">
+        <button class="filter-btn active" data-filter="all">Todas</button>
+        <button class="filter-btn" data-filter="occupied">Ocupadas</button>
+        <button class="filter-btn" data-filter="available">Disponibles</button>
+      </div>
+      <div class="room-grid" id="room-grid-rooms"></div>
+    </div>
+
+    <!-- VIEW: SETTINGS -->
+    <div class="view" id="view-settings">
+      <div class="placeholder-view">
+        <div class="ph-ico">⚙️</div>
+        <p>Configuración del sistema — disponible próximamente</p>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<!-- MODAL: ROOM DETAIL -->
+<div class="modal-overlay hidden" id="modal-room">
+  <div class="modal" id="modal-room-box">
     <div class="modal-header">
-      <h2 id="checkin-title">Nuevo Check-in</h2>
-      <button class="modal-close" data-close="checkin-modal">✕</button>
+      <div>
+        <div class="modal-title" id="mr-title"></div>
+        <div class="modal-subtitle" id="mr-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-room')">✕</button>
     </div>
     <div class="modal-body">
-      <label>Nombre del huésped</label>
-      <input type="text" id="ci-guest" placeholder="Ej: Juan Pérez">
-
-      <label>Teléfono (WhatsApp)</label>
-      <input type="tel" id="ci-phone" placeholder="Ej: +56912345678">
-
-      <label>Check-in</label>
-      <input type="datetime-local" id="ci-checkin">
-
-      <label>Check-out</label>
-      <input type="datetime-local" id="ci-checkout">
-
-      <div class="modal-error" id="ci-error"></div>
-      <button class="btn-primary" id="ci-submit">Generar acceso</button>
-    </div>
-  </div>
-</div>
-
-<!-- ── MODAL: QR DE ACCESO ───────────────────────────────────────────────── -->
-<div class="modal-backdrop hidden" id="qr-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <h2>Acceso de la habitación</h2>
-      <button class="modal-close" data-close="qr-modal">✕</button>
-    </div>
-    <div class="modal-body modal-body-center">
-      <div class="qr-box"><img id="qr-img" alt="Código QR de acceso"></div>
-      <div class="qr-link" id="qr-link"></div>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="qr-copy">Copiar enlace</button>
-        <a class="btn-primary" id="qr-whatsapp" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+      <div class="modal-section" id="mr-devices-section">
+        <div class="modal-section-title">Control de dispositivos</div>
+        <div class="dev-grid" id="dev-grid"></div>
+      </div>
+      <div class="modal-section hidden" id="mr-qr-section">
+        <div class="modal-section-title">Acceso QR de la estadía</div>
+        <div class="qr-section" id="qr-section"></div>
       </div>
     </div>
   </div>
 </div>
+
+<!-- MODAL: NEW STAY -->
+<div class="modal-overlay hidden" id="modal-new-stay">
+  <div class="modal" id="modal-new-stay-box" style="max-width:540px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Nueva estadía</div>
+        <div class="modal-subtitle">Asignar habitación y generar QR de acceso</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-new-stay')">✕</button>
+    </div>
+    <div class="modal-body" id="new-stay-body">
+      <div id="new-stay-form-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast-container"></div>
 
 <script src="./dashboard.js"></script>
 </body>
