@@ -58,7 +58,54 @@ const _mock = {
   'eb24a9f06a4c32ba51p42s': [ // Sensor puerta
     { code: 'doorcontact_state', value: false },
   ],
+
+  // ── Habitación DEMO (feedback/ventas) — siempre simulada, sin Tuya real ──────
+  'demo_puerta': [
+    { code: 'doorcontact_state', value: false },
+  ],
+  'demo_led_cama': [
+    { code: 'switch_led',      value: true },
+    { code: 'bright_value_v2', value: 800 },
+    { code: 'work_mode',       value: 'colour' },
+    { code: 'temp_value_v2',   value: 500 },
+    { code: 'colour_data_v2',  value: { h: 280, s: 1000, v: 1000 } },
+  ],
+  'demo_luz_techo': [
+    { code: 'switch_led',      value: true },
+    { code: 'bright_value_v2', value: 700 },
+    { code: 'work_mode',       value: 'white' },
+    { code: 'temp_value_v2',   value: 600 },
+    { code: 'colour_data_v2',  value: { h: 0, s: 1000, v: 1000 } },
+  ],
+  'demo_luz_velador1': [
+    { code: 'switch_led',      value: true },
+    { code: 'bright_value_v2', value: 400 },
+    { code: 'work_mode',       value: 'white' },
+    { code: 'temp_value_v2',   value: 200 },
+    { code: 'colour_data_v2',  value: { h: 0, s: 1000, v: 1000 } },
+  ],
+  'demo_luz_velador2': [
+    { code: 'switch_led',      value: false },
+    { code: 'bright_value_v2', value: 500 },
+    { code: 'work_mode',       value: 'white' },
+    { code: 'temp_value_v2',   value: 500 },
+    { code: 'colour_data_v2',  value: { h: 0, s: 1000, v: 1000 } },
+  ],
+  'demo_cortina': [
+    { code: 'control',         value: 'stop' },
+    { code: 'percent_control', value: 40 },
+  ],
+  'demo_enchufe': [
+    { code: 'switch_1', value: true },
+    { code: 'switch_2', value: false },
+  ],
 };
+
+// Dispositivos "demo_*" siempre se simulan, sin importar DEMO_MODE global
+// (sirven para la habitación de feedback/ventas, que nunca toca Tuya real).
+function isMockDevice(deviceId) {
+  return DEMO_MODE || deviceId.startsWith('demo_');
+}
 
 // ── FIRMA TUYA (HMAC-SHA256) ──────────────────────────────────────────────────
 function calcSign(clientId, secret, accessToken, timestamp, nonce, method, pathWithQuery, bodyStr) {
@@ -111,7 +158,7 @@ async function getAccessToken() {
 
 // ── GET ESTADO DEL DISPOSITIVO ────────────────────────────────────────────────
 async function getDeviceStatus(deviceId) {
-  if (DEMO_MODE) {
+  if (isMockDevice(deviceId)) {
     return { online: true, status: _mock[deviceId] ? [..._mock[deviceId]] : [] };
   }
   try {
@@ -127,7 +174,7 @@ async function getDeviceStatus(deviceId) {
 // ── ENVIAR COMANDO ────────────────────────────────────────────────────────────
 // commands: Array<{ code: string, value: any }>
 async function sendCommand(deviceId, commands) {
-  if (DEMO_MODE) {
+  if (isMockDevice(deviceId)) {
     if (!_mock[deviceId]) _mock[deviceId] = [];
     commands.forEach(({ code, value }) => {
       const existing = _mock[deviceId].find(s => s.code === code);

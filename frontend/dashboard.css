@@ -1,0 +1,158 @@
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Nexo IoT — Panel del Hotel · dark theme                                     */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --bg:       #0F0F0F;
+  --card:     #1A1A1A;
+  --card2:    #222222;
+  --border:   #2E2E2E;
+  --teal:     #1D9E75;
+  --teal-d:   #178862;
+  --teal-l:   rgba(29,158,117,.15);
+  --text:     #F0F0F0;
+  --text2:    #909090;
+  --alert:    #E85D5D;
+  --warn:     #F0A030;
+  --font:     system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --r:        14px;
+  --rsm:      8px;
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { font-size:16px; -webkit-text-size-adjust:100%; }
+body {
+  font-family: var(--font);
+  background:  var(--bg);
+  color:       var(--text);
+  min-height:  100dvh;
+}
+
+.hidden { display: none !important; }
+
+/* ── BRAND ────────────────────────────────────────────────────────────────── */
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-logo {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  background: var(--teal-l); color: var(--teal);
+  border: 2px solid var(--teal);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 18px;
+}
+.brand-title { font-size: 15px; font-weight: 800; letter-spacing: .5px; }
+.brand-sub   { font-size: 12px; color: var(--text2); }
+
+/* ── BUTTONS ──────────────────────────────────────────────────────────────── */
+.btn-primary, .btn-secondary, .btn-ghost {
+  font-family: var(--font); font-size: 14px; font-weight: 700;
+  border-radius: var(--rsm); border: none; cursor: pointer;
+  padding: 12px 18px; transition: opacity .15s, background .15s;
+  text-align: center; text-decoration: none; display: inline-block;
+}
+.btn-primary { background: var(--teal); color: #fff; }
+.btn-primary:hover { background: var(--teal-d); }
+.btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--teal); }
+.btn-ghost { background: none; color: var(--text2); border: 1px solid var(--border); padding: 8px 14px; font-size: 13px; }
+.btn-ghost:hover { color: var(--text); border-color: var(--teal); }
+
+/* ── LOGIN ────────────────────────────────────────────────────────────────── */
+#login-screen {
+  min-height: 100dvh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.login-card {
+  width: 100%; max-width: 360px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 28px 24px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.login-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.login-error { font-size: 13px; color: var(--alert); min-height: 18px; }
+
+/* ── INPUTS ───────────────────────────────────────────────────────────────── */
+input[type="text"], input[type="tel"], input[type="password"], input[type="datetime-local"] {
+  width: 100%; font-family: var(--font); font-size: 14px;
+  background: var(--card2); border: 1px solid var(--border); color: var(--text);
+  border-radius: var(--rsm); padding: 11px 12px;
+}
+input:focus { outline: none; border-color: var(--teal); }
+label { font-size: 12px; color: var(--text2); font-weight: 600; margin-bottom: -6px; }
+
+/* ── DASHBOARD LAYOUT ─────────────────────────────────────────────────────── */
+.dash-header {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; background: var(--bg); border-bottom: 1px solid var(--border);
+}
+.dash-main { max-width: 960px; margin: 0 auto; padding: 20px; }
+.dash-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.dash-toolbar h1 { font-size: 20px; font-weight: 800; }
+
+/* ── ROOM CARDS ───────────────────────────────────────────────────────────── */
+.rooms-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.room-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 16px; display: flex; flex-direction: column; gap: 10px;
+}
+.room-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.room-card-name { font-size: 16px; font-weight: 800; }
+.room-card-meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+.room-status {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+  padding: 4px 9px; border-radius: 999px; white-space: nowrap;
+}
+.room-status.free { background: var(--teal-l); color: var(--teal); }
+.room-status.busy { background: rgba(240,160,48,.15); color: var(--warn); }
+
+.guest-info { font-size: 13px; color: var(--text); display: flex; flex-direction: column; gap: 2px; }
+.guest-info .label { color: var(--text2); font-size: 11px; }
+
+.room-actions { display: flex; gap: 8px; margin-top: 4px; }
+.room-actions > * { flex: 1; }
+
+/* ── MODALS ───────────────────────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100; padding: 20px;
+}
+.modal {
+  width: 100%; max-width: 380px;
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--r);
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+}
+.modal-header h2 { font-size: 16px; font-weight: 800; }
+.modal-close {
+  background: none; border: none; color: var(--text2); font-size: 16px; cursor: pointer;
+}
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: 18px; display: flex; flex-direction: column; gap: 8px; }
+.modal-body-center { align-items: center; }
+.modal-error { font-size: 13px; color: var(--alert); min-height: 18px; }
+.modal-actions { display: flex; gap: 8px; width: 100%; margin-top: 6px; }
+.modal-actions > * { flex: 1; }
+
+/* ── QR ───────────────────────────────────────────────────────────────────── */
+.qr-box {
+  background: #fff; border-radius: var(--rsm); padding: 12px;
+  width: 220px; height: 220px; display: flex; align-items: center; justify-content: center;
+}
+.qr-box img { width: 100%; height: 100%; object-fit: contain; }
+.qr-link {
+  font-size: 12px; color: var(--text2); word-break: break-all; text-align: center;
+  background: var(--card2); border: 1px solid var(--border); border-radius: var(--rsm);
+  padding: 8px 10px; width: 100%;
+}

@@ -204,7 +204,7 @@ app.get('/api/room/:token', async (req, res) => {
     guestName: entry.guestName,
     checkin:   entry.checkin,
     checkout:  entry.checkout,
-    demoMode:  tuya.isDemoMode(),
+    demoMode:  room.demo === true || tuya.isDemoMode(),
     devices,
   });
 });
@@ -271,6 +271,7 @@ app.post('/api/admin/token', adminAuth, (req, res) => {
     res.json({
       token,
       url:       `${HOTEL_URL}/room/${token}`,
+      guestUrl:  `${FRONTEND_URL}/?token=${token}`,
       roomId,
       guestName,
     });
@@ -294,7 +295,21 @@ app.get('/api/admin/tokens', adminAuth, (req, res) => {
 // ── ADMIN: GET /api/admin/rooms ───────────────────────────────────────────────
 app.get('/api/admin/rooms', adminAuth, (req, res) => {
   const r = rooms.getRooms();
-  res.json(Object.keys(r).map(id => ({ id, name: r[id].name, floor: r[id].floor })));
+  const activeTokens = rooms.listActiveTokens();
+  res.json(
+    Object.keys(r)
+      .filter(id => r[id].demo !== true)
+      .map(id => {
+        const guest = activeTokens.find(t => t.roomId === id) || null;
+        return {
+          id,
+          name:  r[id].name,
+          hotel: r[id].hotel || null,
+          floor: r[id].floor,
+          guest,
+        };
+      })
+  );
 });
 
 // ── HEALTH CHECK ──────────────────────────────────────────────────────────────

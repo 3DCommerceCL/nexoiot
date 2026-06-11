@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0F0F0F">
+<title>Nexo IoT — Panel del Hotel</title>
+<link rel="stylesheet" href="./dashboard.css">
+</head>
+<body>
+
+<!-- ── LOGIN ─────────────────────────────────────────────────────────────── -->
+<div id="login-screen" class="screen">
+  <div class="login-card">
+    <div class="brand">
+      <div class="brand-logo">N</div>
+      <div>
+        <div class="brand-title">Nexo IoT</div>
+        <div class="brand-sub">Panel del Hotel</div>
+      </div>
+    </div>
+    <p class="login-desc">Ingresa la clave de acceso entregada por Nexo IoT para administrar las habitaciones.</p>
+    <input type="password" id="login-key" placeholder="Clave de acceso" autocomplete="current-password">
+    <button class="btn-primary" id="login-btn">Ingresar</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ─────────────────────────────────────────────────────────── -->
+<div id="dashboard" class="screen hidden">
+  <header class="dash-header">
+    <div class="brand">
+      <div class="brand-logo">N</div>
+      <div>
+        <div class="brand-title">Nexo IoT</div>
+        <div class="brand-sub" id="dash-hotel">Panel del Hotel</div>
+      </div>
+    </div>
+    <button class="btn-ghost" id="logout-btn">Cerrar sesión</button>
+  </header>
+
+  <main class="dash-main">
+    <div class="dash-toolbar">
+      <h1>Habitaciones</h1>
+      <button class="btn-ghost" id="refresh-btn">↻ Actualizar</button>
+    </div>
+    <div class="rooms-grid" id="rooms-grid"></div>
+  </main>
+</div>
+
+<!-- ── MODAL: NUEVO CHECK-IN ─────────────────────────────────────────────── -->
+<div class="modal-backdrop hidden" id="checkin-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 id="checkin-title">Nuevo Check-in</h2>
+      <button class="modal-close" data-close="checkin-modal">✕</button>
+    </div>
+    <div class="modal-body">
+      <label>Nombre del huésped</label>
+      <input type="text" id="ci-guest" placeholder="Ej: Juan Pérez">
+
+      <label>Teléfono (WhatsApp)</label>
+      <input type="tel" id="ci-phone" placeholder="Ej: +56912345678">
+
+      <label>Check-in</label>
+      <input type="datetime-local" id="ci-checkin">
+
+      <label>Check-out</label>
+      <input type="datetime-local" id="ci-checkout">
+
+      <div class="modal-error" id="ci-error"></div>
+      <button class="btn-primary" id="ci-submit">Generar acceso</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: QR DE ACCESO ───────────────────────────────────────────────── -->
+<div class="modal-backdrop hidden" id="qr-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Acceso de la habitación</h2>
+      <button class="modal-close" data-close="qr-modal">✕</button>
+    </div>
+    <div class="modal-body modal-body-center">
+      <div class="qr-box"><img id="qr-img" alt="Código QR de acceso"></div>
+      <div class="qr-link" id="qr-link"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="qr-copy">Copiar enlace</button>
+        <a class="btn-primary" id="qr-whatsapp" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="./dashboard.js"></script>
+</body>
+</html>

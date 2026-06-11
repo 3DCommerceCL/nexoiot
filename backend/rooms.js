@@ -22,6 +22,17 @@ const SEED_TOKENS = {
     active:    true,
     createdAt: '2026-01-01T00:00:00Z',
   },
+  // Token sin vencimiento para feedback/demos comerciales — habitación simulada,
+  // no controla dispositivos reales (ver rooms.json → "demo" y tuya.js → demo_*).
+  FEEDBACK01: {
+    roomId:    'demo',
+    guestName: 'Visitante Demo',
+    phone:     '',
+    checkin:   '2026-01-01T00:00:00Z',
+    checkout:  '2099-12-31T23:59:59Z',
+    active:    true,
+    createdAt: '2026-01-01T00:00:00Z',
+  },
 };
 
 // ── I/O JSON ──────────────────────────────────────────────────────────────────

@@ -41,5 +41,49 @@
         "channels": ["Entrada 1", "Entrada 2"]
       }
     }
+  },
+  "demo": {
+    "name":  "Habitación Demo",
+    "hotel": "Nexo IoT — Demo",
+    "floor": 0,
+    "demo":  true,
+    "devices": {
+      "puerta": {
+        "deviceId": "demo_puerta",
+        "type":     "door_sensor",
+        "label":    "Sensor de Puerta"
+      },
+      "led_cama": {
+        "deviceId": "demo_led_cama",
+        "type":     "light_rgb",
+        "label":    "LED Bajo Cama"
+      },
+      "luz_techo": {
+        "deviceId": "demo_luz_techo",
+        "type":     "light_rgb",
+        "label":    "Luz Techo"
+      },
+      "luz_velador1": {
+        "deviceId": "demo_luz_velador1",
+        "type":     "light_rgb",
+        "label":    "Luz Velador 1"
+      },
+      "luz_velador2": {
+        "deviceId": "demo_luz_velador2",
+        "type":     "light_rgb",
+        "label":    "Luz Velador 2"
+      },
+      "cortina": {
+        "deviceId": "demo_cortina",
+        "type":     "curtain",
+        "label":    "Cortina"
+      },
+      "enchufe": {
+        "deviceId": "demo_enchufe",
+        "type":     "switch_3ch",
+        "label":    "Enchufe USB",
+        "channels": ["Entrada 1", "Entrada 2"]
+      }
+    }
   }
 }
