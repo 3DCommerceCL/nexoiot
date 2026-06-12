@@ -90,6 +90,18 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .filter-btn:hover{color:var(--text);border-color:var(--text3)}
 .filter-btn.active{background:var(--teal-l);color:var(--teal);border-color:var(--teal)}
 
+/* ── FLOOR GROUPS ── */
+.floor-groups{display:flex;flex-direction:column;gap:10px}
+.floor-group{border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.floor-header{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;background:var(--card);transition:background .15s;user-select:none}
+.floor-header:hover{background:var(--sidebar)}
+.floor-chevron{font-size:11px;color:var(--text2);transition:transform .15s;display:inline-block}
+.floor-chevron.open{transform:rotate(90deg)}
+.floor-title{font-weight:700;font-size:13px;color:var(--text)}
+.floor-count{margin-left:auto;font-size:11px;color:var(--text2)}
+.floor-rooms{padding:14px;border-top:1px solid var(--border)}
+.floor-rooms.collapsed{display:none}
+
 /* ── ROOM GRID ── */
 .room-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
 .room-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s,transform .15s;animation:fadeInCard .3s ease both}
@@ -332,7 +344,7 @@ select.form-input option{background:var(--card);color:var(--text)}
         <button class="filter-btn" data-filter="occupied">Ocupadas</button>
         <button class="filter-btn" data-filter="available">Disponibles</button>
       </div>
-      <div class="room-grid" id="room-grid-rooms"></div>
+      <div class="floor-groups" id="room-grid-rooms"></div>
     </div>
 
     <!-- VIEW: SETTINGS -->

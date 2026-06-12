@@ -224,10 +224,38 @@ function buildRoomCard(room) {
   </div>`;
 }
 
+const expandedFloors = new Set();
+
+window.toggleFloor = function(floor) {
+  if (expandedFloors.has(floor)) expandedFloors.delete(floor);
+  else expandedFloors.add(floor);
+  renderRooms('rooms', state.filter);
+};
+
 function renderRooms(target = 'overview', filter = 'all') {
   let list = rooms;
   if (filter === 'occupied')  list = occupiedRooms();
   if (filter === 'available') list = availableRooms();
+
+  if (target === 'rooms') {
+    const floors = [...new Set(list.map(r => r.floor))].sort((a, b) => a - b);
+    $(`room-grid-${target}`).innerHTML = floors.map(floor => {
+      const floorRooms = list.filter(r => r.floor === floor);
+      const expanded = expandedFloors.has(floor);
+      return `<div class="floor-group">
+        <div class="floor-header" onclick="toggleFloor(${floor})">
+          <span class="floor-chevron ${expanded ? 'open' : ''}">▸</span>
+          <span class="floor-title">Piso ${floor}</span>
+          <span class="floor-count">${floorRooms.length} habitaciones</span>
+        </div>
+        <div class="room-grid floor-rooms ${expanded ? '' : 'collapsed'}">
+          ${floorRooms.map(buildRoomCard).join('')}
+        </div>
+      </div>`;
+    }).join('');
+    return;
+  }
+
   $(`room-grid-${target}`).innerHTML = list.map(buildRoomCard).join('');
 }
 
