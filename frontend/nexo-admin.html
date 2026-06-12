@@ -7,12 +7,13 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0F1117;--card:#1A1D27;--sidebar:#13151F;--border:#2A2D3E;
-  --teal:#1D9E75;--teal-d:#178862;--teal-l:rgba(29,158,117,.13);
-  --purple:#534AB7;--purple-l:rgba(83,74,183,.13);
-  --text:#F0F0F0;--text2:#8B8FA8;--text3:#555A72;
-  --alert:#E85D5D;--alert-l:rgba(232,93,93,.13);
-  --warn:#F0A030;--warn-l:rgba(240,160,48,.13);
+  --bg:#F3F5F8;--card:#FFFFFF;--card2:#F4F6F9;--sidebar:#FFFFFF;--border:#E6E9EE;
+  --teal:#1FAE7E;--teal-d:#178862;--teal-l:rgba(31,174,126,.12);
+  --purple:#534AB7;--purple-l:rgba(83,74,183,.12);
+  --text:#1A1D24;--text2:#8A8FA0;--text3:#C9CDD6;
+  --alert:#E5484D;--alert-l:rgba(229,72,77,.10);
+  --warn:#F0A030;--warn-l:rgba(240,160,48,.12);
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 2px 8px rgba(16,24,40,.05);
   --font:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
 html,body{height:100%;overflow:hidden}
@@ -28,7 +29,7 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .sb-hotel{font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sb-nav{flex:1;padding:12px 0;overflow-y:auto}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;color:var(--text2);border-left:3px solid transparent;transition:all .15s;white-space:nowrap;user-select:none}
-.nav-item:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.nav-item:hover{color:var(--text);background:rgba(16,24,40,.04)}
 .nav-item.active{color:var(--purple);background:var(--purple-l);border-left-color:var(--purple)}
 .nav-icon{font-size:16px;flex-shrink:0}
 .nav-label{font-size:13px;font-weight:500}
@@ -50,7 +51,7 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 
 /* ── KPI ROW ── */
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
-.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.kpi-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
 .kpi-label{font-size:11px;color:var(--text2);font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
 .kpi-value{font-size:28px;font-weight:700;color:var(--text);line-height:1;margin-bottom:8px}
 .kpi-sub{font-size:11px;color:var(--text2);margin-top:5px}
@@ -61,7 +62,7 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 
 /* ── HOTEL GRID ── */
 .hotel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-.hotel-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px;transition:border-color .15s,transform .15s}
+.hotel-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;transition:border-color .15s,transform .15s;box-shadow:var(--shadow)}
 .hotel-card:hover{border-color:var(--text3);transform:translateY(-1px)}
 .hc-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .hc-name{font-size:15px;font-weight:700;color:var(--text)}
@@ -79,23 +80,23 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .hc-footer{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text2);padding-top:8px;border-top:1px solid var(--border)}
 
 /* ── PLACEHOLDER NOTE ── */
-.preview-note{background:var(--purple-l);border:1px solid rgba(83,74,183,.3);border-radius:10px;padding:12px 16px;font-size:12px;color:#B7B0F2;margin-bottom:20px;line-height:1.5}
+.preview-note{background:var(--purple-l);border:1px solid rgba(83,74,183,.25);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--purple);margin-bottom:20px;line-height:1.5}
 
 /* ── TOAST ── */
 #toast-container{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.toast{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text);animation:toastIn .3s ease;pointer-events:all;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:320px}
+.toast{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text);animation:toastIn .3s ease;pointer-events:all;box-shadow:0 8px 24px rgba(16,24,40,.12);max-width:320px}
 @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
 
 /* ── HOTEL CARD LINK ── */
 .hotel-card{cursor:pointer}
 
 /* ── LOGIN ── */
-.form-input{padding:9px 12px;border-radius:7px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color .15s;width:100%}
+.form-input{padding:9px 12px;border-radius:7px;border:1px solid var(--border);background:#fff;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color .15s;width:100%}
 .form-input:focus{border-color:var(--purple)}
 .form-input::placeholder{color:var(--text3)}
 .form-error{font-size:12px;color:var(--alert);min-height:16px}
 .login-overlay{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
-.login-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;display:flex;flex-direction:column;gap:14px}
+.login-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--shadow)}
 .login-desc{font-size:12px;color:var(--text2);line-height:1.5}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid transparent;font-family:var(--font);white-space:nowrap}
 .btn-primary{background:var(--purple);color:#fff;border-color:var(--purple)}
