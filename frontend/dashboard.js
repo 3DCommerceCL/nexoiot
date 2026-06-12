@@ -687,9 +687,18 @@ window.setCurtain = async function(key, control) {
   renderDevGrid();
 };
 
-window.toggleManual = function(key) {
+window.toggleManual = async function(key) {
   const dev = state.currentRoom.devices[key];
   dev.state.manual = !dev.state.manual;
+  if (dev.state.manual && (dev.type === 'light' || dev.type === 'light_rgb')) {
+    // En modo manual la luz queda fija encendida en cálido: el interruptor
+    // físico la enciende/apaga como una luz normal.
+    dev.state.on = true;
+    dev.state.colorTemp = 5;
+    renderDevGrid();
+    await sendCommand(key, { on: true, mode: 'white', colorTemp: 5 });
+    return;
+  }
   renderDevGrid();
 };
 

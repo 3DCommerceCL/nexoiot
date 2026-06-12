@@ -318,13 +318,17 @@ function manualRow(key) {
 }
 
 // ── MOTOR DE CORTINA DESBLOQUEADO ─────────────────────────────────────────────
+// Nota: esto depende de que el motor del riel/roller tenga liberación manual
+// (no todos los modelos la incluyen) — a confirmar según el motor instalado.
 function unlockRow(key) {
   const unlocked = !!app._unlocked[key];
   return `<div class="manual-row">
     <span>Desbloquear motor (manual)</span>
     <div class="toggle toggle-sm ${unlocked ? 'on' : ''}" data-key="${key}" data-action="toggle-unlock"></div>
   </div>
-  ${unlocked ? '<div class="manual-note">Motor desbloqueado — mueve la cortina con la mano. Bloquéalo para volver a controlarla desde la app.</div>' : ''}`;
+  ${unlocked
+    ? '<div class="manual-note">Motor desbloqueado — mueve la cortina con la mano. Bloquéalo para volver a controlarla desde la app.</div>'
+    : '<div class="manual-note">Disponible solo si el motor del riel/roller admite liberación manual (depende del modelo instalado).</div>'}`;
 }
 
 // ── RENDER GRID ────────────────────────────────────────────────────────────────
@@ -647,11 +651,12 @@ function buildVoiceCard() {
 
 // ── BAÑO INTELIGENTE (sensor de presencia + luz) ─────────────────────────────
 function buildBathroomCard() {
-  const s = app._placeholder.bathroom ?? (app._placeholder.bathroom = { presence: false, lightOn: false, intensity: 60, colorTemp: 50, auto: true });
+  const s = app._placeholder.bathroom ?? (app._placeholder.bathroom = { presence: false, lightOn: false, intensity: 60, colorTemp: 50, auto: true, manual: false });
+  const manual = !!s.manual;
   return `<div class="device-card full-width ${s.lightOn ? 'on' : ''}" id="feature-bathroom">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🚿</span><span class="card-label">Baño Inteligente</span></div>
-      <div class="toggle ${s.lightOn ? 'on' : ''}" data-feature="bathroom" data-action="toggle"></div>
+      <div class="toggle ${s.lightOn ? 'on' : ''} ${manual ? 'disabled' : ''}" data-feature="bathroom" data-action="toggle"></div>
     </div>
     <div class="feature-row" data-action="presence" style="cursor:pointer">
       <span class="feature-row-label"><span class="led-dot ${s.presence ? 'on' : ''}"></span>Sensor de presencia</span>
@@ -659,10 +664,10 @@ function buildBathroomCard() {
     </div>
     <div class="feature-row">
       <span class="feature-row-label">Encendido automático con presencia</span>
-      <div class="toggle ${s.auto ? 'on' : ''}" data-feature="bathroom" data-action="auto"></div>
+      <div class="toggle ${s.auto ? 'on' : ''} ${manual ? 'disabled' : ''}" data-feature="bathroom" data-action="auto"></div>
     </div>
-    <div class="card-status ${s.lightOn ? 'on' : ''}" style="margin-top:8px">${s.lightOn ? 'Luz encendida' : 'Luz apagada'}${s.auto ? ' · Programada para encenderse automáticamente si hay alguien dentro' : ''}</div>
-    ${s.lightOn ? `
+    <div class="card-status ${s.lightOn ? 'on' : ''}" style="margin-top:8px">${manual ? 'Modo manual' : (s.lightOn ? 'Luz encendida' : 'Luz apagada')}${s.auto && !manual ? ' · Programada para encenderse automáticamente si hay alguien dentro' : ''}</div>
+    ${s.lightOn && !manual ? `
     <div class="slider-lbl">Intensidad</div>
     <div class="slider-row">
       <input type="range" min="5" max="100" value="${s.intensity}" data-feature="bathroom" data-action="intensity">
@@ -673,6 +678,11 @@ function buildBathroomCard() {
       <button class="ct-btn ${s.colorTemp >= 33 && s.colorTemp < 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="50">Neutro</button>
       <button class="ct-btn ${s.colorTemp >= 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="95">Frío</button>
     </div>` : ''}
+    <div class="manual-row">
+      <span>Modo manual</span>
+      <div class="toggle toggle-sm ${manual ? 'on' : ''}" data-feature="bathroom" data-action="manual"></div>
+    </div>
+    ${manual ? '<div class="manual-note">Control manual activado — luz fija en cálido, ahora se enciende/apaga con el interruptor físico del baño.</div>' : ''}
   </div>`;
 }
 
@@ -785,6 +795,21 @@ function handlePlanGridClick(e) {
     if (key === 'bathroom') s.lightOn = !s.lightOn;
     else s.on = !s.on;
     rerenderFeature(key);
+    showPreviewToast();
+    return;
+  }
+
+  const bathroomManual = e.target.closest('[data-feature="bathroom"][data-action="manual"]');
+  if (bathroomManual) {
+    const s = app._placeholder.bathroom;
+    s.manual = !s.manual;
+    if (s.manual) {
+      // En modo manual la luz queda fija encendida en cálido: el interruptor
+      // físico la enciende/apaga como una luz normal.
+      s.lightOn = true;
+      s.colorTemp = 5;
+    }
+    rerenderFeature('bathroom');
     showPreviewToast();
     return;
   }
@@ -907,9 +932,16 @@ function handleGridClick(e) {
   if (manualTog) {
     const key = manualTog.dataset.key;
     app._manual[key] = !app._manual[key];
-    updateCard(key);
+    const type = app.config[key]?.type;
+    if (app._manual[key] && (type === 'light' || type === 'light_rgb')) {
+      // En modo manual la luz queda fija encendida en cálido: el interruptor
+      // físico la enciende/apaga como una luz normal.
+      doCmd(key, { on: true, mode: 'white', colorTemp: 5 });
+    } else {
+      updateCard(key);
+    }
     showToast(app._manual[key]
-      ? 'Modo manual activado — usa el interruptor físico de la habitación'
+      ? 'Modo manual activado — luz fija en cálido, ahora se enciende/apaga con el interruptor físico'
       : 'Modo manual desactivado — control desde la app restaurado', '');
     return;
   }
