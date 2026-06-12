@@ -143,6 +143,13 @@ function logout() {
 async function loadRooms() {
   const qs = HOTEL_ID ? `?hotel=${encodeURIComponent(HOTEL_ID)}` : '';
   rooms = await apiFetch(`/admin/rooms${qs}`);
+  // Ordenar por piso y número de habitación (101..120, 201..220, ...)
+  rooms.sort((a, b) => {
+    if (a.floor !== b.floor) return a.floor - b.floor;
+    const numA = parseInt((a.name.match(/\d+/) || [0])[0], 10);
+    const numB = parseInt((b.name.match(/\d+/) || [0])[0], 10);
+    return numA - numB;
+  });
   $('hotel-name').textContent = rooms[0]?.hotel || 'Panel del Hotel';
   const back = $('back-to-nexo');
   if (back) back.classList.toggle('hidden', !HOTEL_ID);
