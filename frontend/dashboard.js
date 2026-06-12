@@ -523,6 +523,22 @@ window.setFeatureVal = function(key, prop, val) {
   previewToast();
 };
 
+function buildManualRow(key, manual) {
+  return `<div class="manual-row">
+    <span>Modo manual</span>
+    <div class="toggle-sw toggle-sw-sm ${manual ? 'on' : ''}" onclick="toggleManual('${key}')"></div>
+  </div>
+  ${manual ? '<div class="manual-note">Control manual activado — el huésped usa el interruptor físico de la habitación.</div>' : ''}`;
+}
+
+function buildUnlockRow(key, unlocked) {
+  return `<div class="manual-row">
+    <span>Desbloquear motor (manual)</span>
+    <div class="toggle-sw toggle-sw-sm ${unlocked ? 'on' : ''}" onclick="toggleUnlock('${key}')"></div>
+  </div>
+  ${unlocked ? '<div class="manual-note">Motor desbloqueado — la cortina se mueve a mano y no responde a la app.</div>' : ''}`;
+}
+
 function buildDeviceCard(key, dev) {
   const ico = DEV_ICON_OVERRIDES[key] || DEV_ICONS[dev.type] || '🔧';
   if (!dev.available) {
@@ -550,48 +566,53 @@ function buildDeviceCard(key, dev) {
 
 function buildLightCard(key, dev, ico) {
   const on = dev.state.on;
+  const manual = !!dev.state.manual;
   return `<div class="dev-card">
     <div class="dev-card-head">
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div>
-      <div class="toggle-sw ${on ? 'on' : ''}" onclick="toggleLight('${key}', ${!on})"></div>
+      <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleLight('${key}', ${!on})"></div>
     </div>
-    <div class="${on ? '' : 'dev-dimmed'}">
-      <div class="dev-status ${on ? 'on-label' : ''}">${on ? 'Encendida' : 'Apagada'}</div>
+    <div class="${on && !manual ? '' : 'dev-dimmed'}">
+      <div class="dev-status ${on && !manual ? 'on-label' : ''}">${manual ? 'Modo manual' : (on ? 'Encendida' : 'Apagada')}</div>
       <div class="slider-wrap">
-        <input type="range" min="0" max="100" value="${dev.state.intensity}" ${on ? '' : 'disabled'}
+        <input type="range" min="0" max="100" value="${dev.state.intensity}" ${on && !manual ? '' : 'disabled'}
           oninput="this.nextElementSibling.textContent=this.value+'%'"
           onchange="setIntensity('${key}', this.value)">
         <span class="slider-val">${dev.state.intensity}%</span>
       </div>
     </div>
+    ${buildManualRow(key, manual)}
   </div>`;
 }
 
 function buildCurtainCard(key, dev, ico) {
   const pct = dev.state.position;
-  const label = pct === 0 ? 'Cerrada' : pct === 100 ? 'Abierta' : `${pct}% abierta`;
+  const unlocked = !!dev.state.unlocked;
+  const label = unlocked ? 'Manual' : (pct === 0 ? 'Cerrada' : pct === 100 ? 'Abierta' : `${pct}% abierta`);
   return `<div class="dev-card">
     <div class="dev-card-head">
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div>
     </div>
     <div class="curtain-btns">
-      <button class="curtain-btn" onclick="setCurtain('${key}','open')">Abrir</button>
-      <button class="curtain-btn" onclick="setCurtain('${key}','stop')">Parar</button>
-      <button class="curtain-btn" onclick="setCurtain('${key}','close')">Cerrar</button>
+      <button class="curtain-btn" onclick="setCurtain('${key}','open')" ${unlocked ? 'disabled' : ''}>Abrir</button>
+      <button class="curtain-btn" onclick="setCurtain('${key}','stop')" ${unlocked ? 'disabled' : ''}>Parar</button>
+      <button class="curtain-btn" onclick="setCurtain('${key}','close')" ${unlocked ? 'disabled' : ''}>Cerrar</button>
     </div>
     <div class="curtain-track"><div class="curtain-fill" style="width:${pct}%"></div></div>
     <div class="curtain-label">${label}</div>
+    ${buildUnlockRow(key, unlocked)}
   </div>`;
 }
 
 function buildMultiSwitchCard(key, dev, ico) {
   const labels = dev.channels || ['Canal 1', 'Canal 2', 'Canal 3'];
   const chKeys = ['ch1', 'ch2', 'ch3'].slice(0, labels.length);
+  const manual = !!dev.state.manual;
   const rows = chKeys.map((ch, i) => {
     const on = dev.state[ch];
     return `<div style="display:flex;align-items:center;justify-content:space-between;${i ? 'margin-top:8px' : ''}">
-      <span class="dev-status ${on ? 'on-label' : ''}" style="margin:0">${labels[i]}</span>
-      <div class="toggle-sw ${on ? 'on' : ''}" onclick="toggleMultiSwitch('${key}','${ch}', ${!on})"></div>
+      <span class="dev-status ${on && !manual ? 'on-label' : ''}" style="margin:0">${labels[i]}</span>
+      <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleMultiSwitch('${key}','${ch}', ${!on})"></div>
     </div>`;
   }).join('');
   return `<div class="dev-card">
@@ -599,17 +620,20 @@ function buildMultiSwitchCard(key, dev, ico) {
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div>
     </div>
     ${rows}
+    ${buildManualRow(key, manual)}
   </div>`;
 }
 
 function buildSwitchCard(key, dev, ico) {
   const on = dev.state.on;
+  const manual = !!dev.state.manual;
   return `<div class="dev-card">
     <div class="dev-card-head">
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div>
-      <div class="toggle-sw ${on ? 'on' : ''}" onclick="toggleSwitch('${key}', ${!on})"></div>
+      <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleSwitch('${key}', ${!on})"></div>
     </div>
-    <div class="dev-status ${on ? 'on-label' : ''}">${on ? 'Encendido' : 'Apagado'}</div>
+    <div class="dev-status ${on && !manual ? 'on-label' : ''}">${manual ? 'Modo manual' : (on ? 'Encendido' : 'Apagado')}</div>
+    ${buildManualRow(key, manual)}
   </div>`;
 }
 
@@ -660,6 +684,18 @@ window.setCurtain = async function(key, control) {
   await sendCommand(key, { control });
   if (control === 'open')  state.currentRoom.devices[key].state.position = 100;
   if (control === 'close') state.currentRoom.devices[key].state.position = 0;
+  renderDevGrid();
+};
+
+window.toggleManual = function(key) {
+  const dev = state.currentRoom.devices[key];
+  dev.state.manual = !dev.state.manual;
+  renderDevGrid();
+};
+
+window.toggleUnlock = function(key) {
+  const dev = state.currentRoom.devices[key];
+  dev.state.unlocked = !dev.state.unlocked;
   renderDevGrid();
 };
 

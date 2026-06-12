@@ -59,6 +59,8 @@ const app = {
   _timers: {},   // debounce timers para sliders
   _wheelOpen: {}, // { key: bool } — selector de color RGB abierto/cerrado
   _placeholder: {}, // estado local de funciones del plan (no conectadas a dispositivos reales)
+  _manual: {},   // { key: bool } — modo manual (control físico) para luces/enchufes
+  _unlocked: {}, // { key: bool } — motor de cortina desbloqueado para mover a mano
 };
 
 // ── NIVELES DE PLAN ───────────────────────────────────────────────────────────
@@ -305,6 +307,26 @@ const DEVICE_ICON_OVERRIDES = {
 };
 const deviceIcon = (key, fallback) => DEVICE_ICON_OVERRIDES[key] || fallback;
 
+// ── MODO MANUAL (luces / enchufes) ───────────────────────────────────────────
+function manualRow(key) {
+  const manual = !!app._manual[key];
+  return `<div class="manual-row">
+    <span>Modo manual</span>
+    <div class="toggle toggle-sm ${manual ? 'on' : ''}" data-key="${key}" data-action="toggle-manual"></div>
+  </div>
+  ${manual ? '<div class="manual-note">Control manual activado — usa el interruptor físico de la habitación. Desactívalo para volver a controlarlo desde la app.</div>' : ''}`;
+}
+
+// ── MOTOR DE CORTINA DESBLOQUEADO ─────────────────────────────────────────────
+function unlockRow(key) {
+  const unlocked = !!app._unlocked[key];
+  return `<div class="manual-row">
+    <span>Desbloquear motor (manual)</span>
+    <div class="toggle toggle-sm ${unlocked ? 'on' : ''}" data-key="${key}" data-action="toggle-unlock"></div>
+  </div>
+  ${unlocked ? '<div class="manual-note">Motor desbloqueado — mueve la cortina con la mano. Bloquéalo para volver a controlarla desde la app.</div>' : ''}`;
+}
+
 // ── RENDER GRID ────────────────────────────────────────────────────────────────
 const CARD_ORDER = ['luz_velador1','luz_velador2','led_cama','luz_techo','cortina','enchufe'];
 
@@ -351,17 +373,18 @@ function buildLightCard(key) {
   const on  = s.on;
   const int = s.intensity ?? 50;
   const ct  = s.colorTemp ?? 50;
+  const manual = !!app._manual[key];
 
-  return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
+  return `<div class="device-card ${on && !manual ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name">
         <span class="card-ico">${deviceIcon(key, '💡')}</span>
         <span class="card-label">${cfg.label}</span>
       </div>
-      <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-light"></div>
+      <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
     </div>
-    <div class="card-status ${on ? 'on' : ''}">${on ? 'Encendida' : 'Apagada'}</div>
-    ${on ? `
+    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? 'Modo manual' : (on ? 'Encendida' : 'Apagada')}</div>
+    ${on && !manual ? `
       <div class="slider-lbl">Intensidad</div>
       <div class="slider-row">
         <input type="range" min="5" max="100" value="${int}"
@@ -373,6 +396,7 @@ function buildLightCard(key) {
         <button class="ct-btn ${ct >= 33 && ct < 66 ? 'active' : ''}" data-key="${key}" data-ct="50">Neutro</button>
         <button class="ct-btn ${ct >= 66 ? 'active' : ''}" data-key="${key}" data-ct="95">Frío</button>
       </div>` : ''}
+    ${manualRow(key)}
   </div>`;
 }
 
@@ -389,6 +413,7 @@ function buildLEDCard(key) {
   const hue  = s.hue ?? 0;
   const sat  = s.saturation ?? 1000;
   const wheelOpen = !!app._wheelOpen[key];
+  const manual = !!app._manual[key];
 
   const isColour    = mode === 'colour';
   const colorPreview = `hsl(${hue}, 100%, 50%)`;
@@ -399,16 +424,16 @@ function buildLEDCard(key) {
   const cx    = Math.sin(angle) * r;
   const cy    = -Math.cos(angle) * r;
 
-  return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
+  return `<div class="device-card ${on && !manual ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name">
         <span class="card-ico">${deviceIcon(key, '💡')}</span>
         <span class="card-label">${cfg.label}</span>
       </div>
-      <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-light"></div>
+      <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
     </div>
-    <div class="card-status ${on ? 'on' : ''}">${on ? 'Encendido' : 'Apagado'}</div>
-    ${on ? `
+    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? 'Modo manual' : (on ? 'Encendido' : 'Apagado')}</div>
+    ${on && !manual ? `
       <div class="slider-lbl">Intensidad</div>
       <div class="slider-row">
         <input type="range" min="5" max="100" value="${int}"
@@ -430,6 +455,7 @@ function buildLEDCard(key) {
           <div class="color-wheel-cursor" style="transform: translate(${cx}px, ${cy}px); background:${colorPreview}"></div>
         </div>
       </div>` : ''}` : ''}
+    ${manualRow(key)}
   </div>`;
 }
 
@@ -439,23 +465,25 @@ function buildCurtainCard(key) {
   const cfg = app.config[key];
   const pos = s.position ?? 0;
   const lbl = pos === 0 ? 'Cerrada' : pos === 100 ? 'Abierta' : `${pos}% abierta`;
+  const unlocked = !!app._unlocked[key];
 
   return `<div class="device-card full-width" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${cfg.label}</span></div>
-      <span class="card-status" style="margin:0">${lbl}</span>
+      <span class="card-status" style="margin:0">${unlocked ? 'Manual' : lbl}</span>
     </div>
     <div class="curtain-btns">
-      <button class="curtain-btn" data-key="${key}" data-curtain="open">▲ Abrir</button>
-      <button class="curtain-btn stop-btn" data-key="${key}" data-curtain="stop">⏹ Parar</button>
-      <button class="curtain-btn" data-key="${key}" data-curtain="close">▼ Cerrar</button>
+      <button class="curtain-btn" data-key="${key}" data-curtain="open" ${unlocked ? 'disabled' : ''}>▲ Abrir</button>
+      <button class="curtain-btn stop-btn" data-key="${key}" data-curtain="stop" ${unlocked ? 'disabled' : ''}>⏹ Parar</button>
+      <button class="curtain-btn" data-key="${key}" data-curtain="close" ${unlocked ? 'disabled' : ''}>▼ Cerrar</button>
     </div>
     <div class="slider-lbl">Posición</div>
     <div class="slider-row">
       <input type="range" min="0" max="100" value="${pos}"
-        data-key="${key}" data-action="curtain-pos">
+        data-key="${key}" data-action="curtain-pos" ${unlocked ? 'disabled' : ''}>
       <span class="slider-val" id="curtain-val-${key}">${pos}%</span>
     </div>
+    ${unlockRow(key)}
   </div>`;
 }
 
@@ -464,13 +492,15 @@ function buildSwitchCard(key) {
   const s   = app.devices[key] || {};
   const cfg = app.config[key];
   const on  = s.on;
+  const manual = !!app._manual[key];
 
-  return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
+  return `<div class="device-card ${on && !manual ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">${on ? '🔌' : '⬜'}</span><span class="card-label">${cfg.label}</span></div>
-      <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-switch"></div>
+      <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-switch"></div>
     </div>
-    <div class="card-status ${on ? 'on' : ''}">${on ? 'Encendido' : 'Apagado'}</div>
+    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? 'Modo manual' : (on ? 'Encendido' : 'Apagado')}</div>
+    ${manualRow(key)}
   </div>`;
 }
 
@@ -481,13 +511,14 @@ function buildSwitch3CHCard(key) {
   // Usar los canales definidos en config; si no hay, asumir 3
   const chs  = cfg.channels || ['Canal 1', 'Canal 2', 'Canal 3'];
   const vals = [s.ch1, s.ch2, s.ch3];
-  const anyOn = vals.slice(0, chs.length).some(Boolean);
+  const manual = !!app._manual[key];
+  const anyOn = !manual && vals.slice(0, chs.length).some(Boolean);
 
   // Generar una fila por cada canal definido (no siempre 3)
   const rows = chs.map((label, i) => `
     <div class="ch-row">
       <span class="ch-label">${label}</span>
-      <div class="toggle ${vals[i] ? 'on' : ''}" data-key="${key}" data-action="toggle-ch${i + 1}"></div>
+      <div class="toggle ${vals[i] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch${i + 1}"></div>
     </div>`).join('');
 
   const ico = chs.length <= 2 ? '🔌' : '⚡';
@@ -497,6 +528,7 @@ function buildSwitch3CHCard(key) {
       <div class="card-ico-name"><span class="card-ico">${ico}</span><span class="card-label">${cfg.label}</span></div>
     </div>
     ${rows}
+    ${manualRow(key)}
   </div>`;
 }
 
@@ -870,6 +902,30 @@ function handlePlanGridInput(e) {
 
 // ── EVENT: CLICK EN EL GRID ───────────────────────────────────────────────────
 function handleGridClick(e) {
+  // Modo manual (luces / enchufes)
+  const manualTog = e.target.closest('[data-action="toggle-manual"]');
+  if (manualTog) {
+    const key = manualTog.dataset.key;
+    app._manual[key] = !app._manual[key];
+    updateCard(key);
+    showToast(app._manual[key]
+      ? 'Modo manual activado — usa el interruptor físico de la habitación'
+      : 'Modo manual desactivado — control desde la app restaurado', '');
+    return;
+  }
+
+  // Motor de cortina desbloqueado (manual)
+  const unlockTog = e.target.closest('[data-action="toggle-unlock"]');
+  if (unlockTog) {
+    const key = unlockTog.dataset.key;
+    app._unlocked[key] = !app._unlocked[key];
+    updateCard(key);
+    showToast(app._unlocked[key]
+      ? 'Motor desbloqueado — mueve la cortina con la mano'
+      : 'Motor bloqueado — control desde la app restaurado', '');
+    return;
+  }
+
   // Toggle genérico de luz/LED
   const tog = e.target.closest('[data-action^="toggle-light"]');
   if (tog) {

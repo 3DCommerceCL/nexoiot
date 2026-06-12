@@ -1,6 +1,38 @@
 {
   "demo-plaza": {
-    "name":     "Hotel Demo Plaza",
+    "name": "Hotel Demo Plaza",
     "location": "Santiago, Chile"
+  },
+  "pacifico-suites": {
+    "name": "Hotel Pacífico Suites",
+    "location": "Viña del Mar, Chile"
+  },
+  "andes-lodge": {
+    "name": "Hotel Andes Lodge",
+    "location": "Pucón, Chile"
+  },
+  "costa-norte": {
+    "name": "Hotel Costa Norte",
+    "location": "Antofagasta, Chile"
+  },
+  "patagonia-inn": {
+    "name": "Hotel Patagonia Inn",
+    "location": "Puerto Varas, Chile"
+  },
+  "cumbres-valle": {
+    "name": "Hotel Cumbres del Valle",
+    "location": "Santa Cruz, Chile"
+  },
+  "mirador-centro": {
+    "name": "Hotel Mirador Centro",
+    "location": "Concepción, Chile"
+  },
+  "desierto-real": {
+    "name": "Hotel Desierto Real",
+    "location": "San Pedro de Atacama, Chile"
+  },
+  "bahia-azul": {
+    "name": "Hotel Bahía Azul",
+    "location": "Valdivia, Chile"
   }
 }

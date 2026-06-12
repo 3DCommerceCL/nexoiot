@@ -289,6 +289,21 @@ body {
   box-shadow: 0 1px 4px rgba(0,0,0,.4);
 }
 .toggle.on::after { transform: translateX(22px); }
+.toggle.disabled { opacity: .3; pointer-events: none; }
+
+.toggle.toggle-sm { width: 36px; height: 20px; }
+.toggle.toggle-sm::after { width: 14px; height: 14px; }
+.toggle.toggle-sm.on::after { transform: translateX(16px); }
+
+/* ── MODO MANUAL ──────────────────────────────────────────────────────────── */
+.manual-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--text2);
+}
+.manual-note {
+  font-size: 10px; color: var(--warn); margin-top: 6px; line-height: 1.4;
+}
 
 /* ── SLIDER (intensity / curtain) ─────────────────────────────────────────── */
 .slider-row {
@@ -377,6 +392,7 @@ input[type=range]:disabled { opacity: .3; pointer-events: none; }
   color: var(--text);
 }
 .curtain-btn.stop-btn { color: var(--warn); border-color: rgba(240,160,48,.3); }
+.curtain-btn:disabled { opacity: .3; pointer-events: none; }
 
 /* ── SWITCH 3CH ───────────────────────────────────────────────────────────── */
 .ch-row {
