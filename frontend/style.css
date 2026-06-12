@@ -7,9 +7,9 @@
   --card:     #FFFFFF;
   --card2:    #F4F6F9;
   --border:   #E6E9EE;
-  --teal:     #1FAE7E;
-  --teal-d:   #178862;
-  --teal-l:   rgba(31,174,126,.12);
+  --teal:     #0E544B;
+  --teal-d:   #0A3E37;
+  --teal-l:   rgba(14,84,75,.12);
   --text:     #1A1D24;
   --text2:    #8A8FA0;
   --text3:    #C9CDD6;
@@ -231,7 +231,7 @@ body {
   padding: 16px 14px; border-radius: var(--r);
   background: linear-gradient(135deg, var(--teal), var(--teal-d));
   border: none;
-  box-shadow: 0 3px 12px rgba(31,174,126,.20);
+  box-shadow: 0 3px 12px rgba(14,84,75,.20);
   cursor: pointer; font-family: var(--font);
   transition: all .15s;
   -webkit-tap-highlight-color: transparent;
@@ -240,8 +240,8 @@ body {
 .scene-card-title { font-size: 14px; font-weight: 700; color: #fff; }
 .scene-card-desc  { font-size: 11px; color: rgba(255,255,255,.75); line-height: 1.4; }
 .scene-card:hover, .scene-card:active {
-  background: linear-gradient(135deg, #29C794, var(--teal));
-  box-shadow: 0 5px 18px rgba(31,174,126,.40);
+  background: linear-gradient(135deg, #157F71, var(--teal));
+  box-shadow: 0 5px 18px rgba(14,84,75,.40);
 }
 .scene-card.loading { opacity: .6; pointer-events: none; }
 
@@ -265,7 +265,7 @@ body {
   background: linear-gradient(135deg, var(--teal), var(--teal-d));
   border: none;
   border-radius: var(--r);
-  box-shadow: 0 3px 12px rgba(31,174,126,.20);
+  box-shadow: 0 3px 12px rgba(14,84,75,.20);
   padding: 16px 14px;
   min-width: 0;
   color: #fff;
@@ -275,8 +275,8 @@ body {
 .device-card.full-width { grid-column: 1 / -1; }
 .device-card.offline    { opacity: .5; pointer-events: none; }
 .device-card.on {
-  background: linear-gradient(135deg, #29C794, var(--teal));
-  box-shadow: 0 5px 18px rgba(31,174,126,.40);
+  background: linear-gradient(135deg, #157F71, var(--teal));
+  box-shadow: 0 5px 18px rgba(14,84,75,.40);
 }
 
 .card-head {
@@ -545,7 +545,7 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
   font-size: 14px; font-weight: 700; font-family: var(--font);
   padding: 13px 26px; border-radius: var(--r);
   cursor: pointer; transition: background .15s;
-  box-shadow: 0 4px 14px rgba(31,174,126,.3);
+  box-shadow: 0 4px 14px rgba(14,84,75,.3);
   -webkit-tap-highlight-color: transparent;
 }
 .support-btn:hover, .support-btn:active { background: var(--teal-d); }
