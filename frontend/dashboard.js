@@ -33,6 +33,22 @@ const PLAN_FEATURES_INFO = {
     icon: '🔥', title: 'Alfombra Calefaccionable', minPlan: 'max_comfort', badge: 'MAX COMFORT',
     desc: 'Alfombra con calefacción para pie de cama o baño. Incluida en Max Comfort.',
   },
+  climate: {
+    icon: '❄️', title: 'Clima (AC + Ventana)', minPlan: 'premium', badge: 'PREMIUM',
+    desc: 'Control de aire acondicionado, sensor de ventana y automatizaciones. Incluido en el plan Premium.',
+  },
+};
+
+// ── ÍCONOS PERSONALIZADOS ─────────────────────────────────────────────────────
+const ICON_BED = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 17v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5"/><path d="M2 17h20v3"/><path d="M2 20v-3"/><path d="M22 20v-3"/><path d="M4 10V6a1 1 0 0 1 1-1h6v5"/></svg>';
+const ICON_LAMP = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8l4 7H4z"/><line x1="12" y1="11" x2="12" y2="19"/><line x1="8" y1="21" x2="16" y2="21"/></svg>';
+const ICON_CEILING_LAMP = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="7"/><path d="M6 16l2-9h8l2 9z"/><line x1="6" y1="16" x2="18" y2="16"/></svg>';
+
+const DEV_ICON_OVERRIDES = {
+  led_cama:     ICON_BED,
+  luz_velador1: ICON_LAMP,
+  luz_velador2: ICON_LAMP,
+  luz_techo:    ICON_CEILING_LAMP,
 };
 
 const state = {
@@ -176,8 +192,8 @@ function buildRoomCard(room) {
     <div class="room-card" id="rc-${room.id}">
       <div class="rc-top">
         <span class="rc-num">${room.name}</span>
-        <div style="display:flex;gap:5px"><span class="badge badge-floor">Piso ${room.floor}</span>${planBadge}</div>
       </div>
+      <div class="rc-badges"><span class="badge badge-floor">Piso ${room.floor}</span>${planBadge}</div>
       <div class="rc-guest">${room.guest.guestName}</div>
       <div class="rc-checkout ${co.urgency}">${co.urgency === 'today' ? '⚠️' : '🗓'} ${co.label}</div>
       <div class="rc-footer">
@@ -190,8 +206,8 @@ function buildRoomCard(room) {
   <div class="room-card" id="rc-${room.id}" style="border-style:dashed">
     <div class="rc-top">
       <span class="rc-num">${room.name}</span>
-      <div style="display:flex;gap:5px"><span class="badge badge-available">Disponible</span>${planBadge}</div>
     </div>
+    <div class="rc-badges"><span class="badge badge-available">Disponible</span>${planBadge}</div>
     <div class="rc-empty">Sin huésped — Piso ${room.floor}</div>
     <button class="btn btn-sm btn-outline-teal" style="margin-top:auto" onclick="openNewStayModal('${room.id}')">+ Asignar estadía</button>
   </div>`;
@@ -231,9 +247,10 @@ window.openRoomModal = async function(roomId) {
     state.placeholder = {
       tv:       { on: false, vol: 30, source: 'cable' },
       voice:    { on: true },
-      bathroom: { presence: false, lightOn: false, intensity: 60 },
+      bathroom: { presence: false, lightOn: false, intensity: 60, colorTemp: 50, auto: true },
       bidet:    { on: false, heatedSeat: false, mode: null },
       rug:      { on: false, level: 'media' },
+      climate:  { acOn: false, temp: 22, windowOpen: false, autoOff: true },
     };
     renderDevGrid();
     renderQRSection(room);
@@ -251,6 +268,13 @@ function renderDevGrid() {
   const cards = Object.entries(devices).map(([key, dev]) => buildDeviceCard(key, dev));
   cards.push(buildTVCard());
   cards.push(buildFeatureCard('voice',    PLAN_FEATURES_INFO.voice,    buildVoiceCard,    plan));
+  if (planLevel(plan) >= PLAN_TIERS.premium) {
+    cards.push(buildACCard());
+    cards.push(buildWindowCard());
+    cards.push(buildAutomationCard());
+  } else {
+    cards.push(buildLockedCard('climate', PLAN_FEATURES_INFO.climate, plan));
+  }
   cards.push(buildFeatureCard('bathroom', PLAN_FEATURES_INFO.bathroom, buildBathroomCard, plan));
   cards.push(buildFeatureCard('bidet',    PLAN_FEATURES_INFO.bidet,    buildBidetCard,    plan));
   cards.push(buildFeatureCard('rug',      PLAN_FEATURES_INFO.rug,      buildRugCard,      plan));
@@ -328,6 +352,10 @@ function buildBathroomCard() {
       <span class="feature-row-label"><span class="led-dot ${s.presence ? 'on' : ''}"></span>Sensor de presencia</span>
       <span class="preview-tag">${s.presence ? 'Detectada' : 'Sin presencia'}</span>
     </div>
+    <div class="feature-row">
+      <span class="feature-row-label">Encendido automático con presencia</span>
+      <div class="toggle-sw ${s.auto ? 'on' : ''}" onclick="toggleBathroomAuto()"></div>
+    </div>
     <div class="${s.lightOn ? '' : 'dev-dimmed'}">
       <div class="dev-status ${s.lightOn ? 'on-label' : ''}" style="margin-top:6px">${s.lightOn ? 'Luz encendida' : 'Luz apagada'}</div>
       <div class="slider-wrap">
@@ -335,6 +363,11 @@ function buildBathroomCard() {
           oninput="this.nextElementSibling.textContent=this.value+'%'"
           onchange="setFeatureVal('bathroom','intensity',this.value)">
         <span class="slider-val">${s.intensity}%</span>
+      </div>
+      <div class="ct-row">
+        <button class="ct-btn ${s.colorTemp < 33 ? 'active' : ''}" onclick="setFeatureVal('bathroom','colorTemp',5)">Cálido</button>
+        <button class="ct-btn ${s.colorTemp >= 33 && s.colorTemp < 66 ? 'active' : ''}" onclick="setFeatureVal('bathroom','colorTemp',50)">Neutro</button>
+        <button class="ct-btn ${s.colorTemp >= 66 ? 'active' : ''}" onclick="setFeatureVal('bathroom','colorTemp',95)">Frío</button>
       </div>
     </div>
   </div>`;
@@ -376,6 +409,70 @@ function buildRugCard() {
   </div>`;
 }
 
+// ── CLIMA (AC + ventana + automatización, Premium+) ──────────────────────────
+function buildACCard() {
+  const s = state.placeholder.climate;
+  return `<div class="dev-card">
+    <div class="dev-card-head">
+      <div class="dev-card-name"><span class="dev-card-ico">❄️</span> Aire Acondicionado</div>
+      <div class="toggle-sw ${s.acOn ? 'on' : ''}" onclick="toggleClimateAC()"></div>
+    </div>
+    <div class="ac-temp-display"><div class="ac-temp-val ${s.acOn ? 'on' : ''}">${s.temp}°C</div></div>
+    <div class="ac-temp-btns">
+      <button class="ac-btn" ${s.acOn ? '' : 'disabled'} onclick="setClimateTemp(-1)">−</button>
+      <span class="ac-range">16 – 30°C</span>
+      <button class="ac-btn" ${s.acOn ? '' : 'disabled'} onclick="setClimateTemp(1)">+</button>
+    </div>
+  </div>`;
+}
+
+function buildWindowCard() {
+  const s = state.placeholder.climate;
+  return `<div class="dev-card">
+    <div class="dev-card-head">
+      <div class="dev-card-name"><span class="dev-card-ico">🪟</span> Sensor de Ventana</div>
+    </div>
+    <div class="dev-status ${s.windowOpen ? '' : 'on-label'}">${s.windowOpen ? 'Ventana abierta' : 'Ventana cerrada'}</div>
+    <button class="curtain-btn" style="width:100%;margin-top:8px" onclick="toggleWindow()">Simular ${s.windowOpen ? 'cierre' : 'apertura'}</button>
+  </div>`;
+}
+
+function buildAutomationCard() {
+  const s = state.placeholder.climate;
+  return `<div class="dev-card" style="grid-column:1/-1">
+    <div class="dev-card-head">
+      <div class="dev-card-name"><span class="dev-card-ico">⚙️</span> Apagar AC al abrir la ventana</div>
+      <div class="toggle-sw ${s.autoOff ? 'on' : ''}" onclick="toggleAutoOff()"></div>
+    </div>
+    <div class="dev-status">Si está activo, el AC se apaga automáticamente y se notifica a recepción cuando se detecta una ventana abierta.</div>
+  </div>`;
+}
+
+window.toggleClimateAC = function() {
+  state.placeholder.climate.acOn = !state.placeholder.climate.acOn;
+  renderDevGrid();
+  previewToast();
+};
+
+window.setClimateTemp = function(delta) {
+  const s = state.placeholder.climate;
+  s.temp = Math.min(30, Math.max(16, s.temp + delta));
+  renderDevGrid();
+  previewToast();
+};
+
+window.toggleWindow = function() {
+  state.placeholder.climate.windowOpen = !state.placeholder.climate.windowOpen;
+  renderDevGrid();
+  previewToast();
+};
+
+window.toggleAutoOff = function() {
+  state.placeholder.climate.autoOff = !state.placeholder.climate.autoOff;
+  renderDevGrid();
+  previewToast();
+};
+
 function previewToast() { showToast('Vista previa — función no conectada a un dispositivo real', ''); }
 
 window.toggleFeature = function(key) {
@@ -387,6 +484,12 @@ window.toggleFeature = function(key) {
 
 window.togglePresence = function() {
   state.placeholder.bathroom.presence = !state.placeholder.bathroom.presence;
+  renderDevGrid();
+  previewToast();
+};
+
+window.toggleBathroomAuto = function() {
+  state.placeholder.bathroom.auto = !state.placeholder.bathroom.auto;
   renderDevGrid();
   previewToast();
 };
@@ -411,13 +514,13 @@ window.setRugLevel = function(level) {
 };
 
 window.setFeatureVal = function(key, prop, val) {
-  state.placeholder[key][prop] = (prop === 'vol' || prop === 'intensity') ? parseInt(val, 10) : val;
-  if (prop === 'source') renderDevGrid();
+  state.placeholder[key][prop] = (prop === 'vol' || prop === 'intensity' || prop === 'colorTemp') ? parseInt(val, 10) : val;
+  if (prop === 'source' || prop === 'colorTemp') renderDevGrid();
   previewToast();
 };
 
 function buildDeviceCard(key, dev) {
-  const ico = DEV_ICONS[dev.type] || '🔧';
+  const ico = DEV_ICON_OVERRIDES[key] || DEV_ICONS[dev.type] || '🔧';
   if (!dev.available) {
     return `<div class="dev-card">
       <div class="dev-card-head"><div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div></div>

@@ -292,6 +292,19 @@ function initNav() {
   });
 }
 
+// ── ÍCONOS PERSONALIZADOS ─────────────────────────────────────────────────────
+const ICON_BED = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 17v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5"/><path d="M2 17h20v3"/><path d="M2 20v-3"/><path d="M22 20v-3"/><path d="M4 10V6a1 1 0 0 1 1-1h6v5"/></svg>';
+const ICON_LAMP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8l4 7H4z"/><line x1="12" y1="11" x2="12" y2="19"/><line x1="8" y1="21" x2="16" y2="21"/></svg>';
+const ICON_CEILING_LAMP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="7"/><path d="M6 16l2-9h8l2 9z"/><line x1="6" y1="16" x2="18" y2="16"/></svg>';
+
+const DEVICE_ICON_OVERRIDES = {
+  led_cama:     ICON_BED,
+  luz_velador1: ICON_LAMP,
+  luz_velador2: ICON_LAMP,
+  luz_techo:    ICON_CEILING_LAMP,
+};
+const deviceIcon = (key, fallback) => DEVICE_ICON_OVERRIDES[key] || fallback;
+
 // ── RENDER GRID ────────────────────────────────────────────────────────────────
 const CARD_ORDER = ['luz_velador1','luz_velador2','led_cama','luz_techo','cortina','enchufe'];
 
@@ -342,7 +355,7 @@ function buildLightCard(key) {
   return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name">
-        <span class="card-ico">💡</span>
+        <span class="card-ico">${deviceIcon(key, '💡')}</span>
         <span class="card-label">${cfg.label}</span>
       </div>
       <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-light"></div>
@@ -389,7 +402,7 @@ function buildLEDCard(key) {
   return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name">
-        <span class="card-ico">💡</span>
+        <span class="card-ico">${deviceIcon(key, '💡')}</span>
         <span class="card-label">${cfg.label}</span>
       </div>
       <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-light"></div>
@@ -602,7 +615,7 @@ function buildVoiceCard() {
 
 // ── BAÑO INTELIGENTE (sensor de presencia + luz) ─────────────────────────────
 function buildBathroomCard() {
-  const s = app._placeholder.bathroom ?? (app._placeholder.bathroom = { presence: false, lightOn: false, intensity: 60 });
+  const s = app._placeholder.bathroom ?? (app._placeholder.bathroom = { presence: false, lightOn: false, intensity: 60, colorTemp: 50, auto: true });
   return `<div class="device-card full-width ${s.lightOn ? 'on' : ''}" id="feature-bathroom">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🚿</span><span class="card-label">Baño Inteligente</span></div>
@@ -612,12 +625,21 @@ function buildBathroomCard() {
       <span class="feature-row-label"><span class="led-dot ${s.presence ? 'on' : ''}"></span>Sensor de presencia</span>
       <span class="preview-tag">${s.presence ? 'Detectada' : 'Sin presencia'}</span>
     </div>
-    <div class="card-status ${s.lightOn ? 'on' : ''}" style="margin-top:8px">${s.lightOn ? 'Luz encendida' : 'Luz apagada'}</div>
+    <div class="feature-row">
+      <span class="feature-row-label">Encendido automático con presencia</span>
+      <div class="toggle ${s.auto ? 'on' : ''}" data-feature="bathroom" data-action="auto"></div>
+    </div>
+    <div class="card-status ${s.lightOn ? 'on' : ''}" style="margin-top:8px">${s.lightOn ? 'Luz encendida' : 'Luz apagada'}${s.auto ? ' · Programada para encenderse automáticamente si hay alguien dentro' : ''}</div>
     ${s.lightOn ? `
     <div class="slider-lbl">Intensidad</div>
     <div class="slider-row">
       <input type="range" min="5" max="100" value="${s.intensity}" data-feature="bathroom" data-action="intensity">
       <span class="slider-val">${s.intensity}%</span>
+    </div>
+    <div class="ct-row">
+      <button class="ct-btn ${s.colorTemp < 33 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="5">Cálido</button>
+      <button class="ct-btn ${s.colorTemp >= 33 && s.colorTemp < 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="50">Neutro</button>
+      <button class="ct-btn ${s.colorTemp >= 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="95">Frío</button>
     </div>` : ''}
   </div>`;
 }
@@ -731,6 +753,22 @@ function handlePlanGridClick(e) {
     if (key === 'bathroom') s.lightOn = !s.lightOn;
     else s.on = !s.on;
     rerenderFeature(key);
+    showPreviewToast();
+    return;
+  }
+
+  const bathroomAuto = e.target.closest('[data-feature="bathroom"][data-action="auto"]');
+  if (bathroomAuto) {
+    app._placeholder.bathroom.auto = !app._placeholder.bathroom.auto;
+    rerenderFeature('bathroom');
+    showPreviewToast();
+    return;
+  }
+
+  const bathroomCt = e.target.closest('[data-feature="bathroom"][data-action="ct"]');
+  if (bathroomCt) {
+    app._placeholder.bathroom.colorTemp = parseInt(bathroomCt.dataset.ct);
+    rerenderFeature('bathroom');
     showPreviewToast();
     return;
   }

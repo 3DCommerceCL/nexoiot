@@ -9,11 +9,31 @@ const $ = id => document.getElementById(id);
 const PLAN_LABELS = { base: 'Base', premium: 'Premium', max_comfort: 'Max Comfort' };
 
 const MOCK_HOTELS = [
-  { name: 'Hotel Demo Plaza',    location: 'Santiago, Chile',     rooms: 24, occupied: 18, plans: ['base', 'premium', 'max_comfort'] },
+  { name: 'Hotel Demo Plaza',    location: 'Santiago, Chile',     rooms: 24, occupied: 18, plans: ['base', 'premium', 'max_comfort'], connected: true },
   { name: 'Hotel Costa Azul',    location: 'Viña del Mar, Chile', rooms: 40, occupied: 27, plans: ['base', 'premium'] },
   { name: 'Hotel Andes Lodge',   location: 'Pucón, Chile',        rooms: 16, occupied: 16, plans: ['premium', 'max_comfort'] },
   { name: 'Hotel Puerto Norte',  location: 'Antofagasta, Chile',  rooms: 30, occupied: 12, plans: ['base'] },
 ];
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  $('toast-container').appendChild(t);
+  setTimeout(() => {
+    t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; t.style.transition = 'all .3s';
+    setTimeout(() => t.remove(), 300);
+  }, 3000);
+}
+
+window.openHotel = function(name) {
+  const hotel = MOCK_HOTELS.find(h => h.name === name);
+  if (hotel?.connected) {
+    location.href = './dashboard.html';
+    return;
+  }
+  showToast('Vista previa — este hotel de ejemplo aún no está conectado a un dashboard real.');
+};
 
 function renderKPIs() {
   const totalHotels = MOCK_HOTELS.length;
@@ -50,7 +70,7 @@ function buildHotelCard(hotel) {
   const pct = Math.round((hotel.occupied / hotel.rooms) * 100);
   const plans = hotel.plans.map(p => `<span class="plan-pill ${p}">${PLAN_LABELS[p]}</span>`).join('');
   return `
-  <div class="hotel-card">
+  <div class="hotel-card" onclick="openHotel('${hotel.name}')">
     <div class="hc-top">
       <div>
         <div class="hc-name">${hotel.name}</div>

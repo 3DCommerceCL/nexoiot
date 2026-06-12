@@ -267,7 +267,8 @@ body {
   margin-bottom: 10px;
 }
 .card-ico-name  { display: flex; align-items: center; gap: 8px; }
-.card-ico       { font-size: 20px; line-height: 1; }
+.card-ico       { font-size: 20px; line-height: 1; display: inline-flex; align-items: center; }
+.card-ico svg   { display: block; }
 .card-label     { font-size: 13px; font-weight: 600; color: var(--text); }
 .card-status    { font-size: 11px; color: var(--text2); margin-bottom: 10px; }
 .card-status.on { color: var(--teal); }

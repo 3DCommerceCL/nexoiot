@@ -81,6 +81,14 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 /* ── PLACEHOLDER NOTE ── */
 .preview-note{background:var(--purple-l);border:1px solid rgba(83,74,183,.3);border-radius:10px;padding:12px 16px;font-size:12px;color:#B7B0F2;margin-bottom:20px;line-height:1.5}
 
+/* ── TOAST ── */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text);animation:toastIn .3s ease;pointer-events:all;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:320px}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* ── HOTEL CARD LINK ── */
+.hotel-card{cursor:pointer}
+
 @media(max-width:900px){
   .sidebar{width:60px;min-width:60px}
   .sidebar .sb-hotel,.sidebar .nav-label,.sidebar .sb-footer>*:not(.sb-status){display:none}
@@ -148,6 +156,8 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
     <div class="hotel-grid" id="hotel-grid"></div>
   </div>
 </main>
+
+<div id="toast-container"></div>
 
 <script src="./nexo-admin.js"></script>
 </body>
