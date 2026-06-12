@@ -1,19 +1,35 @@
 'use strict';
 // ─────────────────────────────────────────────────────────────────────────────
 // Nexo IoT — Panel General (multi-hotel)
-// Vista previa visual con datos de ejemplo — no conectado al backend todavía.
+// Lee /api/admin/hotels para mostrar los hoteles conectados a Nexo IoT.
 // ─────────────────────────────────────────────────────────────────────────────
+
+const API_URL    = 'https://nexoiot-production.up.railway.app/api';
+const KEY_STORAGE = 'nexo_admin_key';
 
 const $ = id => document.getElementById(id);
 
 const PLAN_LABELS = { base: 'Base', premium: 'Premium', max_comfort: 'Max Comfort' };
 
-const MOCK_HOTELS = [
-  { name: 'Hotel Demo Plaza',    location: 'Santiago, Chile',     rooms: 24, occupied: 18, plans: ['base', 'premium', 'max_comfort'], connected: true },
-  { name: 'Hotel Costa Azul',    location: 'Viña del Mar, Chile', rooms: 40, occupied: 27, plans: ['base', 'premium'] },
-  { name: 'Hotel Andes Lodge',   location: 'Pucón, Chile',        rooms: 16, occupied: 16, plans: ['premium', 'max_comfort'] },
-  { name: 'Hotel Puerto Norte',  location: 'Antofagasta, Chile',  rooms: 30, occupied: 12, plans: ['base'] },
-];
+let hotels = [];
+
+function getAdminKey() { return sessionStorage.getItem(KEY_STORAGE) || ''; }
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...opts,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Admin-Key': getAdminKey(),
+      ...(opts.headers || {}),
+    },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Error HTTP ${res.status}`);
+  }
+  return res.json();
+}
 
 function showToast(msg) {
   const t = document.createElement('div');
@@ -26,20 +42,49 @@ function showToast(msg) {
   }, 3000);
 }
 
-window.openHotel = function(name) {
-  const hotel = MOCK_HOTELS.find(h => h.name === name);
-  if (hotel?.connected) {
-    location.href = './dashboard.html';
-    return;
-  }
-  showToast('Vista previa — este hotel de ejemplo aún no está conectado a un dashboard real.');
+window.openHotel = function(id) {
+  location.href = `./dashboard.html?hotel=${encodeURIComponent(id)}`;
 };
 
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+async function login() {
+  const key   = $('login-key').value.trim();
+  const error = $('login-error');
+  error.textContent = '';
+  if (!key) { error.textContent = 'Ingresa la clave de acceso.'; return; }
+
+  sessionStorage.setItem(KEY_STORAGE, key);
+  try {
+    await loadHotels();
+    $('login-screen').classList.add('hidden');
+    $('sidebar').classList.remove('hidden');
+    $('main').classList.remove('hidden');
+  } catch (err) {
+    sessionStorage.removeItem(KEY_STORAGE);
+    error.textContent = 'Clave incorrecta o sin conexión.';
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem(KEY_STORAGE);
+  $('sidebar').classList.add('hidden');
+  $('main').classList.add('hidden');
+  $('login-screen').classList.remove('hidden');
+  $('login-key').value = '';
+}
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+async function loadHotels() {
+  hotels = await apiFetch('/admin/hotels');
+  renderKPIs();
+  renderHotels();
+}
+
 function renderKPIs() {
-  const totalHotels = MOCK_HOTELS.length;
-  const totalRooms  = MOCK_HOTELS.reduce((sum, h) => sum + h.rooms, 0);
-  const totalOcc    = MOCK_HOTELS.reduce((sum, h) => sum + h.occupied, 0);
-  const pct         = Math.round((totalOcc / totalRooms) * 100);
+  const totalHotels = hotels.length;
+  const totalRooms  = hotels.reduce((sum, h) => sum + h.rooms, 0);
+  const totalOcc    = hotels.reduce((sum, h) => sum + h.occupied, 0);
+  const pct         = totalRooms ? Math.round((totalOcc / totalRooms) * 100) : 0;
 
   $('kpi-row').innerHTML = `
     <div class="kpi-card">
@@ -60,21 +105,21 @@ function renderKPIs() {
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Habitaciones Max Comfort</div>
-      <div class="kpi-value">${MOCK_HOTELS.filter(h => h.plans.includes('max_comfort')).length}</div>
+      <div class="kpi-value">${hotels.filter(h => h.plans.includes('max_comfort')).length}</div>
       <div class="kpi-sub">Hoteles con el plan superior</div>
     </div>
   `;
 }
 
 function buildHotelCard(hotel) {
-  const pct = Math.round((hotel.occupied / hotel.rooms) * 100);
-  const plans = hotel.plans.map(p => `<span class="plan-pill ${p}">${PLAN_LABELS[p]}</span>`).join('');
+  const pct = hotel.rooms ? Math.round((hotel.occupied / hotel.rooms) * 100) : 0;
+  const plans = hotel.plans.map(p => `<span class="plan-pill ${p}">${PLAN_LABELS[p] || p}</span>`).join('');
   return `
-  <div class="hotel-card" onclick="openHotel('${hotel.name}')">
+  <div class="hotel-card" onclick="openHotel('${hotel.id}')">
     <div class="hc-top">
       <div>
         <div class="hc-name">${hotel.name}</div>
-        <div class="hc-loc">${hotel.location}</div>
+        <div class="hc-loc">${hotel.location || ''}</div>
       </div>
       <span class="badge badge-active">Activo</span>
     </div>
@@ -91,7 +136,11 @@ function buildHotelCard(hotel) {
 }
 
 function renderHotels() {
-  $('hotel-grid').innerHTML = MOCK_HOTELS.map(buildHotelCard).join('');
+  if (!hotels.length) {
+    $('hotel-grid').innerHTML = '<div class="kpi-sub">Sin hoteles registrados todavía.</div>';
+    return;
+  }
+  $('hotel-grid').innerHTML = hotels.map(buildHotelCard).join('');
 }
 
 function startClock() {
@@ -107,7 +156,19 @@ function startClock() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  renderKPIs();
-  renderHotels();
+  $('login-btn').addEventListener('click', login);
+  $('login-key').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  $('logout-btn').addEventListener('click', logout);
+
   startClock();
+
+  if (getAdminKey()) {
+    loadHotels()
+      .then(() => {
+        $('login-screen').classList.add('hidden');
+        $('sidebar').classList.remove('hidden');
+        $('main').classList.remove('hidden');
+      })
+      .catch(() => sessionStorage.removeItem(KEY_STORAGE));
+  }
 });

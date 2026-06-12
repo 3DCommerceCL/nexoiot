@@ -89,6 +89,20 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 /* ── HOTEL CARD LINK ── */
 .hotel-card{cursor:pointer}
 
+/* ── LOGIN ── */
+.form-input{padding:9px 12px;border-radius:7px;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color .15s;width:100%}
+.form-input:focus{border-color:var(--purple)}
+.form-input::placeholder{color:var(--text3)}
+.form-error{font-size:12px;color:var(--alert);min-height:16px}
+.login-overlay{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-card{width:100%;max-width:340px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;display:flex;flex-direction:column;gap:14px}
+.login-desc{font-size:12px;color:var(--text2);line-height:1.5}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid transparent;font-family:var(--font);white-space:nowrap}
+.btn-primary{background:var(--purple);color:#fff;border-color:var(--purple)}
+.btn-primary:hover{background:#463e9c;border-color:#463e9c}
+.btn-outline{background:transparent;color:var(--text2);border-color:var(--border)}
+.btn-outline:hover{color:var(--text);border-color:var(--text3)}
+
 @media(max-width:900px){
   .sidebar{width:60px;min-width:60px}
   .sidebar .sb-hotel,.sidebar .nav-label,.sidebar .sb-footer>*:not(.sb-status){display:none}
@@ -107,8 +121,19 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 </head>
 <body>
 
+<!-- LOGIN -->
+<div class="login-overlay" id="login-screen">
+  <div class="login-card">
+    <div class="sb-logo"><div class="sb-logo-dot"></div><span style="font-size:15px">Nexo IoT</span></div>
+    <p class="login-desc">Ingresa la clave de acceso de Nexo IoT para ver el panel general de hoteles.</p>
+    <input class="form-input" type="password" id="login-key" placeholder="Clave de acceso" autocomplete="current-password">
+    <button class="btn btn-primary" style="width:100%;padding:11px" id="login-btn">Ingresar</button>
+    <div class="form-error" id="login-error"></div>
+  </div>
+</div>
+
 <!-- SIDEBAR -->
-<aside class="sidebar">
+<aside class="sidebar hidden" id="sidebar">
   <div class="sb-header">
     <div class="sb-logo">
       <div class="sb-logo-dot"></div>
@@ -127,27 +152,23 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
     </div>
   </nav>
   <div class="sb-footer">
-    <div class="sb-status"><div class="sb-status-dot"></div><span>Vista previa</span></div>
-    <div class="sb-status-line">Datos de ejemplo</div>
+    <div class="sb-status"><div class="sb-status-dot"></div><span>Sistema activo</span></div>
+    <div class="sb-status-line">Conectado</div>
     <div class="sb-version">Nexo IoT v1.0</div>
   </div>
 </aside>
 
 <!-- MAIN -->
-<main class="main">
+<main class="main hidden" id="main">
   <header class="top-bar">
     <div class="tb-title">Hoteles</div>
     <div class="tb-right">
-      <span class="preview-pill">VISTA PREVIA</span>
       <div class="clock" id="clock"></div>
+      <button class="btn btn-outline" id="logout-btn">Salir</button>
     </div>
   </header>
 
   <div class="content">
-    <div class="preview-note">
-      📊 Este panel muestra datos de ejemplo para previsualizar cómo Nexo IoT podrá ver y comparar todos los hoteles clientes desde un solo lugar. Aún no está conectado a datos reales.
-    </div>
-
     <div class="kpi-row" id="kpi-row"></div>
 
     <div class="sec-header">

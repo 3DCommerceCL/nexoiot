@@ -10,6 +10,7 @@ const crypto = require('crypto');
 
 const ROOMS_FILE  = path.join(__dirname, 'data/rooms.json');
 const TOKENS_FILE = path.join(__dirname, 'data/tokens.json');
+const HOTELS_FILE = path.join(__dirname, 'data/hotels.json');
 
 // Token de demo preincluido — siempre disponible para pruebas
 const SEED_TOKENS = {
@@ -58,6 +59,7 @@ function writeJSON(file, data) {
 
 const getRooms  = () => readJSON(ROOMS_FILE);
 const getTokens = () => readJSON(TOKENS_FILE);
+const getHotels = () => readJSON(HOTELS_FILE);
 
 // ── GENERAR TOKEN ─────────────────────────────────────────────────────────────
 function generateToken(roomId, guestName, checkin, checkout, phone = '') {
@@ -146,4 +148,4 @@ function getActiveTokenForRoom(roomId) {
   return candidates.length ? candidates[0][0] : null;
 }
 
-module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms };
+module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels };

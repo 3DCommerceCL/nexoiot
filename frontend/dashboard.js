@@ -8,6 +8,7 @@
 const API_URL      = 'https://nexoiot-production.up.railway.app/api';
 const FRONTEND_URL = 'https://3dcommercecl.github.io/nexoiot';
 const KEY_STORAGE  = 'nexo_admin_key';
+const HOTEL_ID     = new URLSearchParams(location.search).get('hotel');
 
 const $ = id => document.getElementById(id);
 
@@ -140,8 +141,11 @@ function logout() {
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
 async function loadRooms() {
-  rooms = await apiFetch('/admin/rooms');
+  const qs = HOTEL_ID ? `?hotel=${encodeURIComponent(HOTEL_ID)}` : '';
+  rooms = await apiFetch(`/admin/rooms${qs}`);
   $('hotel-name').textContent = rooms[0]?.hotel || 'Panel del Hotel';
+  const back = $('back-to-nexo');
+  if (back) back.classList.toggle('hidden', !HOTEL_ID);
   renderKPIs();
   renderRooms('overview');
   if (state.view === 'rooms') renderRooms('rooms', state.filter);

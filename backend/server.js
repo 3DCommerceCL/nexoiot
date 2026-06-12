@@ -294,23 +294,49 @@ app.get('/api/admin/tokens', adminAuth, (req, res) => {
 });
 
 // ── ADMIN: GET /api/admin/rooms ───────────────────────────────────────────────
+// Acepta ?hotel=<hotelId> para filtrar las habitaciones de un hotel específico.
 app.get('/api/admin/rooms', adminAuth, (req, res) => {
   const r = rooms.getRooms();
   const activeTokens = rooms.listActiveTokens();
   res.json(
     Object.keys(r)
       .filter(id => r[id].demo !== true)
+      .filter(id => !req.query.hotel || r[id].hotelId === req.query.hotel)
       .map(id => {
         const guest = activeTokens.find(t => t.roomId === id) || null;
         return {
           id,
-          name:  r[id].name,
-          hotel: r[id].hotel || null,
-          floor: r[id].floor,
-          plan:  r[id].plan || 'base',
+          name:    r[id].name,
+          hotel:   r[id].hotel || null,
+          hotelId: r[id].hotelId || null,
+          floor:   r[id].floor,
+          plan:    r[id].plan || 'base',
           guest,
         };
       })
+  );
+});
+
+// ── ADMIN: GET /api/admin/hotels ──────────────────────────────────────────────
+app.get('/api/admin/hotels', adminAuth, (req, res) => {
+  const hotels = rooms.getHotels();
+  const r = rooms.getRooms();
+  const activeTokens = rooms.listActiveTokens();
+
+  res.json(
+    Object.keys(hotels).map(id => {
+      const hotelRooms = Object.keys(r).filter(roomId => r[roomId].demo !== true && r[roomId].hotelId === id);
+      const occupied = hotelRooms.filter(roomId => activeTokens.some(t => t.roomId === roomId)).length;
+      const plans = [...new Set(hotelRooms.map(roomId => r[roomId].plan || 'base'))];
+      return {
+        id,
+        name:     hotels[id].name,
+        location: hotels[id].location || null,
+        rooms:    hotelRooms.length,
+        occupied,
+        plans,
+      };
+    })
   );
 });
 
