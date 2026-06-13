@@ -36,16 +36,30 @@ const SEED_TOKENS = {
   },
 };
 
-// ── I/O JSON ──────────────────────────────────────────────────────────────────
+// ── I/O JSON (con cache en memoria invalidada por mtime) ─────────────────────
+// Evita releer y re-parsear los archivos completos en cada request (p.ej. el
+// polling de /api/tv/:roomId cada 60s). Solo se vuelve a leer del disco si el
+// archivo cambió desde la última lectura (mtime distinto) o tras escribirlo.
+const _cache = new Map(); // file -> { mtimeMs, data }
+
 function readJSON(file) {
-  try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
-  catch {
+  try {
+    const { mtimeMs } = fs.statSync(file);
+    const cached = _cache.get(file);
+    if (cached && cached.mtimeMs === mtimeMs) return cached.data;
+    const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+    _cache.set(file, { mtimeMs, data });
+    return data;
+  } catch {
     // Si tokens.json no existe (primer arranque en Railway), sembrarlo
     if (file === TOKENS_FILE) {
       try {
         fs.mkdirSync(path.dirname(file), { recursive: true });
-        fs.writeFileSync(file, JSON.stringify(SEED_TOKENS, null, 2), 'utf8');
+        const data = { ...SEED_TOKENS };
+        fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
         console.log('[rooms] tokens.json creado con token de demo');
+        _cache.set(file, { mtimeMs: fs.statSync(file).mtimeMs, data });
+        return data;
       } catch {}
       return { ...SEED_TOKENS };
     }
@@ -55,6 +69,7 @@ function readJSON(file) {
 
 function writeJSON(file, data) {
   fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+  _cache.set(file, { mtimeMs: fs.statSync(file).mtimeMs, data });
 }
 
 const getRooms  = () => readJSON(ROOMS_FILE);
