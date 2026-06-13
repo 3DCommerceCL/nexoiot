@@ -19,6 +19,8 @@ const STATIC_DEMO = {
   guestName: 'Demo Huésped',
   checkin:   new Date(Date.now() - 1 * 86400000).toISOString(), // ayer
   checkout:  new Date(Date.now() + 2 * 86400000).toISOString(), // en 2 días
+  lang:          'es',
+  accessibility: 'none',
   demoMode:  true,
   plan:      'max_comfort',
   devices: {
@@ -56,12 +58,261 @@ const app = {
   config:  {},   // { key: { type, label, channels, available } }
   devices: {},   // { key: estado normalizado del dispositivo }
   plan:    'base', // 'base' | 'premium' | 'max_comfort'
+  lang:    'es',   // idioma del huésped: 'es' | 'en' | 'pt'
+  a11y:    'none', // accesibilidad: 'none' | 'vision' | 'hearing'
+  data:    null,   // respuesta completa de la API (para re-render al cambiar idioma)
   _timers: {},   // debounce timers para sliders
   _wheelOpen: {}, // { key: bool } — selector de color RGB abierto/cerrado
   _placeholder: {}, // estado local de funciones del plan (no conectadas a dispositivos reales)
   _manual: {},   // { key: bool } — modo manual (control físico) para luces/enchufes
   _unlocked: {}, // { key: bool } — motor de cortina desbloqueado para mover a mano
 };
+
+// ── IDIOMAS (i18n) ────────────────────────────────────────────────────────────
+const LANG_NAMES = { es: 'Español', en: 'English', pt: 'Português' };
+const LOCALES    = { es: 'es-CL',   en: 'en-US',   pt: 'pt-BR' };
+
+const I18N = {
+  es: {
+    loading: 'Cargando tu habitación…',
+    errInvalidTitle: 'Enlace inválido o expirado',
+    errInvalidSub: 'Este QR ya no es válido. Solicita un nuevo acceso en recepción.',
+    errServerTitle: 'Sin conexión con el servidor',
+    errServerSub: 'No se pudo conectar con el sistema. Verifica tu conexión WiFi o comunícate con recepción.',
+    navRoom: 'Habitación', navScenes: 'Escenas', navClimate: 'Clima', navSettings: 'Ajustes', navSupport: 'Soporte',
+    demoBanner: '🔵 Modo demostración — los cambios no se aplican a dispositivos reales',
+    checkoutBtn: '🚪 Check-out',
+    hello: 'Hola, {name} 👋', welcome: 'Bienvenido',
+    checkoutLine: '📅 Check-out: {date} a las {time}',
+    sectionControls: 'Controles', sectionPlan: 'Funciones del plan', sectionScenes: 'Escenas',
+    sectionSettings: 'Ajustes', sectionSupport: 'Soporte',
+    cdLeft: 'Faltan {t}', cdOverdue: 'Vencido hace {t}', cdNow: 'Venció ahora',
+    sceneNightTitle: 'Noche', sceneNightDesc: 'Apaga las luces principales y enciende el LED bajo cama',
+    sceneMorningTitle: 'Mañana', sceneMorningDesc: 'Abre la cortina y enciende las luces en tono cálido',
+    sceneRelaxTitle: 'Relax', sceneRelaxDesc: 'Ambiente con luces de color suave y cortina a media altura',
+    sceneOffTitle: 'Apagar todo', sceneOffDesc: 'Apaga todas las luces y enchufes de la habitación',
+    setHotel: 'Hotel', setRoom: 'Habitación', setGuest: 'Huésped', setCheckin: 'Check-in',
+    setCheckout: 'Check-out', setMode: 'Modo', modeDemo: 'Demostración', modeLive: 'En vivo',
+    language: 'Idioma', accessibility: 'Accesibilidad',
+    a11yNone: 'Ninguna', a11yVision: 'Baja visión', a11yHearing: 'Auditiva',
+    a11yVisionNote: 'Texto y controles más grandes, con mayor contraste, para personas con baja visión.',
+    a11yHearingNote: 'Avisos visuales destacados y de mayor duración en lugar de señales sonoras.',
+    supportQuestion: '¿Necesitas ayuda con tu habitación o tienes alguna duda?',
+    callReception: '📞 Llamar a recepción',
+    callReceptionMsg: 'Para contactar a recepción, marca el interno 0 desde el teléfono de tu habitación o acércate a recepción.',
+    checkoutMsg: 'Para el check-out, por favor dirígete a recepción o llama al interno del hotel.',
+    onF: 'Encendida', offF: 'Apagada', onM: 'Encendido', offM: 'Apagado',
+    manualMode: 'Modo manual',
+    manualNote: 'Control manual activado — usa el interruptor físico de la habitación. Desactívalo para volver a controlarlo desde la app.',
+    unlockMotor: 'Desbloquear motor (manual)',
+    unlockNoteOn: 'Motor desbloqueado — mueve la cortina con la mano. Bloquéalo para volver a controlarla desde la app.',
+    unlockNoteOff: 'Disponible solo si el motor del riel/roller admite liberación manual (depende del modelo instalado).',
+    toastManualOn: 'Modo manual activado — luz fija en cálido, ahora se enciende/apaga con el interruptor físico',
+    toastManualOff: 'Modo manual desactivado — control desde la app restaurado',
+    toastUnlockOn: 'Motor desbloqueado — mueve la cortina con la mano',
+    toastUnlockOff: 'Motor bloqueado — control desde la app restaurado',
+    intensity: 'Intensidad', position: 'Posición', volume: 'Volumen',
+    warm: 'Cálido', neutral: 'Neutro', cold: 'Frío', color: 'Color',
+    curtainOpenBtn: '▲ Abrir', curtainStopBtn: '⏹ Parar', curtainCloseBtn: '▼ Cerrar',
+    curtainClosed: 'Cerrada', curtainOpened: 'Abierta', curtainPct: '{p}% abierta', manualShort: 'Manual',
+    offlineDevice: 'Dispositivo no disponible',
+    toastCmdFail: 'No se pudo ejecutar. Verifica la conexión.',
+    toastScene: 'Escena aplicada', toastSceneFail: 'Algunos comandos fallaron',
+    toastPreview: 'Vista previa — función no conectada a un dispositivo real',
+    tvCable: 'TV Cable', tvStreaming: 'Streaming', tvHdmi: 'HDMI',
+    voiceTitle: 'Control por Voz',
+    voiceOn: 'Asistente activo (Amazon Echo)', voiceOff: 'Modo privado — solo control por app',
+    ledIndicator: 'LED indicador',
+    bathTitle: 'Baño Inteligente', presenceSensor: 'Sensor de presencia',
+    presenceYes: 'Detectada', presenceNo: 'Sin presencia',
+    bathAuto: 'Encendido automático con presencia',
+    lightOn: 'Luz encendida', lightOff: 'Luz apagada',
+    bathAutoNote: ' · Programada para encenderse automáticamente si hay alguien dentro',
+    bathManualNote: 'Control manual activado — luz fija en cálido, ahora se enciende/apaga con el interruptor físico del baño.',
+    bidetTitle: 'Baño Japonés', heatedSeat: 'Asiento calefaccionado', wash: '💧 Lavado', dry: '🌬 Secado',
+    rugTitle: 'Alfombra Calefaccionable', low: 'Baja', medium: 'Media', high: 'Alta',
+    addonBadge: 'Disponible como add-on',
+    voiceDesc: 'Controla tu habitación con Amazon Echo. Disponible en el plan Premium del hotel.',
+    bathDesc: 'Sensor de presencia + luz inteligente en el baño. Incluido en el plan Max Comfort.',
+    bidetDesc: 'Bidé inteligente con asiento calefaccionado. Incluido en el plan Max Comfort.',
+    rugDesc: 'Alfombra con calefacción para pie de cama o baño. Incluida en el plan Max Comfort.',
+    climateLockTitle: 'Control de Clima',
+    climateLockDesc: 'Ajusta la temperatura de tu habitación, revisa el sensor de ventana y crea automatizaciones con el aire acondicionado. Esta función está disponible en el plan Premium del hotel.',
+    acSection: 'Aire Acondicionado', autoSection: 'Automatizaciones', acTitle: 'Aire Acondicionado',
+    windowTitle: 'Sensor de Ventana', windowOpen: 'Ventana abierta', windowClosed: 'Ventana cerrada',
+    simulateOpen: 'Simular apertura', simulateClose: 'Simular cierre',
+    autoOffTitle: 'Apagar AC al abrir la ventana',
+    autoOffDesc: 'Si está activo, el AC se apaga automáticamente y se notifica a recepción cuando se detecta una ventana abierta.',
+    doorOpen: '🚪 Puerta abierta',
+    devices: {
+      led_cama: 'LED Bajo Cama', luz_techo: 'Luz Techo', luz_velador1: 'Luz Velador 1',
+      luz_velador2: 'Luz Velador 2', cortina: 'Cortina', enchufe: 'Enchufe USB', puerta: 'Puerta',
+    },
+  },
+  en: {
+    loading: 'Loading your room…',
+    errInvalidTitle: 'Invalid or expired link',
+    errInvalidSub: 'This QR code is no longer valid. Please request a new access at the front desk.',
+    errServerTitle: 'No connection to the server',
+    errServerSub: 'We could not reach the system. Check your WiFi connection or contact the front desk.',
+    navRoom: 'Room', navScenes: 'Scenes', navClimate: 'Climate', navSettings: 'Settings', navSupport: 'Support',
+    demoBanner: '🔵 Demo mode — changes are not applied to real devices',
+    checkoutBtn: '🚪 Check-out',
+    hello: 'Hello, {name} 👋', welcome: 'Welcome',
+    checkoutLine: '📅 Check-out: {date} at {time}',
+    sectionControls: 'Controls', sectionPlan: 'Plan features', sectionScenes: 'Scenes',
+    sectionSettings: 'Settings', sectionSupport: 'Support',
+    cdLeft: '{t} left', cdOverdue: 'Overdue by {t}', cdNow: 'Just expired',
+    sceneNightTitle: 'Night', sceneNightDesc: 'Turns off the main lights and turns on the under-bed LED',
+    sceneMorningTitle: 'Morning', sceneMorningDesc: 'Opens the curtain and turns on warm lights',
+    sceneRelaxTitle: 'Relax', sceneRelaxDesc: 'Soft colored lights with the curtain at half height',
+    sceneOffTitle: 'All off', sceneOffDesc: 'Turns off every light and outlet in the room',
+    setHotel: 'Hotel', setRoom: 'Room', setGuest: 'Guest', setCheckin: 'Check-in',
+    setCheckout: 'Check-out', setMode: 'Mode', modeDemo: 'Demo', modeLive: 'Live',
+    language: 'Language', accessibility: 'Accessibility',
+    a11yNone: 'None', a11yVision: 'Low vision', a11yHearing: 'Hearing',
+    a11yVisionNote: 'Larger text and controls with higher contrast for low-vision guests.',
+    a11yHearingNote: 'Prominent, longer-lasting visual alerts instead of sound cues.',
+    supportQuestion: 'Need help with your room or have any questions?',
+    callReception: '📞 Call the front desk',
+    callReceptionMsg: 'To contact the front desk, dial extension 0 from your room phone or stop by the reception.',
+    checkoutMsg: 'For check-out, please go to the front desk or call the hotel extension.',
+    onF: 'On', offF: 'Off', onM: 'On', offM: 'Off',
+    manualMode: 'Manual mode',
+    manualNote: 'Manual control enabled — use the physical switch in the room. Turn it off to control from the app again.',
+    unlockMotor: 'Unlock motor (manual)',
+    unlockNoteOn: 'Motor unlocked — move the curtain by hand. Lock it to control it from the app again.',
+    unlockNoteOff: 'Only available if the curtain motor supports manual release (depends on the installed model).',
+    toastManualOn: 'Manual mode enabled — light set to warm, now controlled by the physical switch',
+    toastManualOff: 'Manual mode disabled — app control restored',
+    toastUnlockOn: 'Motor unlocked — move the curtain by hand',
+    toastUnlockOff: 'Motor locked — app control restored',
+    intensity: 'Brightness', position: 'Position', volume: 'Volume',
+    warm: 'Warm', neutral: 'Neutral', cold: 'Cool', color: 'Color',
+    curtainOpenBtn: '▲ Open', curtainStopBtn: '⏹ Stop', curtainCloseBtn: '▼ Close',
+    curtainClosed: 'Closed', curtainOpened: 'Open', curtainPct: '{p}% open', manualShort: 'Manual',
+    offlineDevice: 'Device unavailable',
+    toastCmdFail: 'Command failed. Check your connection.',
+    toastScene: 'Scene applied', toastSceneFail: 'Some commands failed',
+    toastPreview: 'Preview — feature not connected to a real device',
+    tvCable: 'Cable TV', tvStreaming: 'Streaming', tvHdmi: 'HDMI',
+    voiceTitle: 'Voice Control',
+    voiceOn: 'Assistant active (Amazon Echo)', voiceOff: 'Private mode — app control only',
+    ledIndicator: 'Indicator LED',
+    bathTitle: 'Smart Bathroom', presenceSensor: 'Presence sensor',
+    presenceYes: 'Detected', presenceNo: 'No presence',
+    bathAuto: 'Auto-on with presence',
+    lightOn: 'Light on', lightOff: 'Light off',
+    bathAutoNote: ' · Set to turn on automatically when someone is inside',
+    bathManualNote: 'Manual control enabled — light set to warm, now controlled by the physical bathroom switch.',
+    bidetTitle: 'Japanese Toilet', heatedSeat: 'Heated seat', wash: '💧 Wash', dry: '🌬 Dry',
+    rugTitle: 'Heated Rug', low: 'Low', medium: 'Medium', high: 'High',
+    addonBadge: 'Available as an add-on',
+    voiceDesc: 'Control your room with Amazon Echo. Available on the hotel’s Premium plan.',
+    bathDesc: 'Presence sensor + smart bathroom light. Included in the Max Comfort plan.',
+    bidetDesc: 'Smart bidet with heated seat. Included in the Max Comfort plan.',
+    rugDesc: 'Heated rug for bedside or bathroom. Included in the Max Comfort plan.',
+    climateLockTitle: 'Climate Control',
+    climateLockDesc: 'Adjust your room temperature, check the window sensor and create AC automations. This feature is available on the hotel’s Premium plan.',
+    acSection: 'Air Conditioning', autoSection: 'Automations', acTitle: 'Air Conditioning',
+    windowTitle: 'Window Sensor', windowOpen: 'Window open', windowClosed: 'Window closed',
+    simulateOpen: 'Simulate opening', simulateClose: 'Simulate closing',
+    autoOffTitle: 'Turn AC off when the window opens',
+    autoOffDesc: 'When active, the AC turns off automatically and the front desk is notified whenever an open window is detected.',
+    doorOpen: '🚪 Door open',
+    devices: {
+      led_cama: 'Under-bed LED', luz_techo: 'Ceiling Light', luz_velador1: 'Bedside Lamp 1',
+      luz_velador2: 'Bedside Lamp 2', cortina: 'Curtain', enchufe: 'USB Outlet', puerta: 'Door',
+    },
+  },
+  pt: {
+    loading: 'Carregando seu quarto…',
+    errInvalidTitle: 'Link inválido ou expirado',
+    errInvalidSub: 'Este QR não é mais válido. Solicite um novo acesso na recepção.',
+    errServerTitle: 'Sem conexão com o servidor',
+    errServerSub: 'Não foi possível conectar ao sistema. Verifique sua conexão WiFi ou fale com a recepção.',
+    navRoom: 'Quarto', navScenes: 'Cenas', navClimate: 'Clima', navSettings: 'Ajustes', navSupport: 'Suporte',
+    demoBanner: '🔵 Modo demonstração — as mudanças não são aplicadas a dispositivos reais',
+    checkoutBtn: '🚪 Check-out',
+    hello: 'Olá, {name} 👋', welcome: 'Bem-vindo',
+    checkoutLine: '📅 Check-out: {date} às {time}',
+    sectionControls: 'Controles', sectionPlan: 'Funções do plano', sectionScenes: 'Cenas',
+    sectionSettings: 'Ajustes', sectionSupport: 'Suporte',
+    cdLeft: 'Faltam {t}', cdOverdue: 'Vencido há {t}', cdNow: 'Venceu agora',
+    sceneNightTitle: 'Noite', sceneNightDesc: 'Apaga as luzes principais e acende o LED sob a cama',
+    sceneMorningTitle: 'Manhã', sceneMorningDesc: 'Abre a cortina e acende as luzes em tom quente',
+    sceneRelaxTitle: 'Relax', sceneRelaxDesc: 'Ambiente com luzes coloridas suaves e cortina a meia altura',
+    sceneOffTitle: 'Desligar tudo', sceneOffDesc: 'Apaga todas as luzes e tomadas do quarto',
+    setHotel: 'Hotel', setRoom: 'Quarto', setGuest: 'Hóspede', setCheckin: 'Check-in',
+    setCheckout: 'Check-out', setMode: 'Modo', modeDemo: 'Demonstração', modeLive: 'Ao vivo',
+    language: 'Idioma', accessibility: 'Acessibilidade',
+    a11yNone: 'Nenhuma', a11yVision: 'Baixa visão', a11yHearing: 'Auditiva',
+    a11yVisionNote: 'Texto e controles maiores, com mais contraste, para pessoas com baixa visão.',
+    a11yHearingNote: 'Avisos visuais destacados e mais duradouros em vez de sinais sonoros.',
+    supportQuestion: 'Precisa de ajuda com seu quarto ou tem alguma dúvida?',
+    callReception: '📞 Ligar para a recepção',
+    callReceptionMsg: 'Para falar com a recepção, disque o ramal 0 do telefone do quarto ou vá até a recepção.',
+    checkoutMsg: 'Para o check-out, dirija-se à recepção ou ligue para o ramal do hotel.',
+    onF: 'Ligada', offF: 'Desligada', onM: 'Ligado', offM: 'Desligado',
+    manualMode: 'Modo manual',
+    manualNote: 'Controle manual ativado — use o interruptor físico do quarto. Desative para voltar a controlar pelo app.',
+    unlockMotor: 'Destravar motor (manual)',
+    unlockNoteOn: 'Motor destravado — mova a cortina com a mão. Trave para voltar a controlá-la pelo app.',
+    unlockNoteOff: 'Disponível apenas se o motor da cortina permitir liberação manual (depende do modelo instalado).',
+    toastManualOn: 'Modo manual ativado — luz fixa em tom quente, agora liga/desliga pelo interruptor físico',
+    toastManualOff: 'Modo manual desativado — controle pelo app restaurado',
+    toastUnlockOn: 'Motor destravado — mova a cortina com a mão',
+    toastUnlockOff: 'Motor travado — controle pelo app restaurado',
+    intensity: 'Intensidade', position: 'Posição', volume: 'Volume',
+    warm: 'Quente', neutral: 'Neutro', cold: 'Frio', color: 'Cor',
+    curtainOpenBtn: '▲ Abrir', curtainStopBtn: '⏹ Parar', curtainCloseBtn: '▼ Fechar',
+    curtainClosed: 'Fechada', curtainOpened: 'Aberta', curtainPct: '{p}% aberta', manualShort: 'Manual',
+    offlineDevice: 'Dispositivo indisponível',
+    toastCmdFail: 'Não foi possível executar. Verifique a conexão.',
+    toastScene: 'Cena aplicada', toastSceneFail: 'Alguns comandos falharam',
+    toastPreview: 'Pré-visualização — função não conectada a um dispositivo real',
+    tvCable: 'TV a Cabo', tvStreaming: 'Streaming', tvHdmi: 'HDMI',
+    voiceTitle: 'Controle por Voz',
+    voiceOn: 'Assistente ativo (Amazon Echo)', voiceOff: 'Modo privado — controle apenas pelo app',
+    ledIndicator: 'LED indicador',
+    bathTitle: 'Banheiro Inteligente', presenceSensor: 'Sensor de presença',
+    presenceYes: 'Detectada', presenceNo: 'Sem presença',
+    bathAuto: 'Ligar automaticamente com presença',
+    lightOn: 'Luz acesa', lightOff: 'Luz apagada',
+    bathAutoNote: ' · Programada para acender automaticamente se houver alguém dentro',
+    bathManualNote: 'Controle manual ativado — luz fixa em tom quente, agora liga/desliga pelo interruptor físico do banheiro.',
+    bidetTitle: 'Vaso Japonês', heatedSeat: 'Assento aquecido', wash: '💧 Lavagem', dry: '🌬 Secagem',
+    rugTitle: 'Tapete Aquecido', low: 'Baixa', medium: 'Média', high: 'Alta',
+    addonBadge: 'Disponível como add-on',
+    voiceDesc: 'Controle seu quarto com Amazon Echo. Disponível no plano Premium do hotel.',
+    bathDesc: 'Sensor de presença + luz inteligente no banheiro. Incluído no plano Max Comfort.',
+    bidetDesc: 'Bidê inteligente com assento aquecido. Incluído no plano Max Comfort.',
+    rugDesc: 'Tapete com aquecimento para beira da cama ou banheiro. Incluído no plano Max Comfort.',
+    climateLockTitle: 'Controle de Clima',
+    climateLockDesc: 'Ajuste a temperatura do quarto, verifique o sensor de janela e crie automações com o ar-condicionado. Esta função está disponível no plano Premium do hotel.',
+    acSection: 'Ar-Condicionado', autoSection: 'Automações', acTitle: 'Ar-Condicionado',
+    windowTitle: 'Sensor de Janela', windowOpen: 'Janela aberta', windowClosed: 'Janela fechada',
+    simulateOpen: 'Simular abertura', simulateClose: 'Simular fechamento',
+    autoOffTitle: 'Desligar o AC ao abrir a janela',
+    autoOffDesc: 'Quando ativo, o AC desliga automaticamente e a recepção é notificada ao detectar uma janela aberta.',
+    doorOpen: '🚪 Porta aberta',
+    devices: {
+      led_cama: 'LED Sob a Cama', luz_techo: 'Luz do Teto', luz_velador1: 'Abajur 1',
+      luz_velador2: 'Abajur 2', cortina: 'Cortina', enchufe: 'Tomada USB', puerta: 'Porta',
+    },
+  },
+};
+
+function t(key, vars) {
+  let s = (I18N[app.lang] || I18N.es)[key] ?? I18N.es[key] ?? key;
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, v);
+  return s;
+}
+
+// Etiqueta del dispositivo traducida (con fallback al label del backend)
+function devLabel(key, cfg) {
+  return (I18N[app.lang] || I18N.es).devices?.[key] || cfg.label;
+}
 
 // ── NIVELES DE PLAN ───────────────────────────────────────────────────────────
 const PLAN_TIERS = { base: 0, premium: 1, max_comfort: 2 };
@@ -143,7 +394,7 @@ async function doCmd(deviceKey, command) {
   } catch (err) {
     app.devices[deviceKey] = prev;
     updateCard(deviceKey);
-    showToast('No se pudo ejecutar. Verifica la conexión.', 'error');
+    showToast(t('toastCmdFail'), 'error');
     console.error('[CMD]', deviceKey, command, err.message);
   }
 }
@@ -174,6 +425,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function renderApp(data) {
+  app.data = data;
+
   // Construir estado
   for (const [key, dev] of Object.entries(data.devices)) {
     app.config[key]  = { type: dev.type, label: dev.label, channels: dev.channels, available: dev.available };
@@ -182,42 +435,18 @@ function renderApp(data) {
 
   app.plan = data.plan || 'base';
 
-  // Header
-  document.getElementById('hotel-name').textContent  = data.hotelName;
-  document.getElementById('room-name').textContent   = data.roomName;
-  document.getElementById('guest-name').textContent  = `Hola, ${data.guestName.split(' ')[0]} 👋`;
+  // Idioma y accesibilidad del huésped (en modo estático, localStorage manda)
+  app.lang = (window.location.protocol === 'file:' && localStorage.getItem('nexo_lang'))
+    || data.lang || 'es';
+  if (!I18N[app.lang]) app.lang = 'es';
+  app.a11y = (window.location.protocol === 'file:' && localStorage.getItem('nexo_a11y'))
+    || data.accessibility || 'none';
 
-  // Sidebar
-  document.getElementById('sidebar-hotel').textContent = data.hotelName;
-  document.getElementById('sidebar-room').textContent  = data.roomName;
+  document.documentElement.lang = app.lang;
+  applyA11y();
+  applyTexts();
 
-  const co     = new Date(data.checkout);
-  const coDate = co.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
-  const coTime = co.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
-  document.getElementById('checkout-info').textContent = `📅 Check-out: ${coDate} a las ${coTime}`;
-
-  startClock(co);
-
-  // Vista Ajustes
-  document.getElementById('set-hotel').textContent  = data.hotelName;
-  document.getElementById('set-room').textContent   = data.roomName;
-  document.getElementById('set-guest').textContent  = data.guestName;
-  document.getElementById('set-checkout').textContent = `${coDate}, ${coTime}`;
-  document.getElementById('set-mode').textContent   = data.demoMode ? 'Demostración' : 'En vivo';
-  if (data.checkin) {
-    const ci     = new Date(data.checkin);
-    const ciDate = ci.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
-    const ciTime = ci.toLocaleTimeString('es-CL', { hour:'2-digit', minute:'2-digit' });
-    document.getElementById('set-checkin').textContent = `${ciDate}, ${ciTime}`;
-  }
-
-  // Sensor de puerta en header
-  const doorDev = data.devices.puerta;
-  if (doorDev?.state?.open) {
-    const ds = document.getElementById('door-status');
-    ds.style.display = 'flex';
-    ds.textContent   = '🚪 Puerta abierta';
-  }
+  startClock(new Date(data.checkout));
 
   // Banner demo
   if (data.demoMode) document.getElementById('demo-banner').style.display = 'block';
@@ -265,6 +494,126 @@ function renderApp(data) {
   initNav();
 }
 
+// ── TEXTOS LOCALIZADOS (header, sidebar, ajustes y estáticos) ────────────────
+function applyTexts() {
+  // Elementos estáticos marcados con data-i18n en index.html
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+
+  const d = app.data;
+  if (!d) return;
+  const loc = LOCALES[app.lang] || 'es-CL';
+
+  document.getElementById('hotel-name').textContent = d.hotelName;
+  document.getElementById('room-name').textContent  = d.roomName;
+  document.getElementById('guest-name').textContent = d.guestName
+    ? t('hello', { name: d.guestName.split(' ')[0] })
+    : t('welcome');
+
+  document.getElementById('sidebar-hotel').textContent = d.hotelName;
+  document.getElementById('sidebar-room').textContent  = d.roomName;
+
+  const co     = new Date(d.checkout);
+  const coDate = co.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' });
+  const coTime = co.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' });
+  document.getElementById('checkout-info').textContent = t('checkoutLine', { date: coDate, time: coTime });
+
+  document.getElementById('set-hotel').textContent    = d.hotelName;
+  document.getElementById('set-room').textContent     = d.roomName;
+  document.getElementById('set-guest').textContent    = d.guestName;
+  document.getElementById('set-checkout').textContent = `${coDate}, ${coTime}`;
+  document.getElementById('set-mode').textContent     = d.demoMode ? t('modeDemo') : t('modeLive');
+  if (d.checkin) {
+    const ci = new Date(d.checkin);
+    document.getElementById('set-checkin').textContent =
+      `${ci.toLocaleDateString(loc, { weekday: 'long', day: 'numeric', month: 'long' })}, ` +
+      `${ci.toLocaleTimeString(loc, { hour: '2-digit', minute: '2-digit' })}`;
+  }
+
+  // Sensor de puerta en header
+  if (d.devices.puerta?.state?.open) {
+    const ds = document.getElementById('door-status');
+    ds.style.display = 'flex';
+    ds.textContent   = t('doorOpen');
+  }
+
+  document.getElementById('demo-banner').textContent = t('demoBanner');
+
+  renderPrefsRows();
+}
+
+// ── SELECTORES DE IDIOMA Y ACCESIBILIDAD (vista Ajustes) ─────────────────────
+function renderPrefsRows() {
+  const langEl = document.getElementById('lang-options');
+  if (langEl) {
+    langEl.innerHTML = Object.keys(I18N).map(l =>
+      `<button class="pref-btn ${app.lang === l ? 'active' : ''}" data-lang="${l}">${LANG_NAMES[l]}</button>`
+    ).join('');
+  }
+  const a11yEl = document.getElementById('a11y-options');
+  if (a11yEl) {
+    const modes = [['none', 'a11yNone'], ['vision', 'a11yVision'], ['hearing', 'a11yHearing']];
+    a11yEl.innerHTML = modes.map(([m, k]) =>
+      `<button class="pref-btn ${app.a11y === m ? 'active' : ''}" data-a11y="${m}">${t(k)}</button>`
+    ).join('');
+  }
+  const note = document.getElementById('a11y-note');
+  if (note) {
+    note.textContent = app.a11y === 'vision' ? t('a11yVisionNote')
+      : app.a11y === 'hearing' ? t('a11yHearingNote') : '';
+    note.style.display = app.a11y === 'none' ? 'none' : 'block';
+  }
+}
+
+// Guarda idioma/accesibilidad en el servidor (o localStorage en modo estático)
+async function savePrefs(prefs) {
+  if (window.location.protocol === 'file:') {
+    if (prefs.lang)          localStorage.setItem('nexo_lang', prefs.lang);
+    if (prefs.accessibility) localStorage.setItem('nexo_a11y', prefs.accessibility);
+    return;
+  }
+  try {
+    await fetch(`${API}/room/${app.token}/prefs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(prefs),
+    });
+  } catch { /* mejor esfuerzo: la preferencia ya quedó aplicada localmente */ }
+}
+
+function setLang(lang) {
+  if (!I18N[lang] || lang === app.lang) return;
+  app.lang = lang;
+  document.documentElement.lang = lang;
+  applyTexts();
+  renderGrid();
+  renderPlanGrid();
+  renderClimateView();
+  savePrefs({ lang });
+}
+
+function setA11y(mode) {
+  if (mode === app.a11y) return;
+  app.a11y = mode;
+  applyA11y();
+  renderPrefsRows();
+  savePrefs({ accessibility: mode });
+}
+
+// Presets visuales según discapacidad: baja visión (texto/controles grandes,
+// alto contraste) y auditiva (avisos visuales destacados y más duraderos).
+function applyA11y() {
+  document.body.classList.toggle('a11y-vision',  app.a11y === 'vision');
+  document.body.classList.toggle('a11y-hearing', app.a11y === 'hearing');
+}
+
+// Clicks en los selectores de idioma/accesibilidad
+document.addEventListener('click', e => {
+  const lb = e.target.closest('[data-lang]');
+  if (lb) { setLang(lb.dataset.lang); return; }
+  const ab = e.target.closest('[data-a11y]');
+  if (ab) setA11y(ab.dataset.a11y);
+});
+
 // ── NAVEGACIÓN: SIDEBAR Y VISTAS ──────────────────────────────────────────────
 function initNav() {
   const sidebar  = document.getElementById('sidebar');
@@ -290,7 +639,7 @@ function initNav() {
 
   // Botón de soporte: llamar a recepción
   document.getElementById('call-reception-btn')?.addEventListener('click', () => {
-    alert('Para contactar a recepción, marca el interno 0 desde el teléfono de tu habitación o acércate a recepción.');
+    alert(t('callReceptionMsg'));
   });
 }
 
@@ -311,10 +660,10 @@ const deviceIcon = (key, fallback) => DEVICE_ICON_OVERRIDES[key] || fallback;
 function manualRow(key) {
   const manual = !!app._manual[key];
   return `<div class="manual-row">
-    <span>Modo manual</span>
+    <span>${t('manualMode')}</span>
     <div class="toggle toggle-sm ${manual ? 'on' : ''}" data-key="${key}" data-action="toggle-manual"></div>
   </div>
-  ${manual ? '<div class="manual-note">Control manual activado — usa el interruptor físico de la habitación. Desactívalo para volver a controlarlo desde la app.</div>' : ''}`;
+  ${manual ? `<div class="manual-note">${t('manualNote')}</div>` : ''}`;
 }
 
 // ── MOTOR DE CORTINA DESBLOQUEADO ─────────────────────────────────────────────
@@ -323,12 +672,10 @@ function manualRow(key) {
 function unlockRow(key) {
   const unlocked = !!app._unlocked[key];
   return `<div class="manual-row">
-    <span>Desbloquear motor (manual)</span>
+    <span>${t('unlockMotor')}</span>
     <div class="toggle toggle-sm ${unlocked ? 'on' : ''}" data-key="${key}" data-action="toggle-unlock"></div>
   </div>
-  ${unlocked
-    ? '<div class="manual-note">Motor desbloqueado — mueve la cortina con la mano. Bloquéalo para volver a controlarla desde la app.</div>'
-    : '<div class="manual-note">Disponible solo si el motor del riel/roller admite liberación manual (depende del modelo instalado).</div>'}`;
+  <div class="manual-note">${unlocked ? t('unlockNoteOn') : t('unlockNoteOff')}</div>`;
 }
 
 // ── RENDER GRID ────────────────────────────────────────────────────────────────
@@ -365,8 +712,8 @@ function buildCard(key) {
 
 function buildOfflineCard(key, cfg) {
   return `<div class="device-card offline" id="card-${key}">
-    <div class="card-head"><div class="card-ico-name"><span class="card-ico">⚠️</span><span class="card-label">${cfg.label}</span></div></div>
-    <div class="offline-label">Dispositivo no disponible</div>
+    <div class="card-head"><div class="card-ico-name"><span class="card-ico">⚠️</span><span class="card-label">${devLabel(key, cfg)}</span></div></div>
+    <div class="offline-label">${t('offlineDevice')}</div>
   </div>`;
 }
 
@@ -383,22 +730,22 @@ function buildLightCard(key) {
     <div class="card-head">
       <div class="card-ico-name">
         <span class="card-ico">${deviceIcon(key, '💡')}</span>
-        <span class="card-label">${cfg.label}</span>
+        <span class="card-label">${devLabel(key, cfg)}</span>
       </div>
       <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
     </div>
-    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? 'Modo manual' : (on ? 'Encendida' : 'Apagada')}</div>
+    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onF') : t('offF'))}</div>
     ${on && !manual ? `
-      <div class="slider-lbl">Intensidad</div>
+      <div class="slider-lbl">${t('intensity')}</div>
       <div class="slider-row">
         <input type="range" min="5" max="100" value="${int}"
           data-key="${key}" data-action="intensity">
         <span class="slider-val">${int}%</span>
       </div>
       <div class="ct-row">
-        <button class="ct-btn ${ct < 33 ? 'active' : ''}" data-key="${key}" data-ct="5">Cálido</button>
-        <button class="ct-btn ${ct >= 33 && ct < 66 ? 'active' : ''}" data-key="${key}" data-ct="50">Neutro</button>
-        <button class="ct-btn ${ct >= 66 ? 'active' : ''}" data-key="${key}" data-ct="95">Frío</button>
+        <button class="ct-btn ${ct < 33 ? 'active' : ''}" data-key="${key}" data-ct="5">${t('warm')}</button>
+        <button class="ct-btn ${ct >= 33 && ct < 66 ? 'active' : ''}" data-key="${key}" data-ct="50">${t('neutral')}</button>
+        <button class="ct-btn ${ct >= 66 ? 'active' : ''}" data-key="${key}" data-ct="95">${t('cold')}</button>
       </div>` : ''}
     ${manualRow(key)}
   </div>`;
@@ -432,25 +779,25 @@ function buildLEDCard(key) {
     <div class="card-head">
       <div class="card-ico-name">
         <span class="card-ico">${deviceIcon(key, '💡')}</span>
-        <span class="card-label">${cfg.label}</span>
+        <span class="card-label">${devLabel(key, cfg)}</span>
       </div>
       <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
     </div>
-    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? 'Modo manual' : (on ? 'Encendido' : 'Apagado')}</div>
+    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onM') : t('offM'))}</div>
     ${on && !manual ? `
-      <div class="slider-lbl">Intensidad</div>
+      <div class="slider-lbl">${t('intensity')}</div>
       <div class="slider-row">
         <input type="range" min="5" max="100" value="${int}"
           data-key="${key}" data-action="intensity">
         <span class="slider-val">${int}%</span>
       </div>
       <div class="ct-row">
-        <button class="ct-btn ${!isColour && ct < 33 ? 'active' : ''}" data-key="${key}" data-ct="5">Cálido</button>
-        <button class="ct-btn ${!isColour && ct >= 33 && ct < 66 ? 'active' : ''}" data-key="${key}" data-ct="50">Neutro</button>
-        <button class="ct-btn ${!isColour && ct >= 66 ? 'active' : ''}" data-key="${key}" data-ct="95">Frío</button>
+        <button class="ct-btn ${!isColour && ct < 33 ? 'active' : ''}" data-key="${key}" data-ct="5">${t('warm')}</button>
+        <button class="ct-btn ${!isColour && ct >= 33 && ct < 66 ? 'active' : ''}" data-key="${key}" data-ct="50">${t('neutral')}</button>
+        <button class="ct-btn ${!isColour && ct >= 66 ? 'active' : ''}" data-key="${key}" data-ct="95">${t('cold')}</button>
         <button class="ct-btn color-toggle-btn ${wheelOpen ? 'open' : ''}" data-key="${key}" data-action="toggle-wheel"
           style="${isColour ? `border-color:${colorPreview};color:${colorPreview}` : ''}">
-          <span class="color-dot" style="background:${colorPreview}"></span> Color
+          <span class="color-dot" style="background:${colorPreview}"></span> ${t('color')}
         </button>
       </div>
       ${wheelOpen ? `
@@ -468,20 +815,20 @@ function buildCurtainCard(key) {
   const s   = app.devices[key] || {};
   const cfg = app.config[key];
   const pos = s.position ?? 0;
-  const lbl = pos === 0 ? 'Cerrada' : pos === 100 ? 'Abierta' : `${pos}% abierta`;
+  const lbl = pos === 0 ? t('curtainClosed') : pos === 100 ? t('curtainOpened') : t('curtainPct', { p: pos });
   const unlocked = !!app._unlocked[key];
 
   return `<div class="device-card full-width" id="card-${key}">
     <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${cfg.label}</span></div>
-      <span class="card-status" style="margin:0">${unlocked ? 'Manual' : lbl}</span>
+      <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${devLabel(key, cfg)}</span></div>
+      <span class="card-status" style="margin:0">${unlocked ? t('manualShort') : lbl}</span>
     </div>
     <div class="curtain-btns">
-      <button class="curtain-btn" data-key="${key}" data-curtain="open" ${unlocked ? 'disabled' : ''}>▲ Abrir</button>
-      <button class="curtain-btn stop-btn" data-key="${key}" data-curtain="stop" ${unlocked ? 'disabled' : ''}>⏹ Parar</button>
-      <button class="curtain-btn" data-key="${key}" data-curtain="close" ${unlocked ? 'disabled' : ''}>▼ Cerrar</button>
+      <button class="curtain-btn" data-key="${key}" data-curtain="open" ${unlocked ? 'disabled' : ''}>${t('curtainOpenBtn')}</button>
+      <button class="curtain-btn stop-btn" data-key="${key}" data-curtain="stop" ${unlocked ? 'disabled' : ''}>${t('curtainStopBtn')}</button>
+      <button class="curtain-btn" data-key="${key}" data-curtain="close" ${unlocked ? 'disabled' : ''}>${t('curtainCloseBtn')}</button>
     </div>
-    <div class="slider-lbl">Posición</div>
+    <div class="slider-lbl">${t('position')}</div>
     <div class="slider-row">
       <input type="range" min="0" max="100" value="${pos}"
         data-key="${key}" data-action="curtain-pos" ${unlocked ? 'disabled' : ''}>
@@ -500,10 +847,10 @@ function buildSwitchCard(key) {
 
   return `<div class="device-card ${on && !manual ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">${on ? '🔌' : '⬜'}</span><span class="card-label">${cfg.label}</span></div>
+      <div class="card-ico-name"><span class="card-ico">${on ? '🔌' : '⬜'}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
       <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-switch"></div>
     </div>
-    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? 'Modo manual' : (on ? 'Encendido' : 'Apagado')}</div>
+    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onM') : t('offM'))}</div>
     ${manualRow(key)}
   </div>`;
 }
@@ -529,7 +876,7 @@ function buildSwitch3CHCard(key) {
 
   return `<div class="device-card full-width ${anyOn ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">${ico}</span><span class="card-label">${cfg.label}</span></div>
+      <div class="card-ico-name"><span class="card-ico">${ico}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
     </div>
     ${rows}
     ${manualRow(key)}
@@ -545,7 +892,7 @@ function buildACCard(key) {
 
   return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">${cfg.label}</span></div>
+      <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">${devLabel(key, cfg)}</span></div>
       <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-ac"></div>
     </div>
     <div class="ac-temp-display">
@@ -560,23 +907,12 @@ function buildACCard(key) {
 }
 
 // ── FUNCIONES DEL PLAN (placeholders no conectados a dispositivos reales) ────
+// title/desc son claves i18n que se resuelven al renderizar.
 const PLAN_FEATURES_INFO = {
-  voice: {
-    icon: '🔊', title: 'Control por Voz', minPlan: 'premium', badge: 'PREMIUM',
-    desc: 'Controla tu habitación con Amazon Echo. Disponible en el plan Premium del hotel.',
-  },
-  bathroom: {
-    icon: '🚿', title: 'Baño Inteligente', minPlan: 'max_comfort', addonFrom: 'base', badge: 'MAX COMFORT',
-    desc: 'Sensor de presencia + luz inteligente en el baño. Incluido en el plan Max Comfort.',
-  },
-  bidet: {
-    icon: '🚽', title: 'Baño Japonés', minPlan: 'max_comfort', badge: 'MAX COMFORT',
-    desc: 'Bidé inteligente con asiento calefaccionado. Incluido en el plan Max Comfort.',
-  },
-  rug: {
-    icon: '🔥', title: 'Alfombra Calefaccionable', minPlan: 'max_comfort', badge: 'MAX COMFORT',
-    desc: 'Alfombra con calefacción para pie de cama o baño. Incluida en el plan Max Comfort.',
-  },
+  voice:    { icon: '🔊', title: 'voiceTitle', desc: 'voiceDesc', minPlan: 'premium',     badge: 'PREMIUM' },
+  bathroom: { icon: '🚿', title: 'bathTitle',  desc: 'bathDesc',  minPlan: 'max_comfort', addonFrom: 'base', badge: 'MAX COMFORT' },
+  bidet:    { icon: '🚽', title: 'bidetTitle', desc: 'bidetDesc', minPlan: 'max_comfort', badge: 'MAX COMFORT' },
+  rug:      { icon: '🔥', title: 'rugTitle',   desc: 'rugDesc',   minPlan: 'max_comfort', badge: 'MAX COMFORT' },
 };
 
 function renderPlanGrid() {
@@ -599,10 +935,10 @@ function buildLockedCard(key, info) {
   const isAddon = info.addonFrom && planLevel(app.plan) >= planLevel(info.addonFrom);
   return `<div class="device-card feature-card locked" id="feature-${key}">
     <div class="feature-lock-icon">${info.icon}</div>
-    <div class="feature-lock-title">${info.title}</div>
-    <div class="feature-lock-desc">${info.desc}</div>
+    <div class="feature-lock-title">${t(info.title)}</div>
+    <div class="feature-lock-desc">${t(info.desc)}</div>
     ${isAddon
-      ? `<span class="feature-addon-badge">Disponible como add-on</span>`
+      ? `<span class="feature-addon-badge">${t('addonBadge')}</span>`
       : `<span class="feature-plan-badge">${info.badge}</span>`}
   </div>`;
 }
@@ -611,18 +947,18 @@ function buildLockedCard(key, info) {
 function buildTVCard() {
   const s = app._placeholder.tv ?? (app._placeholder.tv = { on: false, vol: 30, source: 'cable' });
   const sources = [
-    { id: 'cable',   label: 'TV Cable' },
-    { id: 'netflix', label: 'Streaming' },
-    { id: 'hdmi',    label: 'HDMI' },
+    { id: 'cable',   label: t('tvCable') },
+    { id: 'netflix', label: t('tvStreaming') },
+    { id: 'hdmi',    label: t('tvHdmi') },
   ];
   return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-tv">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">📺</span><span class="card-label">TV</span></div>
       <div class="toggle ${s.on ? 'on' : ''}" data-feature="tv" data-action="toggle"></div>
     </div>
-    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? 'Encendida' : 'Apagada'}</div>
+    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? t('onF') : t('offF')}</div>
     ${s.on ? `
-      <div class="slider-lbl">Volumen</div>
+      <div class="slider-lbl">${t('volume')}</div>
       <div class="slider-row">
         <input type="range" min="0" max="100" value="${s.vol}" data-feature="tv" data-action="vol">
         <span class="slider-val">${s.vol}%</span>
@@ -638,13 +974,13 @@ function buildVoiceCard() {
   const s = app._placeholder.voice ?? (app._placeholder.voice = { on: true });
   return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-voice">
     <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">🔊</span><span class="card-label">Control por Voz</span></div>
+      <div class="card-ico-name"><span class="card-ico">🔊</span><span class="card-label">${t('voiceTitle')}</span></div>
       <div class="toggle ${s.on ? 'on' : ''}" data-feature="voice" data-action="toggle"></div>
     </div>
-    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? 'Asistente activo (Amazon Echo)' : 'Modo privado — solo control por app'}</div>
+    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? t('voiceOn') : t('voiceOff')}</div>
     <div class="feature-row">
-      <span class="feature-row-label"><span class="led-dot ${s.on ? 'on' : ''}"></span>LED indicador</span>
-      <span class="preview-tag">${s.on ? 'Encendido' : 'Apagado'}</span>
+      <span class="feature-row-label"><span class="led-dot ${s.on ? 'on' : ''}"></span>${t('ledIndicator')}</span>
+      <span class="preview-tag">${s.on ? t('onM') : t('offM')}</span>
     </div>
   </div>`;
 }
@@ -655,34 +991,34 @@ function buildBathroomCard() {
   const manual = !!s.manual;
   return `<div class="device-card full-width ${s.lightOn ? 'on' : ''}" id="feature-bathroom">
     <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">🚿</span><span class="card-label">Baño Inteligente</span></div>
+      <div class="card-ico-name"><span class="card-ico">🚿</span><span class="card-label">${t('bathTitle')}</span></div>
       <div class="toggle ${s.lightOn ? 'on' : ''} ${manual ? 'disabled' : ''}" data-feature="bathroom" data-action="toggle"></div>
     </div>
     <div class="feature-row" data-action="presence" style="cursor:pointer">
-      <span class="feature-row-label"><span class="led-dot ${s.presence ? 'on' : ''}"></span>Sensor de presencia</span>
-      <span class="preview-tag">${s.presence ? 'Detectada' : 'Sin presencia'}</span>
+      <span class="feature-row-label"><span class="led-dot ${s.presence ? 'on' : ''}"></span>${t('presenceSensor')}</span>
+      <span class="preview-tag">${s.presence ? t('presenceYes') : t('presenceNo')}</span>
     </div>
     <div class="feature-row">
-      <span class="feature-row-label">Encendido automático con presencia</span>
+      <span class="feature-row-label">${t('bathAuto')}</span>
       <div class="toggle ${s.auto ? 'on' : ''} ${manual ? 'disabled' : ''}" data-feature="bathroom" data-action="auto"></div>
     </div>
-    <div class="card-status ${s.lightOn ? 'on' : ''}" style="margin-top:8px">${manual ? 'Modo manual' : (s.lightOn ? 'Luz encendida' : 'Luz apagada')}${s.auto && !manual ? ' · Programada para encenderse automáticamente si hay alguien dentro' : ''}</div>
+    <div class="card-status ${s.lightOn ? 'on' : ''}" style="margin-top:8px">${manual ? t('manualMode') : (s.lightOn ? t('lightOn') : t('lightOff'))}${s.auto && !manual ? t('bathAutoNote') : ''}</div>
     ${s.lightOn && !manual ? `
-    <div class="slider-lbl">Intensidad</div>
+    <div class="slider-lbl">${t('intensity')}</div>
     <div class="slider-row">
       <input type="range" min="5" max="100" value="${s.intensity}" data-feature="bathroom" data-action="intensity">
       <span class="slider-val">${s.intensity}%</span>
     </div>
     <div class="ct-row">
-      <button class="ct-btn ${s.colorTemp < 33 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="5">Cálido</button>
-      <button class="ct-btn ${s.colorTemp >= 33 && s.colorTemp < 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="50">Neutro</button>
-      <button class="ct-btn ${s.colorTemp >= 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="95">Frío</button>
+      <button class="ct-btn ${s.colorTemp < 33 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="5">${t('warm')}</button>
+      <button class="ct-btn ${s.colorTemp >= 33 && s.colorTemp < 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="50">${t('neutral')}</button>
+      <button class="ct-btn ${s.colorTemp >= 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="95">${t('cold')}</button>
     </div>` : ''}
     <div class="manual-row">
-      <span>Modo manual</span>
+      <span>${t('manualMode')}</span>
       <div class="toggle toggle-sm ${manual ? 'on' : ''}" data-feature="bathroom" data-action="manual"></div>
     </div>
-    ${manual ? '<div class="manual-note">Control manual activado — luz fija en cálido, ahora se enciende/apaga con el interruptor físico del baño.</div>' : ''}
+    ${manual ? `<div class="manual-note">${t('bathManualNote')}</div>` : ''}
   </div>`;
 }
 
@@ -691,18 +1027,18 @@ function buildBidetCard() {
   const s = app._placeholder.bidet ?? (app._placeholder.bidet = { on: false, heatedSeat: false, mode: null });
   return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-bidet">
     <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">🚽</span><span class="card-label">Baño Japonés</span></div>
+      <div class="card-ico-name"><span class="card-ico">🚽</span><span class="card-label">${t('bidetTitle')}</span></div>
       <div class="toggle ${s.on ? 'on' : ''}" data-feature="bidet" data-action="toggle"></div>
     </div>
-    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? 'Encendido' : 'Apagado'}</div>
+    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? t('onM') : t('offM')}</div>
     ${s.on ? `
     <div class="feature-row">
-      <span class="feature-row-label">Asiento calefaccionado</span>
+      <span class="feature-row-label">${t('heatedSeat')}</span>
       <div class="toggle ${s.heatedSeat ? 'on' : ''}" data-feature="bidet" data-action="heated"></div>
     </div>
     <div class="source-row">
-      <button class="source-btn ${s.mode === 'wash' ? 'active' : ''}" data-feature="bidet" data-action="mode" data-mode="wash">💧 Lavado</button>
-      <button class="source-btn ${s.mode === 'dry'  ? 'active' : ''}" data-feature="bidet" data-action="mode" data-mode="dry">🌬 Secado</button>
+      <button class="source-btn ${s.mode === 'wash' ? 'active' : ''}" data-feature="bidet" data-action="mode" data-mode="wash">${t('wash')}</button>
+      <button class="source-btn ${s.mode === 'dry'  ? 'active' : ''}" data-feature="bidet" data-action="mode" data-mode="dry">${t('dry')}</button>
     </div>` : ''}
   </div>`;
 }
@@ -710,13 +1046,13 @@ function buildBidetCard() {
 // ── ALFOMBRA CALEFACCIONABLE ──────────────────────────────────────────────────
 function buildRugCard() {
   const s = app._placeholder.rug ?? (app._placeholder.rug = { on: false, level: 'media' });
-  const levels = [{ id: 'baja', label: 'Baja' }, { id: 'media', label: 'Media' }, { id: 'alta', label: 'Alta' }];
+  const levels = [{ id: 'baja', label: t('low') }, { id: 'media', label: t('medium') }, { id: 'alta', label: t('high') }];
   return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-rug">
     <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">🔥</span><span class="card-label">Alfombra Calefaccionable</span></div>
+      <div class="card-ico-name"><span class="card-ico">🔥</span><span class="card-label">${t('rugTitle')}</span></div>
       <div class="toggle ${s.on ? 'on' : ''}" data-feature="rug" data-action="toggle"></div>
     </div>
-    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? 'Encendida' : 'Apagada'}</div>
+    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? t('onF') : t('offF')}</div>
     ${s.on ? `
     <div class="level-row">
       ${levels.map(l => `<button class="level-btn ${s.level === l.id ? 'active' : ''}" data-feature="rug" data-action="level" data-level="${l.id}">${l.label}</button>`).join('')}
@@ -731,8 +1067,8 @@ function renderClimateView() {
   if (planLevel(app.plan) < PLAN_TIERS.premium) {
     el.innerHTML = `<div class="premium-lock">
       <div class="premium-lock-icon">❄️</div>
-      <h3>Control de Clima</h3>
-      <p>Ajusta la temperatura de tu habitación, revisa el sensor de ventana y crea automatizaciones con el aire acondicionado. Esta función está disponible en el plan Premium del hotel.</p>
+      <h3>${t('climateLockTitle')}</h3>
+      <p>${t('climateLockDesc')}</p>
       <span class="premium-badge-lg">PREMIUM</span>
     </div>`;
     return;
@@ -741,11 +1077,11 @@ function renderClimateView() {
   const s = app._placeholder.climate ?? (app._placeholder.climate = { acOn: false, temp: 22, windowOpen: false, autoOff: true });
 
   el.innerHTML = `
-    <div class="section-label">Aire Acondicionado</div>
+    <div class="section-label">${t('acSection')}</div>
     <div class="device-grid">
       <div class="device-card ${s.acOn ? 'on' : ''}" id="feature-ac">
         <div class="card-head">
-          <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">Aire Acondicionado</span></div>
+          <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">${t('acTitle')}</span></div>
           <div class="toggle ${s.acOn ? 'on' : ''}" data-feature="climate" data-action="ac-toggle"></div>
         </div>
         <div class="ac-temp-display"><div class="ac-temp-val ${s.acOn ? 'on' : ''}">${s.temp}°C</div></div>
@@ -757,20 +1093,20 @@ function renderClimateView() {
       </div>
       <div class="device-card ${s.windowOpen ? '' : 'on'}" id="feature-window">
         <div class="card-head">
-          <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">Sensor de Ventana</span></div>
+          <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${t('windowTitle')}</span></div>
         </div>
-        <div class="card-status ${s.windowOpen ? '' : 'on'}">${s.windowOpen ? 'Ventana abierta' : 'Ventana cerrada'}</div>
-        <button class="curtain-btn" style="margin-top:8px;width:100%" data-feature="climate" data-action="window-toggle">Simular ${s.windowOpen ? 'cierre' : 'apertura'}</button>
+        <div class="card-status ${s.windowOpen ? '' : 'on'}">${s.windowOpen ? t('windowOpen') : t('windowClosed')}</div>
+        <button class="curtain-btn" style="margin-top:8px;width:100%" data-feature="climate" data-action="window-toggle">${s.windowOpen ? t('simulateClose') : t('simulateOpen')}</button>
       </div>
     </div>
-    <div class="section-label" style="margin-top:18px">Automatizaciones</div>
+    <div class="section-label" style="margin-top:18px">${t('autoSection')}</div>
     <div class="device-grid">
       <div class="device-card full-width">
         <div class="card-head">
-          <div class="card-ico-name"><span class="card-ico">⚙️</span><span class="card-label">Apagar AC al abrir la ventana</span></div>
+          <div class="card-ico-name"><span class="card-ico">⚙️</span><span class="card-label">${t('autoOffTitle')}</span></div>
           <div class="toggle ${s.autoOff ? 'on' : ''}" data-feature="climate" data-action="auto-toggle"></div>
         </div>
-        <div class="card-status">Si está activo, el AC se apaga automáticamente y se notifica a recepción cuando se detecta una ventana abierta.</div>
+        <div class="card-status">${t('autoOffDesc')}</div>
       </div>
     </div>
   `;
@@ -784,7 +1120,7 @@ function rerenderFeature(key) {
 }
 
 function showPreviewToast() {
-  showToast('Vista previa — función no conectada a un dispositivo real', '');
+  showToast(t('toastPreview'), '');
 }
 
 function handlePlanGridClick(e) {
@@ -940,9 +1276,7 @@ function handleGridClick(e) {
     } else {
       updateCard(key);
     }
-    showToast(app._manual[key]
-      ? 'Modo manual activado — luz fija en cálido, ahora se enciende/apaga con el interruptor físico'
-      : 'Modo manual desactivado — control desde la app restaurado', '');
+    showToast(app._manual[key] ? t('toastManualOn') : t('toastManualOff'), '');
     return;
   }
 
@@ -952,9 +1286,7 @@ function handleGridClick(e) {
     const key = unlockTog.dataset.key;
     app._unlocked[key] = !app._unlocked[key];
     updateCard(key);
-    showToast(app._unlocked[key]
-      ? 'Motor desbloqueado — mueve la cortina con la mano'
-      : 'Motor bloqueado — control desde la app restaurado', '');
+    showToast(app._unlocked[key] ? t('toastUnlockOn') : t('toastUnlockOff'), '');
     return;
   }
 
@@ -1100,9 +1432,9 @@ async function applyScene(sceneName) {
 
   try {
     await Promise.all(steps.map(({ dev, cmd }) => apiCommand(dev, cmd)));
-    showToast('Escena aplicada', 'success');
+    showToast(t('toastScene'), 'success');
   } catch {
-    showToast('Algunos comandos fallaron', 'error');
+    showToast(t('toastSceneFail'), 'error');
   } finally {
     if (btn) btn.classList.remove('loading');
   }
@@ -1131,22 +1463,22 @@ function startClock(checkoutDate) {
 
       if (diff > 86_400_000) {
         // Más de 24 h → mostrar días para que se entienda de inmediato
-        countdownEl.textContent = `Faltan ${d}d ${h}h ${m}m`;
+        countdownEl.textContent = t('cdLeft', { t: `${d}d ${h}h ${m}m` });
         countdownEl.className   = 'countdown ok';
         coInfoEl.className      = 'checkout-info';
       } else if (diff > 14_400_000) {
         // 4 h – 24 h
-        countdownEl.textContent = `Faltan ${h}h ${m}m`;
+        countdownEl.textContent = t('cdLeft', { t: `${h}h ${m}m` });
         countdownEl.className   = 'countdown ok';
         coInfoEl.className      = 'checkout-info';
       } else if (diff > 1_800_000) {
         // 30 min – 4 h
-        countdownEl.textContent = `Faltan ${h > 0 ? h + 'h ' : ''}${m}m`;
+        countdownEl.textContent = t('cdLeft', { t: `${h > 0 ? h + 'h ' : ''}${m}m` });
         countdownEl.className   = 'countdown soon';
         coInfoEl.className      = 'checkout-info soon';
       } else {
         // Menos de 30 min — urgente con segundos
-        countdownEl.textContent = `Faltan ${m}m ${s}s`;
+        countdownEl.textContent = t('cdLeft', { t: `${m}m ${s}s` });
         countdownEl.className   = 'countdown urgent';
         coInfoEl.className      = 'checkout-info soon';
       }
@@ -1158,10 +1490,10 @@ function startClock(checkoutDate) {
       const os   = Math.floor((over % 60_000)    / 1_000);
 
       countdownEl.textContent = oh > 0
-        ? `Vencido hace ${oh}h ${om}m`
+        ? t('cdOverdue', { t: `${oh}h ${om}m` })
         : om > 0
-          ? `Vencido hace ${om}m ${os}s`
-          : `Venció ahora`;
+          ? t('cdOverdue', { t: `${om}m ${os}s` })
+          : t('cdNow');
       countdownEl.className = 'countdown expired';
       coInfoEl.className    = 'checkout-info urgent';
     }
@@ -1174,7 +1506,7 @@ function startClock(checkoutDate) {
 // ── CHECKOUT BUTTON ───────────────────────────────────────────────────────────
 document.addEventListener('click', e => {
   if (e.target.closest('.checkout-btn')) {
-    alert('Para el check-out, por favor dirígete a recepción o llama al interno del hotel.');
+    alert(t('checkoutMsg'));
   }
 });
 
@@ -1186,26 +1518,28 @@ function showError(type) {
 
   if (type === 'invalid') {
     document.getElementById('err-icon').textContent  = '🔒';
-    document.getElementById('err-title').textContent = 'Enlace inválido o expirado';
-    document.getElementById('err-sub').textContent   = 'Este QR ya no es válido. Solicita un nuevo acceso en recepción.';
+    document.getElementById('err-title').textContent = t('errInvalidTitle');
+    document.getElementById('err-sub').textContent   = t('errInvalidSub');
   } else {
     document.getElementById('err-icon').textContent  = '📡';
-    document.getElementById('err-title').textContent = 'Sin conexión con el servidor';
-    document.getElementById('err-sub').textContent   = 'No se pudo conectar con el sistema. Verifica tu conexión WiFi o comunícate con recepción.';
+    document.getElementById('err-title').textContent = t('errServerTitle');
+    document.getElementById('err-sub').textContent   = t('errServerSub');
   }
 }
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 function showToast(msg, type = '') {
   const c = document.getElementById('toast-container');
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  c.appendChild(t);
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  c.appendChild(el);
+  // Con accesibilidad auditiva los avisos visuales duran más
+  const dur = app.a11y === 'hearing' ? 7000 : 3000;
   setTimeout(() => {
-    t.style.transition = 'opacity .3s, transform .3s';
-    t.style.opacity = '0';
-    t.style.transform = 'translateY(8px)';
-    setTimeout(() => t.remove(), 300);
-  }, 3000);
+    el.style.transition = 'opacity .3s, transform .3s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(8px)';
+    setTimeout(() => el.remove(), 300);
+  }, dur);
 }

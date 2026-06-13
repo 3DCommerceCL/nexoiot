@@ -282,9 +282,9 @@ select.form-input option{background:var(--card);color:var(--text)}
 <div class="login-overlay" id="login-screen">
   <div class="login-card">
     <div class="sb-logo"><div class="sb-logo-dot"></div><span style="font-size:15px">Nexo IoT</span></div>
-    <p class="login-desc">Ingresa la clave de acceso entregada por Nexo IoT para administrar las habitaciones del hotel.</p>
+    <p class="login-desc" data-i18n="loginDesc">Ingresa la clave de acceso entregada por Nexo IoT para administrar las habitaciones del hotel.</p>
     <input class="form-input" type="password" id="login-key" placeholder="Clave de acceso" autocomplete="current-password">
-    <button class="btn btn-primary" style="width:100%;padding:11px" id="login-btn">Ingresar</button>
+    <button class="btn btn-primary" style="width:100%;padding:11px" id="login-btn" data-i18n="loginBtn">Ingresar</button>
     <div class="form-error" id="login-error"></div>
   </div>
 </div>
@@ -301,24 +301,24 @@ select.form-input option{background:var(--card);color:var(--text)}
   <nav class="sb-nav">
     <div class="nav-item active" data-view="overview">
       <span class="nav-icon">📊</span>
-      <span class="nav-label">Vista general</span>
+      <span class="nav-label" data-i18n="navOverview">Vista general</span>
     </div>
     <div class="nav-item" data-view="rooms">
       <span class="nav-icon">🏨</span>
-      <span class="nav-label">Habitaciones</span>
+      <span class="nav-label" data-i18n="navRooms">Habitaciones</span>
     </div>
     <div class="nav-item" data-view="settings">
       <span class="nav-icon">⚙️</span>
-      <span class="nav-label">Configuración</span>
+      <span class="nav-label" data-i18n="navSettings">Configuración</span>
     </div>
   </nav>
   <div class="sb-footer">
     <a href="./nexo-admin.html" class="nav-item hidden" id="back-to-nexo" style="border-radius:6px;margin-bottom:8px;text-decoration:none">
       <span class="nav-icon">←</span>
-      <span class="nav-label">Panel Nexo IoT</span>
+      <span class="nav-label" data-i18n="backToNexo">Panel Nexo IoT</span>
     </a>
-    <div class="sb-status"><div class="sb-status-dot"></div><span>Sistema activo</span></div>
-    <div class="sb-status-line" id="sb-mode">Conectado</div>
+    <div class="sb-status"><div class="sb-status-dot"></div><span data-i18n="sysActive">Sistema activo</span></div>
+    <div class="sb-status-line" id="sb-mode" data-i18n="connected">Conectado</div>
     <div class="sb-version">Nexo IoT v1.0</div>
   </div>
 </aside>
@@ -330,8 +330,8 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="tb-title" id="page-title">Vista general</div>
     <div class="tb-right">
       <div class="clock" id="clock"></div>
-      <button class="btn btn-primary" id="btn-new-stay">+ Nueva estadía</button>
-      <button class="btn btn-outline" id="logout-btn">Salir</button>
+      <button class="btn btn-primary" id="btn-new-stay" data-i18n="newStay">+ Nueva estadía</button>
+      <button class="btn btn-outline" id="logout-btn" data-i18n="logout">Salir</button>
     </div>
   </header>
 
@@ -341,7 +341,7 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="view active" id="view-overview">
       <div class="kpi-row" id="kpi-row"></div>
       <div class="sec-header">
-        <span class="sec-title">Habitaciones — vista rápida</span>
+        <span class="sec-title" data-i18n="quickView">Habitaciones — vista rápida</span>
       </div>
       <div class="room-grid" id="room-grid-overview"></div>
     </div>
@@ -349,18 +349,26 @@ select.form-input option{background:var(--card);color:var(--text)}
     <!-- VIEW: ROOMS -->
     <div class="view" id="view-rooms">
       <div class="filter-bar" id="filter-bar">
-        <button class="filter-btn active" data-filter="all">Todas</button>
-        <button class="filter-btn" data-filter="occupied">Ocupadas</button>
-        <button class="filter-btn" data-filter="available">Disponibles</button>
+        <button class="filter-btn active" data-filter="all" data-i18n="filterAll">Todas</button>
+        <button class="filter-btn" data-filter="occupied" data-i18n="filterOccupied">Ocupadas</button>
+        <button class="filter-btn" data-filter="available" data-i18n="filterAvailable">Disponibles</button>
       </div>
       <div class="floor-groups" id="room-grid-rooms"></div>
     </div>
 
     <!-- VIEW: SETTINGS -->
     <div class="view" id="view-settings">
-      <div class="placeholder-view">
-        <div class="ph-ico">⚙️</div>
-        <p>Configuración del sistema — disponible próximamente</p>
+      <div class="settings-panel" style="max-width:480px">
+        <div class="sec-title" style="margin-bottom:14px" data-i18n="settingsTitle">Configuración del panel</div>
+        <div class="form-group">
+          <label class="form-label" data-i18n="panelLang">Idioma del panel</label>
+          <select class="form-input" id="panel-lang-select">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+            <option value="pt">Português</option>
+          </select>
+        </div>
+        <p class="form-note" style="margin-top:10px" data-i18n="panelLangNote">Aplica solo a este panel de recepción. El idioma de cada huésped se configura al crear su estadía o desde el detalle de su habitación.</p>
       </div>
     </div>
 
@@ -378,12 +386,16 @@ select.form-input option{background:var(--card);color:var(--text)}
       <button class="modal-close" onclick="closeModal('modal-room')">✕</button>
     </div>
     <div class="modal-body">
+      <div class="modal-section" id="mr-prefs-section">
+        <div class="modal-section-title" data-i18n="prefsSection">Preferencias del huésped</div>
+        <div id="prefs-section"></div>
+      </div>
       <div class="modal-section" id="mr-devices-section">
-        <div class="modal-section-title">Control de dispositivos</div>
+        <div class="modal-section-title" data-i18n="devicesSection">Control de dispositivos</div>
         <div class="dev-grid" id="dev-grid"></div>
       </div>
       <div class="modal-section hidden" id="mr-qr-section">
-        <div class="modal-section-title">Acceso QR de la estadía</div>
+        <div class="modal-section-title" data-i18n="qrSection">Acceso QR de la estadía</div>
         <div class="qr-section" id="qr-section"></div>
       </div>
     </div>
@@ -395,8 +407,8 @@ select.form-input option{background:var(--card);color:var(--text)}
   <div class="modal" id="modal-new-stay-box" style="max-width:540px">
     <div class="modal-header">
       <div>
-        <div class="modal-title">Nueva estadía</div>
-        <div class="modal-subtitle">Asignar habitación y generar QR de acceso</div>
+        <div class="modal-title" data-i18n="newStayTitle">Nueva estadía</div>
+        <div class="modal-subtitle" data-i18n="newStaySub">Asignar habitación y generar QR de acceso</div>
       </div>
       <button class="modal-close" onclick="closeModal('modal-new-stay')">✕</button>
     </div>

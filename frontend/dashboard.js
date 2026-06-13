@@ -17,27 +17,262 @@ const PLAN_TIERS  = { base: 0, premium: 1, max_comfort: 2 };
 const PLAN_LABELS = { base: 'Base', premium: 'Premium', max_comfort: 'Max Comfort' };
 const planLevel   = plan => PLAN_TIERS[plan] ?? 0;
 
+// ── IDIOMA DEL PANEL (recepcionista) ──────────────────────────────────────────
+const DASH_LANG_KEY = 'nexo_dash_lang';
+const DASH_LOCALES  = { es: 'es-CL', en: 'en-US', pt: 'pt-BR' };
+let dashLang = localStorage.getItem(DASH_LANG_KEY) || 'es';
+
+const DT = {
+  es: {
+    navOverview: 'Vista general', navRooms: 'Habitaciones', navSettings: 'Configuración',
+    backToNexo: 'Panel Nexo IoT', sysActive: 'Sistema activo', connected: 'Conectado',
+    newStay: '+ Nueva estadía', logout: 'Salir',
+    loginDesc: 'Ingresa la clave de acceso entregada por Nexo IoT para administrar las habitaciones del hotel.',
+    loginPh: 'Clave de acceso', loginBtn: 'Ingresar',
+    loginErrEmpty: 'Ingresa la clave de acceso.', loginErrBad: 'Clave incorrecta o sin conexión.',
+    kpiOccupied: 'Habitaciones ocupadas', kpiOccupancy: '{p}% de ocupación',
+    kpiAvailable: 'Disponibles', kpiReady: 'Listas para check-in',
+    kpiCheckouts: 'Check-outs hoy', kpiNoCheckouts: 'Sin check-outs hoy',
+    kpiTotal: 'Total habitaciones', kpiRegistered: 'Registradas en el sistema',
+    roomShort: 'Hab {n}', quickView: 'Habitaciones — vista rápida',
+    filterAll: 'Todas', filterOccupied: 'Ocupadas', filterAvailable: 'Disponibles',
+    floor: 'Piso {n}', floorCount: '{n} habitaciones',
+    badgeAvailable: 'Disponible', noGuest: 'Sin huésped — Piso {n}',
+    qrActive: 'QR activo', viewBtn: 'Ver →', assignStay: '+ Asignar estadía',
+    coToday: 'Hoy {t}', coTomorrow: 'Mañana {t}', coDays: 'En {n} días',
+    roomTitle: 'Habitación {name}', checkoutPrefix: 'Check-out',
+    loadingDevices: 'Cargando dispositivos…', loadDevError: 'Error al cargar dispositivos: {e}',
+    devicesSection: 'Control de dispositivos', qrSection: 'Acceso QR de la estadía',
+    newStayTitle: 'Nueva estadía', newStaySub: 'Asignar habitación y generar QR de acceso',
+    prefsSection: 'Preferencias del huésped', guestLang: 'Idioma del huésped', guestA11y: 'Accesibilidad',
+    a11yNone: 'Ninguna', a11yVision: 'Baja visión', a11yHearing: 'Auditiva (sordera)',
+    a11yVisionHint: 'La app del huésped usará texto y controles grandes, con alto contraste.',
+    a11yHearingHint: 'La app del huésped usará avisos visuales destacados y de mayor duración en lugar de sonidos.',
+    prefsSaved: 'Preferencias actualizadas',
+    qrLinkLabel: 'Link de acceso del huésped', waBtn: '📱 Enviar por WhatsApp',
+    copyBtn: 'Copiar enlace', endStayBtn: '⏏ Finalizar estadía',
+    copied: 'Enlace copiado', noPhone: 'El huésped no tiene teléfono registrado',
+    endConfirm: '¿Finalizar la estadía y desactivar el acceso de este huésped?', endDone: 'Estadía finalizada',
+    noRoomsAvail: 'No hay habitaciones disponibles',
+    fRoom: 'Habitación disponible', fGuest: 'Nombre del huésped', fGuestPh: 'Nombre completo',
+    fPhone: 'Teléfono WhatsApp', fCheckin: 'Check-in', fCheckout: 'Check-out',
+    fErrFields: 'Completa nombre, check-in y check-out.', fErrDates: 'El check-out debe ser posterior al check-in.',
+    fSubmit: 'Crear estadía y generar QR', fCreating: 'Creando estadía...',
+    fNote: 'El QR queda disponible para enviar por WhatsApp una vez creada la estadía.',
+    stayCreated: 'Estadía creada — QR listo para {name}',
+    settingsTitle: 'Configuración del panel', panelLang: 'Idioma del panel',
+    panelLangNote: 'Aplica solo a este panel de recepción. El idioma de cada huésped se configura al crear su estadía o desde el detalle de su habitación.',
+    waMsg: '¡Hola {name}! Te damos la bienvenida a {hotel}. Aquí tienes el acceso al control inteligente de tu habitación: {url}',
+    previewToast: 'Vista previa — función no conectada a un dispositivo real',
+    devOffline: 'Sin conexión', onF: 'Encendida', offF: 'Apagada', onM: 'Encendido', offM: 'Apagado',
+    manualMode: 'Modo manual',
+    manualNote: 'Control manual activado — el huésped usa el interruptor físico de la habitación.',
+    unlockMotor: 'Desbloquear motor (manual)',
+    unlockNote: 'Motor desbloqueado — la cortina se mueve a mano y no responde a la app.',
+    openBtn: 'Abrir', stopBtn: 'Parar', closeBtn: 'Cerrar',
+    curtainClosed: 'Cerrada', curtainOpened: 'Abierta', curtainPct: '{p}% abierta', manualShort: 'Manual',
+    doorOpenB: 'Abierta', doorClosedB: 'Cerrada',
+    tvCable: 'TV Cable', tvStreaming: 'Streaming', tvHdmi: 'HDMI',
+    voiceTitle: 'Control por Voz', voiceOn: 'Asistente activo (Echo)', voiceOff: 'Modo privado — solo app',
+    ledIndicator: 'LED indicador',
+    bathTitle: 'Baño Inteligente', presenceSensor: 'Sensor de presencia',
+    presenceYes: 'Detectada', presenceNo: 'Sin presencia',
+    bathAuto: 'Encendido automático con presencia', lightOn: 'Luz encendida', lightOff: 'Luz apagada',
+    bidetTitle: 'Baño Japonés', heatedSeat: 'Asiento calefaccionado', wash: '💧 Lavado', dry: '🌬 Secado',
+    rugTitle: 'Alfombra Calefaccionable', low: 'Baja', medium: 'Media', high: 'Alta',
+    warm: 'Cálido', neutral: 'Neutro', cold: 'Frío', volume: 'Volumen', intensity: 'Intensidad',
+    acTitle: 'Aire Acondicionado', windowTitle: 'Sensor de Ventana',
+    windowOpen: 'Ventana abierta', windowClosed: 'Ventana cerrada',
+    simulateOpen: 'Simular apertura', simulateClose: 'Simular cierre',
+    autoOffTitle: 'Apagar AC al abrir la ventana',
+    autoOffDesc: 'Si está activo, el AC se apaga automáticamente y se notifica a recepción cuando se detecta una ventana abierta.',
+    addonBadge: 'Disponible como add-on',
+    voiceDesc: 'Control con Amazon Echo. Disponible en el plan Premium.',
+    bathDesc: 'Sensor de presencia + luz inteligente de baño. Incluido en Max Comfort.',
+    bidetDesc: 'Bidé inteligente con asiento calefaccionado. Incluido en Max Comfort.',
+    rugDesc: 'Alfombra con calefacción para pie de cama o baño. Incluida en Max Comfort.',
+    climateTitle: 'Clima (AC + Ventana)',
+    climateDesc: 'Control de aire acondicionado, sensor de ventana y automatizaciones. Incluido en el plan Premium.',
+    langName_es: 'Español', langName_en: 'English', langName_pt: 'Português',
+    devices: {
+      led_cama: 'LED Bajo Cama', luz_techo: 'Luz Techo', luz_velador1: 'Luz Velador 1',
+      luz_velador2: 'Luz Velador 2', cortina: 'Cortina', enchufe: 'Enchufe USB', puerta: 'Puerta',
+    },
+  },
+  en: {
+    navOverview: 'Overview', navRooms: 'Rooms', navSettings: 'Settings',
+    backToNexo: 'Nexo IoT Panel', sysActive: 'System active', connected: 'Connected',
+    newStay: '+ New stay', logout: 'Log out',
+    loginDesc: 'Enter the access key provided by Nexo IoT to manage the hotel rooms.',
+    loginPh: 'Access key', loginBtn: 'Sign in',
+    loginErrEmpty: 'Enter the access key.', loginErrBad: 'Wrong key or no connection.',
+    kpiOccupied: 'Occupied rooms', kpiOccupancy: '{p}% occupancy',
+    kpiAvailable: 'Available', kpiReady: 'Ready for check-in',
+    kpiCheckouts: 'Check-outs today', kpiNoCheckouts: 'No check-outs today',
+    kpiTotal: 'Total rooms', kpiRegistered: 'Registered in the system',
+    roomShort: 'Room {n}', quickView: 'Rooms — quick view',
+    filterAll: 'All', filterOccupied: 'Occupied', filterAvailable: 'Available',
+    floor: 'Floor {n}', floorCount: '{n} rooms',
+    badgeAvailable: 'Available', noGuest: 'No guest — Floor {n}',
+    qrActive: 'QR active', viewBtn: 'View →', assignStay: '+ Assign stay',
+    coToday: 'Today {t}', coTomorrow: 'Tomorrow {t}', coDays: 'In {n} days',
+    roomTitle: 'Room {name}', checkoutPrefix: 'Check-out',
+    loadingDevices: 'Loading devices…', loadDevError: 'Failed to load devices: {e}',
+    devicesSection: 'Device control', qrSection: 'Stay QR access',
+    newStayTitle: 'New stay', newStaySub: 'Assign a room and generate the access QR',
+    prefsSection: 'Guest preferences', guestLang: 'Guest language', guestA11y: 'Accessibility',
+    a11yNone: 'None', a11yVision: 'Low vision', a11yHearing: 'Hearing (deafness)',
+    a11yVisionHint: 'The guest app will use large text and controls with high contrast.',
+    a11yHearingHint: 'The guest app will use prominent, longer-lasting visual alerts instead of sounds.',
+    prefsSaved: 'Preferences updated',
+    qrLinkLabel: 'Guest access link', waBtn: '📱 Send via WhatsApp',
+    copyBtn: 'Copy link', endStayBtn: '⏏ End stay',
+    copied: 'Link copied', noPhone: 'The guest has no registered phone',
+    endConfirm: 'End the stay and deactivate this guest’s access?', endDone: 'Stay ended',
+    noRoomsAvail: 'No rooms available',
+    fRoom: 'Available room', fGuest: 'Guest name', fGuestPh: 'Full name',
+    fPhone: 'WhatsApp phone', fCheckin: 'Check-in', fCheckout: 'Check-out',
+    fErrFields: 'Fill in name, check-in and check-out.', fErrDates: 'Check-out must be after check-in.',
+    fSubmit: 'Create stay and generate QR', fCreating: 'Creating stay...',
+    fNote: 'The QR becomes available to send via WhatsApp once the stay is created.',
+    stayCreated: 'Stay created — QR ready for {name}',
+    settingsTitle: 'Panel settings', panelLang: 'Panel language',
+    panelLangNote: 'Applies only to this reception panel. Each guest’s language is set when creating their stay or from their room details.',
+    waMsg: 'Hello {name}! Welcome to {hotel}. Here is your access to your room’s smart controls: {url}',
+    previewToast: 'Preview — feature not connected to a real device',
+    devOffline: 'Offline', onF: 'On', offF: 'Off', onM: 'On', offM: 'Off',
+    manualMode: 'Manual mode',
+    manualNote: 'Manual control enabled — the guest uses the physical switch in the room.',
+    unlockMotor: 'Unlock motor (manual)',
+    unlockNote: 'Motor unlocked — the curtain moves by hand and does not respond to the app.',
+    openBtn: 'Open', stopBtn: 'Stop', closeBtn: 'Close',
+    curtainClosed: 'Closed', curtainOpened: 'Open', curtainPct: '{p}% open', manualShort: 'Manual',
+    doorOpenB: 'Open', doorClosedB: 'Closed',
+    tvCable: 'Cable TV', tvStreaming: 'Streaming', tvHdmi: 'HDMI',
+    voiceTitle: 'Voice Control', voiceOn: 'Assistant active (Echo)', voiceOff: 'Private mode — app only',
+    ledIndicator: 'Indicator LED',
+    bathTitle: 'Smart Bathroom', presenceSensor: 'Presence sensor',
+    presenceYes: 'Detected', presenceNo: 'No presence',
+    bathAuto: 'Auto-on with presence', lightOn: 'Light on', lightOff: 'Light off',
+    bidetTitle: 'Japanese Toilet', heatedSeat: 'Heated seat', wash: '💧 Wash', dry: '🌬 Dry',
+    rugTitle: 'Heated Rug', low: 'Low', medium: 'Medium', high: 'High',
+    warm: 'Warm', neutral: 'Neutral', cold: 'Cool', volume: 'Volume', intensity: 'Brightness',
+    acTitle: 'Air Conditioning', windowTitle: 'Window Sensor',
+    windowOpen: 'Window open', windowClosed: 'Window closed',
+    simulateOpen: 'Simulate opening', simulateClose: 'Simulate closing',
+    autoOffTitle: 'Turn AC off when the window opens',
+    autoOffDesc: 'When active, the AC turns off automatically and the front desk is notified whenever an open window is detected.',
+    addonBadge: 'Available as an add-on',
+    voiceDesc: 'Amazon Echo control. Available on the Premium plan.',
+    bathDesc: 'Presence sensor + smart bathroom light. Included in Max Comfort.',
+    bidetDesc: 'Smart bidet with heated seat. Included in Max Comfort.',
+    rugDesc: 'Heated rug for bedside or bathroom. Included in Max Comfort.',
+    climateTitle: 'Climate (AC + Window)',
+    climateDesc: 'Air conditioning control, window sensor and automations. Included in the Premium plan.',
+    langName_es: 'Español', langName_en: 'English', langName_pt: 'Português',
+    devices: {
+      led_cama: 'Under-bed LED', luz_techo: 'Ceiling Light', luz_velador1: 'Bedside Lamp 1',
+      luz_velador2: 'Bedside Lamp 2', cortina: 'Curtain', enchufe: 'USB Outlet', puerta: 'Door',
+    },
+  },
+  pt: {
+    navOverview: 'Visão geral', navRooms: 'Quartos', navSettings: 'Configurações',
+    backToNexo: 'Painel Nexo IoT', sysActive: 'Sistema ativo', connected: 'Conectado',
+    newStay: '+ Nova estadia', logout: 'Sair',
+    loginDesc: 'Digite a chave de acesso fornecida pela Nexo IoT para administrar os quartos do hotel.',
+    loginPh: 'Chave de acesso', loginBtn: 'Entrar',
+    loginErrEmpty: 'Digite a chave de acesso.', loginErrBad: 'Chave incorreta ou sem conexão.',
+    kpiOccupied: 'Quartos ocupados', kpiOccupancy: '{p}% de ocupação',
+    kpiAvailable: 'Disponíveis', kpiReady: 'Prontos para check-in',
+    kpiCheckouts: 'Check-outs hoje', kpiNoCheckouts: 'Sem check-outs hoje',
+    kpiTotal: 'Total de quartos', kpiRegistered: 'Registrados no sistema',
+    roomShort: 'Quarto {n}', quickView: 'Quartos — visão rápida',
+    filterAll: 'Todos', filterOccupied: 'Ocupados', filterAvailable: 'Disponíveis',
+    floor: 'Andar {n}', floorCount: '{n} quartos',
+    badgeAvailable: 'Disponível', noGuest: 'Sem hóspede — Andar {n}',
+    qrActive: 'QR ativo', viewBtn: 'Ver →', assignStay: '+ Atribuir estadia',
+    coToday: 'Hoje {t}', coTomorrow: 'Amanhã {t}', coDays: 'Em {n} dias',
+    roomTitle: 'Quarto {name}', checkoutPrefix: 'Check-out',
+    loadingDevices: 'Carregando dispositivos…', loadDevError: 'Erro ao carregar dispositivos: {e}',
+    devicesSection: 'Controle de dispositivos', qrSection: 'Acesso QR da estadia',
+    newStayTitle: 'Nova estadia', newStaySub: 'Atribuir quarto e gerar QR de acesso',
+    prefsSection: 'Preferências do hóspede', guestLang: 'Idioma do hóspede', guestA11y: 'Acessibilidade',
+    a11yNone: 'Nenhuma', a11yVision: 'Baixa visão', a11yHearing: 'Auditiva (surdez)',
+    a11yVisionHint: 'O app do hóspede usará texto e controles grandes, com alto contraste.',
+    a11yHearingHint: 'O app do hóspede usará avisos visuais destacados e mais duradouros em vez de sons.',
+    prefsSaved: 'Preferências atualizadas',
+    qrLinkLabel: 'Link de acesso do hóspede', waBtn: '📱 Enviar por WhatsApp',
+    copyBtn: 'Copiar link', endStayBtn: '⏏ Finalizar estadia',
+    copied: 'Link copiado', noPhone: 'O hóspede não tem telefone registrado',
+    endConfirm: 'Finalizar a estadia e desativar o acesso deste hóspede?', endDone: 'Estadia finalizada',
+    noRoomsAvail: 'Não há quartos disponíveis',
+    fRoom: 'Quarto disponível', fGuest: 'Nome do hóspede', fGuestPh: 'Nome completo',
+    fPhone: 'Telefone WhatsApp', fCheckin: 'Check-in', fCheckout: 'Check-out',
+    fErrFields: 'Preencha nome, check-in e check-out.', fErrDates: 'O check-out deve ser depois do check-in.',
+    fSubmit: 'Criar estadia e gerar QR', fCreating: 'Criando estadia...',
+    fNote: 'O QR fica disponível para enviar por WhatsApp assim que a estadia for criada.',
+    stayCreated: 'Estadia criada — QR pronto para {name}',
+    settingsTitle: 'Configurações do painel', panelLang: 'Idioma do painel',
+    panelLangNote: 'Aplica-se apenas a este painel da recepção. O idioma de cada hóspede é definido ao criar a estadia ou no detalhe do quarto.',
+    waMsg: 'Olá {name}! Bem-vindo ao {hotel}. Aqui está o acesso ao controle inteligente do seu quarto: {url}',
+    previewToast: 'Pré-visualização — função não conectada a um dispositivo real',
+    devOffline: 'Sem conexão', onF: 'Ligada', offF: 'Desligada', onM: 'Ligado', offM: 'Desligado',
+    manualMode: 'Modo manual',
+    manualNote: 'Controle manual ativado — o hóspede usa o interruptor físico do quarto.',
+    unlockMotor: 'Destravar motor (manual)',
+    unlockNote: 'Motor destravado — a cortina se move com a mão e não responde ao app.',
+    openBtn: 'Abrir', stopBtn: 'Parar', closeBtn: 'Fechar',
+    curtainClosed: 'Fechada', curtainOpened: 'Aberta', curtainPct: '{p}% aberta', manualShort: 'Manual',
+    doorOpenB: 'Aberta', doorClosedB: 'Fechada',
+    tvCable: 'TV a Cabo', tvStreaming: 'Streaming', tvHdmi: 'HDMI',
+    voiceTitle: 'Controle por Voz', voiceOn: 'Assistente ativo (Echo)', voiceOff: 'Modo privado — só app',
+    ledIndicator: 'LED indicador',
+    bathTitle: 'Banheiro Inteligente', presenceSensor: 'Sensor de presença',
+    presenceYes: 'Detectada', presenceNo: 'Sem presença',
+    bathAuto: 'Ligar automaticamente com presença', lightOn: 'Luz acesa', lightOff: 'Luz apagada',
+    bidetTitle: 'Vaso Japonês', heatedSeat: 'Assento aquecido', wash: '💧 Lavagem', dry: '🌬 Secagem',
+    rugTitle: 'Tapete Aquecido', low: 'Baixa', medium: 'Média', high: 'Alta',
+    warm: 'Quente', neutral: 'Neutro', cold: 'Frio', volume: 'Volume', intensity: 'Intensidade',
+    acTitle: 'Ar-Condicionado', windowTitle: 'Sensor de Janela',
+    windowOpen: 'Janela aberta', windowClosed: 'Janela fechada',
+    simulateOpen: 'Simular abertura', simulateClose: 'Simular fechamento',
+    autoOffTitle: 'Desligar o AC ao abrir a janela',
+    autoOffDesc: 'Quando ativo, o AC desliga automaticamente e a recepção é notificada ao detectar uma janela aberta.',
+    addonBadge: 'Disponível como add-on',
+    voiceDesc: 'Controle com Amazon Echo. Disponível no plano Premium.',
+    bathDesc: 'Sensor de presença + luz inteligente no banheiro. Incluído no Max Comfort.',
+    bidetDesc: 'Bidê inteligente com assento aquecido. Incluído no Max Comfort.',
+    rugDesc: 'Tapete com aquecimento para beira da cama ou banheiro. Incluído no Max Comfort.',
+    climateTitle: 'Clima (AC + Janela)',
+    climateDesc: 'Controle de ar-condicionado, sensor de janela e automações. Incluído no plano Premium.',
+    langName_es: 'Español', langName_en: 'English', langName_pt: 'Português',
+    devices: {
+      led_cama: 'LED Sob a Cama', luz_techo: 'Luz do Teto', luz_velador1: 'Abajur 1',
+      luz_velador2: 'Abajur 2', cortina: 'Cortina', enchufe: 'Tomada USB', puerta: 'Porta',
+    },
+  },
+};
+
+function dt(key, vars) {
+  let s = (DT[dashLang] || DT.es)[key] ?? DT.es[key] ?? key;
+  if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, v);
+  return s;
+}
+
+// Etiqueta del dispositivo traducida (con fallback al label del backend)
+const dtDev = (key, dev) => (DT[dashLang] || DT.es).devices?.[key] || dev.label;
+
+// Idiomas y modos de accesibilidad disponibles para huéspedes
+const GUEST_LANGS = ['es', 'en', 'pt'];
+const A11Y_MODES  = [['none', 'a11yNone'], ['vision', 'a11yVision'], ['hearing', 'a11yHearing']];
+
+// title/desc son claves del diccionario DT que se resuelven al renderizar.
 const PLAN_FEATURES_INFO = {
-  voice: {
-    icon: '🔊', title: 'Control por Voz', minPlan: 'premium', badge: 'PREMIUM',
-    desc: 'Control con Amazon Echo. Disponible en el plan Premium.',
-  },
-  bathroom: {
-    icon: '🚿', title: 'Baño Inteligente', minPlan: 'max_comfort', addonFrom: 'base', badge: 'MAX COMFORT',
-    desc: 'Sensor de presencia + luz inteligente de baño. Incluido en Max Comfort.',
-  },
-  bidet: {
-    icon: '🚽', title: 'Baño Japonés', minPlan: 'max_comfort', badge: 'MAX COMFORT',
-    desc: 'Bidé inteligente con asiento calefaccionado. Incluido en Max Comfort.',
-  },
-  rug: {
-    icon: '🔥', title: 'Alfombra Calefaccionable', minPlan: 'max_comfort', badge: 'MAX COMFORT',
-    desc: 'Alfombra con calefacción para pie de cama o baño. Incluida en Max Comfort.',
-  },
-  climate: {
-    icon: '❄️', title: 'Clima (AC + Ventana)', minPlan: 'premium', badge: 'PREMIUM',
-    desc: 'Control de aire acondicionado, sensor de ventana y automatizaciones. Incluido en el plan Premium.',
-  },
+  voice:    { icon: '🔊', title: 'voiceTitle',   desc: 'voiceDesc',   minPlan: 'premium',     badge: 'PREMIUM' },
+  bathroom: { icon: '🚿', title: 'bathTitle',    desc: 'bathDesc',    minPlan: 'max_comfort', addonFrom: 'base', badge: 'MAX COMFORT' },
+  bidet:    { icon: '🚽', title: 'bidetTitle',   desc: 'bidetDesc',   minPlan: 'max_comfort', badge: 'MAX COMFORT' },
+  rug:      { icon: '🔥', title: 'rugTitle',     desc: 'rugDesc',     minPlan: 'max_comfort', badge: 'MAX COMFORT' },
+  climate:  { icon: '❄️', title: 'climateTitle', desc: 'climateDesc', minPlan: 'premium',     badge: 'PREMIUM' },
 };
 
 // ── ÍCONOS PERSONALIZADOS ─────────────────────────────────────────────────────
@@ -90,10 +325,10 @@ function checkoutInfo(iso) {
   const checkout = new Date(iso);
   const now = new Date();
   const diffDays = Math.floor((checkout.setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0)) / 86400000);
-  const time = new Date(iso).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-  if (diffDays <= 0) return { label: `Hoy ${time}`, urgency: 'today' };
-  if (diffDays === 1) return { label: `Mañana ${time}`, urgency: 'tomorrow' };
-  return { label: `En ${diffDays} días`, urgency: 'later' };
+  const time = new Date(iso).toLocaleTimeString(DASH_LOCALES[dashLang] || 'es-CL', { hour: '2-digit', minute: '2-digit' });
+  if (diffDays <= 0) return { label: dt('coToday', { t: time }), urgency: 'today' };
+  if (diffDays === 1) return { label: dt('coTomorrow', { t: time }), urgency: 'tomorrow' };
+  return { label: dt('coDays', { n: diffDays }), urgency: 'later' };
 }
 
 function showToast(msg, type = '') {
@@ -117,7 +352,7 @@ async function login() {
   const key   = $('login-key').value.trim();
   const error = $('login-error');
   error.textContent = '';
-  if (!key) { error.textContent = 'Ingresa la clave de acceso.'; return; }
+  if (!key) { error.textContent = dt('loginErrEmpty'); return; }
 
   sessionStorage.setItem(KEY_STORAGE, key);
   try {
@@ -127,7 +362,7 @@ async function login() {
     $('main').classList.remove('hidden');
   } catch (err) {
     sessionStorage.removeItem(KEY_STORAGE);
-    error.textContent = 'Clave incorrecta o sin conexión.';
+    error.textContent = dt('loginErrBad');
   }
 }
 
@@ -171,25 +406,25 @@ function renderKPIs() {
 
   $('kpi-row').innerHTML = `
     <div class="kpi-card">
-      <div class="kpi-label">Habitaciones ocupadas</div>
-      <div class="kpi-value">${occ} <span style="font-size:16px;color:var(--text2);font-weight:500">/ ${total}</span></div>
+      <div class="kpi-label">${dt('kpiOccupied')}</div>
+      <div class="kpi-value">${occ} <span style="font-size:16px;color:rgba(255,255,255,.6);font-weight:500">/ ${total}</span></div>
       <div class="kpi-prog-track"><div class="kpi-prog-fill" style="width:${pct}%"></div></div>
-      <div class="kpi-sub">${pct}% de ocupación</div>
+      <div class="kpi-sub">${dt('kpiOccupancy', { p: pct })}</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Disponibles</div>
+      <div class="kpi-label">${dt('kpiAvailable')}</div>
       <div class="kpi-value">${availableRooms().length}</div>
-      <div class="kpi-sub">Listas para check-in</div>
+      <div class="kpi-sub">${dt('kpiReady')}</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Check-outs hoy</div>
+      <div class="kpi-label">${dt('kpiCheckouts')}</div>
       <div class="kpi-value">${today.length}</div>
-      <div class="kpi-sub">${today.map(r => `Hab ${r.name}`).join(' · ') || 'Sin check-outs hoy'}</div>
+      <div class="kpi-sub">${today.map(r => dt('roomShort', { n: r.name })).join(' · ') || dt('kpiNoCheckouts')}</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Total habitaciones</div>
+      <div class="kpi-label">${dt('kpiTotal')}</div>
       <div class="kpi-value">${total}</div>
-      <div class="kpi-sub">Registradas en el sistema</div>
+      <div class="kpi-sub">${dt('kpiRegistered')}</div>
     </div>
   `;
 }
@@ -199,17 +434,22 @@ function buildRoomCard(room) {
   const planBadge = `<span class="badge badge-plan">${PLAN_LABELS[room.plan] || 'Base'}</span>`;
   if (room.guest) {
     const co = checkoutInfo(room.guest.checkout);
+    // Badges de idioma y accesibilidad del huésped (solo cuando no son los predeterminados)
+    const langBadge = room.guest.lang && room.guest.lang !== 'es'
+      ? `<span class="badge">🌐 ${room.guest.lang.toUpperCase()}</span>` : '';
+    const a11yBadge = room.guest.accessibility && room.guest.accessibility !== 'none'
+      ? `<span class="badge" title="${dt(room.guest.accessibility === 'vision' ? 'a11yVision' : 'a11yHearing')}">${room.guest.accessibility === 'vision' ? '👁' : '🦻'}</span>` : '';
     return `
     <div class="room-card" id="rc-${room.id}">
       <div class="rc-top">
         <span class="rc-num">${room.name}</span>
       </div>
-      <div class="rc-badges"><span class="badge badge-floor">Piso ${room.floor}</span>${planBadge}</div>
+      <div class="rc-badges"><span class="badge badge-floor">${dt('floor', { n: room.floor })}</span>${planBadge}${langBadge}${a11yBadge}</div>
       <div class="rc-guest">${room.guest.guestName}</div>
       <div class="rc-checkout ${co.urgency}">${co.urgency === 'today' ? '⚠️' : '🗓'} ${co.label}</div>
       <div class="rc-footer">
-        <div class="qr-status active"><span class="qr-dot"></span>QR activo</div>
-        <button class="btn btn-sm btn-ghost" onclick="openRoomModal('${room.id}')">Ver →</button>
+        <div class="qr-status active"><span class="qr-dot"></span>${dt('qrActive')}</div>
+        <button class="btn btn-sm btn-ghost" onclick="openRoomModal('${room.id}')">${dt('viewBtn')}</button>
       </div>
     </div>`;
   }
@@ -218,9 +458,9 @@ function buildRoomCard(room) {
     <div class="rc-top">
       <span class="rc-num">${room.name}</span>
     </div>
-    <div class="rc-badges"><span class="badge badge-available">Disponible</span>${planBadge}</div>
-    <div class="rc-empty">Sin huésped — Piso ${room.floor}</div>
-    <button class="btn btn-sm btn-outline-teal" style="margin-top:auto" onclick="openNewStayModal('${room.id}')">+ Asignar estadía</button>
+    <div class="rc-badges"><span class="badge badge-available">${dt('badgeAvailable')}</span>${planBadge}</div>
+    <div class="rc-empty">${dt('noGuest', { n: room.floor })}</div>
+    <button class="btn btn-sm btn-outline-teal" style="margin-top:auto" onclick="openNewStayModal('${room.id}')">${dt('assignStay')}</button>
   </div>`;
 }
 
@@ -245,8 +485,8 @@ function renderRooms(target = 'overview', filter = 'all') {
       return `<div class="floor-group">
         <div class="floor-header" onclick="toggleFloor(${floor})">
           <span class="floor-chevron ${expanded ? 'open' : ''}">▸</span>
-          <span class="floor-title">Piso ${floor}</span>
-          <span class="floor-count">${floorRooms.length} habitaciones</span>
+          <span class="floor-title">${dt('floor', { n: floor })}</span>
+          <span class="floor-count">${dt('floorCount', { n: floorRooms.length })}</span>
         </div>
         <div class="room-grid floor-rooms ${expanded ? '' : 'collapsed'}">
           ${floorRooms.map(buildRoomCard).join('')}
@@ -260,14 +500,38 @@ function renderRooms(target = 'overview', filter = 'all') {
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
-const VIEW_TITLES = { overview: 'Vista general', rooms: 'Habitaciones', settings: 'Configuración' };
+const viewTitle = view =>
+  ({ overview: dt('navOverview'), rooms: dt('navRooms'), settings: dt('navSettings') }[view] || view);
 
 function navigate(view) {
   state.view = view;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === `view-${view}`));
-  $('page-title').textContent = VIEW_TITLES[view] || view;
+  $('page-title').textContent = viewTitle(view);
   if (view === 'rooms') renderRooms('rooms', state.filter);
+}
+
+// ── IDIOMA DEL PANEL ──────────────────────────────────────────────────────────
+function setDashLang(lang) {
+  if (!DT[lang] || lang === dashLang) return;
+  dashLang = lang;
+  localStorage.setItem(DASH_LANG_KEY, lang);
+  applyDashLang();
+}
+
+function applyDashLang() {
+  document.documentElement.lang = dashLang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = dt(el.dataset.i18n); });
+  const loginKey = $('login-key');
+  if (loginKey) loginKey.placeholder = dt('loginPh');
+  $('page-title').textContent = viewTitle(state.view);
+  const sel = $('panel-lang-select');
+  if (sel) sel.value = dashLang;
+  if (rooms.length) {
+    renderKPIs();
+    renderRooms('overview');
+    if (state.view === 'rooms') renderRooms('rooms', state.filter);
+  }
 }
 
 // ── ROOM MODAL ────────────────────────────────────────────────────────────────
@@ -275,9 +539,10 @@ window.openRoomModal = async function(roomId) {
   const room = rooms.find(r => r.id === roomId);
   if (!room || !room.guest) return;
 
-  $('mr-title').textContent    = `Habitación ${room.name}`;
-  $('mr-subtitle').textContent = `${room.guest.guestName} · Check-out: ${checkoutInfo(room.guest.checkout).label}`;
-  $('dev-grid').innerHTML = '<div class="kpi-sub">Cargando dispositivos…</div>';
+  $('mr-title').textContent    = dt('roomTitle', { name: room.name });
+  $('mr-subtitle').textContent = `${room.guest.guestName} · ${dt('checkoutPrefix')}: ${checkoutInfo(room.guest.checkout).label}`;
+  $('dev-grid').innerHTML = `<div class="form-note">${dt('loadingDevices')}</div>`;
+  renderPrefsSection(room);
   $('modal-room').classList.remove('hidden');
 
   try {
@@ -294,7 +559,49 @@ window.openRoomModal = async function(roomId) {
     renderDevGrid();
     renderQRSection(room);
   } catch (err) {
-    $('dev-grid').innerHTML = `<div class="kpi-sub">Error al cargar dispositivos: ${err.message}</div>`;
+    $('dev-grid').innerHTML = `<div class="form-note">${dt('loadDevError', { e: err.message })}</div>`;
+  }
+};
+
+// ── PREFERENCIAS DEL HUÉSPED (idioma + accesibilidad de la estadía) ──────────
+function renderPrefsSection(room) {
+  const g = room.guest;
+  const langOpts = GUEST_LANGS.map(l =>
+    `<option value="${l}" ${(g.lang || 'es') === l ? 'selected' : ''}>${dt('langName_' + l)}</option>`).join('');
+  const a11yOpts = A11Y_MODES.map(([v, k]) =>
+    `<option value="${v}" ${(g.accessibility || 'none') === v ? 'selected' : ''}>${dt(k)}</option>`).join('');
+  const hint = g.accessibility === 'vision' ? dt('a11yVisionHint')
+    : g.accessibility === 'hearing' ? dt('a11yHearingHint') : '';
+
+  $('prefs-section').innerHTML = `
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">${dt('guestLang')}</label>
+        <select class="form-input" onchange="updateStayPrefs('${room.id}','lang',this.value)">${langOpts}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">${dt('guestA11y')}</label>
+        <select class="form-input" onchange="updateStayPrefs('${room.id}','accessibility',this.value)">${a11yOpts}</select>
+      </div>
+    </div>
+    ${hint ? `<p class="form-note">${hint}</p>` : ''}`;
+}
+
+window.updateStayPrefs = async function(roomId, prop, value) {
+  const room = rooms.find(r => r.id === roomId);
+  if (!room?.guest) return;
+  room.guest[prop] = value;
+  renderPrefsSection(room);
+  try {
+    await apiFetch(`/admin/token/${room.guest.token}/prefs`, {
+      method: 'POST',
+      body: JSON.stringify({ [prop]: value }),
+    });
+    showToast(dt('prefsSaved'), 'success');
+    renderRooms('overview');
+    if (state.view === 'rooms') renderRooms('rooms', state.filter);
+  } catch (err) {
+    showToast(err.message, 'error');
   }
 };
 
@@ -330,10 +637,10 @@ function buildLockedCard(key, info, plan) {
   const isAddon = info.addonFrom && planLevel(plan) >= planLevel(info.addonFrom);
   return `<div class="dev-card feature-card locked">
     <div class="feature-lock-icon">${info.icon}</div>
-    <div class="feature-lock-title">${info.title}</div>
-    <div class="feature-lock-desc">${info.desc}</div>
+    <div class="feature-lock-title">${dt(info.title)}</div>
+    <div class="feature-lock-desc">${dt(info.desc)}</div>
     ${isAddon
-      ? `<span class="feature-addon-badge">Disponible como add-on</span>`
+      ? `<span class="feature-addon-badge">${dt('addonBadge')}</span>`
       : `<span class="feature-plan-badge">${info.badge}</span>`}
   </div>`;
 }
@@ -341,9 +648,9 @@ function buildLockedCard(key, info, plan) {
 function buildTVCard() {
   const s = state.placeholder.tv;
   const sources = [
-    { id: 'cable',   label: 'TV Cable' },
-    { id: 'netflix', label: 'Streaming' },
-    { id: 'hdmi',    label: 'HDMI' },
+    { id: 'cable',   label: dt('tvCable') },
+    { id: 'netflix', label: dt('tvStreaming') },
+    { id: 'hdmi',    label: dt('tvHdmi') },
   ];
   return `<div class="dev-card">
     <div class="dev-card-head">
@@ -351,7 +658,7 @@ function buildTVCard() {
       <div class="toggle-sw ${s.on ? 'on' : ''}" onclick="toggleFeature('tv')"></div>
     </div>
     <div class="${s.on ? '' : 'dev-dimmed'}">
-      <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? 'Encendida' : 'Apagada'}</div>
+      <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? dt('onF') : dt('offF')}</div>
       <div class="slider-wrap">
         <input type="range" min="0" max="100" value="${s.vol}" ${s.on ? '' : 'disabled'}
           oninput="this.nextElementSibling.textContent=this.value+'%'"
@@ -369,13 +676,13 @@ function buildVoiceCard() {
   const s = state.placeholder.voice;
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">🔊</span> Control por Voz</div>
+      <div class="dev-card-name"><span class="dev-card-ico">🔊</span> ${dt('voiceTitle')}</div>
       <div class="toggle-sw ${s.on ? 'on' : ''}" onclick="toggleFeature('voice')"></div>
     </div>
-    <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? 'Asistente activo (Echo)' : 'Modo privado — solo app'}</div>
+    <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? dt('voiceOn') : dt('voiceOff')}</div>
     <div class="feature-row">
-      <span class="feature-row-label"><span class="led-dot ${s.on ? 'on' : ''}"></span>LED indicador</span>
-      <span class="preview-tag">${s.on ? 'Encendido' : 'Apagado'}</span>
+      <span class="feature-row-label"><span class="led-dot ${s.on ? 'on' : ''}"></span>${dt('ledIndicator')}</span>
+      <span class="preview-tag">${s.on ? dt('onM') : dt('offM')}</span>
     </div>
   </div>`;
 }
@@ -384,19 +691,19 @@ function buildBathroomCard() {
   const s = state.placeholder.bathroom;
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">🚿</span> Baño Inteligente</div>
+      <div class="dev-card-name"><span class="dev-card-ico">🚿</span> ${dt('bathTitle')}</div>
       <div class="toggle-sw ${s.lightOn ? 'on' : ''}" onclick="toggleFeature('bathroom')"></div>
     </div>
     <div class="feature-row" style="cursor:pointer" onclick="togglePresence()">
-      <span class="feature-row-label"><span class="led-dot ${s.presence ? 'on' : ''}"></span>Sensor de presencia</span>
-      <span class="preview-tag">${s.presence ? 'Detectada' : 'Sin presencia'}</span>
+      <span class="feature-row-label"><span class="led-dot ${s.presence ? 'on' : ''}"></span>${dt('presenceSensor')}</span>
+      <span class="preview-tag">${s.presence ? dt('presenceYes') : dt('presenceNo')}</span>
     </div>
     <div class="feature-row">
-      <span class="feature-row-label">Encendido automático con presencia</span>
+      <span class="feature-row-label">${dt('bathAuto')}</span>
       <div class="toggle-sw ${s.auto ? 'on' : ''}" onclick="toggleBathroomAuto()"></div>
     </div>
     <div class="${s.lightOn ? '' : 'dev-dimmed'}">
-      <div class="dev-status ${s.lightOn ? 'on-label' : ''}" style="margin-top:6px">${s.lightOn ? 'Luz encendida' : 'Luz apagada'}</div>
+      <div class="dev-status ${s.lightOn ? 'on-label' : ''}" style="margin-top:6px">${s.lightOn ? dt('lightOn') : dt('lightOff')}</div>
       <div class="slider-wrap">
         <input type="range" min="5" max="100" value="${s.intensity}" ${s.lightOn ? '' : 'disabled'}
           oninput="this.nextElementSibling.textContent=this.value+'%'"
@@ -404,9 +711,9 @@ function buildBathroomCard() {
         <span class="slider-val">${s.intensity}%</span>
       </div>
       <div class="ct-row">
-        <button class="ct-btn ${s.colorTemp < 33 ? 'active' : ''}" onclick="setFeatureVal('bathroom','colorTemp',5)">Cálido</button>
-        <button class="ct-btn ${s.colorTemp >= 33 && s.colorTemp < 66 ? 'active' : ''}" onclick="setFeatureVal('bathroom','colorTemp',50)">Neutro</button>
-        <button class="ct-btn ${s.colorTemp >= 66 ? 'active' : ''}" onclick="setFeatureVal('bathroom','colorTemp',95)">Frío</button>
+        <button class="ct-btn ${s.colorTemp < 33 ? 'active' : ''}" onclick="setFeatureVal('bathroom','colorTemp',5)">${dt('warm')}</button>
+        <button class="ct-btn ${s.colorTemp >= 33 && s.colorTemp < 66 ? 'active' : ''}" onclick="setFeatureVal('bathroom','colorTemp',50)">${dt('neutral')}</button>
+        <button class="ct-btn ${s.colorTemp >= 66 ? 'active' : ''}" onclick="setFeatureVal('bathroom','colorTemp',95)">${dt('cold')}</button>
       </div>
     </div>
   </div>`;
@@ -416,18 +723,18 @@ function buildBidetCard() {
   const s = state.placeholder.bidet;
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">🚽</span> Baño Japonés</div>
+      <div class="dev-card-name"><span class="dev-card-ico">🚽</span> ${dt('bidetTitle')}</div>
       <div class="toggle-sw ${s.on ? 'on' : ''}" onclick="toggleFeature('bidet')"></div>
     </div>
-    <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? 'Encendido' : 'Apagado'}</div>
+    <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? dt('onM') : dt('offM')}</div>
     <div class="${s.on ? '' : 'dev-dimmed'}">
       <div class="feature-row">
-        <span class="feature-row-label">Asiento calefaccionado</span>
+        <span class="feature-row-label">${dt('heatedSeat')}</span>
         <div class="toggle-sw ${s.heatedSeat ? 'on' : ''}" onclick="toggleHeatedSeat()"></div>
       </div>
       <div class="source-row">
-        <button class="source-btn ${s.mode === 'wash' ? 'active' : ''}" onclick="setBidetMode('wash')">💧 Lavado</button>
-        <button class="source-btn ${s.mode === 'dry'  ? 'active' : ''}" onclick="setBidetMode('dry')">🌬 Secado</button>
+        <button class="source-btn ${s.mode === 'wash' ? 'active' : ''}" onclick="setBidetMode('wash')">${dt('wash')}</button>
+        <button class="source-btn ${s.mode === 'dry'  ? 'active' : ''}" onclick="setBidetMode('dry')">${dt('dry')}</button>
       </div>
     </div>
   </div>`;
@@ -435,13 +742,13 @@ function buildBidetCard() {
 
 function buildRugCard() {
   const s = state.placeholder.rug;
-  const levels = [{ id: 'baja', label: 'Baja' }, { id: 'media', label: 'Media' }, { id: 'alta', label: 'Alta' }];
+  const levels = [{ id: 'baja', label: dt('low') }, { id: 'media', label: dt('medium') }, { id: 'alta', label: dt('high') }];
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">🔥</span> Alfombra Calefaccionable</div>
+      <div class="dev-card-name"><span class="dev-card-ico">🔥</span> ${dt('rugTitle')}</div>
       <div class="toggle-sw ${s.on ? 'on' : ''}" onclick="toggleFeature('rug')"></div>
     </div>
-    <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? 'Encendida' : 'Apagada'}</div>
+    <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? dt('onF') : dt('offF')}</div>
     <div class="level-row ${s.on ? '' : 'dev-dimmed'}">
       ${levels.map(l => `<button class="level-btn ${s.level === l.id ? 'active' : ''}" onclick="setRugLevel('${l.id}')">${l.label}</button>`).join('')}
     </div>
@@ -453,7 +760,7 @@ function buildACCard() {
   const s = state.placeholder.climate;
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">❄️</span> Aire Acondicionado</div>
+      <div class="dev-card-name"><span class="dev-card-ico">❄️</span> ${dt('acTitle')}</div>
       <div class="toggle-sw ${s.acOn ? 'on' : ''}" onclick="toggleClimateAC()"></div>
     </div>
     <div class="ac-temp-display"><div class="ac-temp-val ${s.acOn ? 'on' : ''}">${s.temp}°C</div></div>
@@ -469,10 +776,10 @@ function buildWindowCard() {
   const s = state.placeholder.climate;
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">🪟</span> Sensor de Ventana</div>
+      <div class="dev-card-name"><span class="dev-card-ico">🪟</span> ${dt('windowTitle')}</div>
     </div>
-    <div class="dev-status ${s.windowOpen ? '' : 'on-label'}">${s.windowOpen ? 'Ventana abierta' : 'Ventana cerrada'}</div>
-    <button class="curtain-btn" style="width:100%;margin-top:8px" onclick="toggleWindow()">Simular ${s.windowOpen ? 'cierre' : 'apertura'}</button>
+    <div class="dev-status ${s.windowOpen ? '' : 'on-label'}">${s.windowOpen ? dt('windowOpen') : dt('windowClosed')}</div>
+    <button class="curtain-btn" style="width:100%;margin-top:8px" onclick="toggleWindow()">${s.windowOpen ? dt('simulateClose') : dt('simulateOpen')}</button>
   </div>`;
 }
 
@@ -480,10 +787,10 @@ function buildAutomationCard() {
   const s = state.placeholder.climate;
   return `<div class="dev-card" style="grid-column:1/-1">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">⚙️</span> Apagar AC al abrir la ventana</div>
+      <div class="dev-card-name"><span class="dev-card-ico">⚙️</span> ${dt('autoOffTitle')}</div>
       <div class="toggle-sw ${s.autoOff ? 'on' : ''}" onclick="toggleAutoOff()"></div>
     </div>
-    <div class="dev-status">Si está activo, el AC se apaga automáticamente y se notifica a recepción cuando se detecta una ventana abierta.</div>
+    <div class="dev-status">${dt('autoOffDesc')}</div>
   </div>`;
 }
 
@@ -512,7 +819,7 @@ window.toggleAutoOff = function() {
   previewToast();
 };
 
-function previewToast() { showToast('Vista previa — función no conectada a un dispositivo real', ''); }
+function previewToast() { showToast(dt('previewToast'), ''); }
 
 window.toggleFeature = function(key) {
   const s = state.placeholder[key];
@@ -560,26 +867,26 @@ window.setFeatureVal = function(key, prop, val) {
 
 function buildManualRow(key, manual) {
   return `<div class="manual-row">
-    <span>Modo manual</span>
+    <span>${dt('manualMode')}</span>
     <div class="toggle-sw toggle-sw-sm ${manual ? 'on' : ''}" onclick="toggleManual('${key}')"></div>
   </div>
-  ${manual ? '<div class="manual-note">Control manual activado — el huésped usa el interruptor físico de la habitación.</div>' : ''}`;
+  ${manual ? `<div class="manual-note">${dt('manualNote')}</div>` : ''}`;
 }
 
 function buildUnlockRow(key, unlocked) {
   return `<div class="manual-row">
-    <span>Desbloquear motor (manual)</span>
+    <span>${dt('unlockMotor')}</span>
     <div class="toggle-sw toggle-sw-sm ${unlocked ? 'on' : ''}" onclick="toggleUnlock('${key}')"></div>
   </div>
-  ${unlocked ? '<div class="manual-note">Motor desbloqueado — la cortina se mueve a mano y no responde a la app.</div>' : ''}`;
+  ${unlocked ? `<div class="manual-note">${dt('unlockNote')}</div>` : ''}`;
 }
 
 function buildDeviceCard(key, dev) {
   const ico = DEV_ICON_OVERRIDES[key] || DEV_ICONS[dev.type] || '🔧';
   if (!dev.available) {
     return `<div class="dev-card">
-      <div class="dev-card-head"><div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div></div>
-      <div class="dev-status">Sin conexión</div>
+      <div class="dev-card-head"><div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div></div>
+      <div class="dev-status">${dt('devOffline')}</div>
     </div>`;
   }
   switch (dev.type) {
@@ -593,7 +900,7 @@ function buildDeviceCard(key, dev) {
     case 'switch':
       return buildSwitchCard(key, dev, ico);
     case 'door_sensor':
-      return buildDoorCard(dev, ico);
+      return buildDoorCard(dev, ico, key);
     default:
       return '';
   }
@@ -604,11 +911,11 @@ function buildLightCard(key, dev, ico) {
   const manual = !!dev.state.manual;
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div>
+      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
       <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleLight('${key}', ${!on})"></div>
     </div>
     <div class="${on && !manual ? '' : 'dev-dimmed'}">
-      <div class="dev-status ${on && !manual ? 'on-label' : ''}">${manual ? 'Modo manual' : (on ? 'Encendida' : 'Apagada')}</div>
+      <div class="dev-status ${on && !manual ? 'on-label' : ''}">${manual ? dt('manualMode') : (on ? dt('onF') : dt('offF'))}</div>
       <div class="slider-wrap">
         <input type="range" min="0" max="100" value="${dev.state.intensity}" ${on && !manual ? '' : 'disabled'}
           oninput="this.nextElementSibling.textContent=this.value+'%'"
@@ -623,15 +930,15 @@ function buildLightCard(key, dev, ico) {
 function buildCurtainCard(key, dev, ico) {
   const pct = dev.state.position;
   const unlocked = !!dev.state.unlocked;
-  const label = unlocked ? 'Manual' : (pct === 0 ? 'Cerrada' : pct === 100 ? 'Abierta' : `${pct}% abierta`);
+  const label = unlocked ? dt('manualShort') : (pct === 0 ? dt('curtainClosed') : pct === 100 ? dt('curtainOpened') : dt('curtainPct', { p: pct }));
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div>
+      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
     </div>
     <div class="curtain-btns">
-      <button class="curtain-btn" onclick="setCurtain('${key}','open')" ${unlocked ? 'disabled' : ''}>Abrir</button>
-      <button class="curtain-btn" onclick="setCurtain('${key}','stop')" ${unlocked ? 'disabled' : ''}>Parar</button>
-      <button class="curtain-btn" onclick="setCurtain('${key}','close')" ${unlocked ? 'disabled' : ''}>Cerrar</button>
+      <button class="curtain-btn" onclick="setCurtain('${key}','open')" ${unlocked ? 'disabled' : ''}>${dt('openBtn')}</button>
+      <button class="curtain-btn" onclick="setCurtain('${key}','stop')" ${unlocked ? 'disabled' : ''}>${dt('stopBtn')}</button>
+      <button class="curtain-btn" onclick="setCurtain('${key}','close')" ${unlocked ? 'disabled' : ''}>${dt('closeBtn')}</button>
     </div>
     <div class="curtain-track"><div class="curtain-fill" style="width:${pct}%"></div></div>
     <div class="curtain-label">${label}</div>
@@ -652,7 +959,7 @@ function buildMultiSwitchCard(key, dev, ico) {
   }).join('');
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div>
+      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
     </div>
     ${rows}
     ${buildManualRow(key, manual)}
@@ -664,21 +971,21 @@ function buildSwitchCard(key, dev, ico) {
   const manual = !!dev.state.manual;
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div>
+      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
       <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleSwitch('${key}', ${!on})"></div>
     </div>
-    <div class="dev-status ${on && !manual ? 'on-label' : ''}">${manual ? 'Modo manual' : (on ? 'Encendido' : 'Apagado')}</div>
+    <div class="dev-status ${on && !manual ? 'on-label' : ''}">${manual ? dt('manualMode') : (on ? dt('onM') : dt('offM'))}</div>
     ${buildManualRow(key, manual)}
   </div>`;
 }
 
-function buildDoorCard(dev, ico) {
+function buildDoorCard(dev, ico, key) {
   const open = dev.state.open;
   return `<div class="dev-card">
     <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dev.label}</div>
+      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
     </div>
-    <div class="door-badge ${open ? 'open' : 'closed'}">${open ? 'Abierta' : 'Cerrada'}</div>
+    <div class="door-badge ${open ? 'open' : 'closed'}">${open ? dt('doorOpenB') : dt('doorClosedB')}</div>
   </div>`;
 }
 
@@ -750,40 +1057,40 @@ function renderQRSection(room) {
   $('qr-section').innerHTML = `
     <div class="qr-canvas"><img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}" alt="QR"></div>
     <div class="qr-info">
-      <div class="qr-info-label">Link de acceso del huésped</div>
+      <div class="qr-info-label">${dt('qrLinkLabel')}</div>
       <div class="qr-url">${url}</div>
       <div class="qr-actions">
-        <button class="btn btn-primary btn-sm" id="qr-wa-btn">📱 Enviar por WhatsApp</button>
-        <button class="btn btn-outline btn-sm" id="qr-copy-btn">Copiar enlace</button>
-        <button class="btn btn-danger-outline btn-sm" id="qr-end-btn">⏏ Finalizar estadía</button>
+        <button class="btn btn-primary btn-sm" id="qr-wa-btn">${dt('waBtn')}</button>
+        <button class="btn btn-outline btn-sm" id="qr-copy-btn">${dt('copyBtn')}</button>
+        <button class="btn btn-danger-outline btn-sm" id="qr-end-btn">${dt('endStayBtn')}</button>
       </div>
     </div>
   `;
 
   $('qr-copy-btn').onclick = () => {
-    navigator.clipboard.writeText(url).then(() => showToast('Enlace copiado', 'success'));
+    navigator.clipboard.writeText(url).then(() => showToast(dt('copied'), 'success'));
   };
 
   const waBtn = $('qr-wa-btn');
   const digits = (room.guest.phone || '').replace(/[^\d]/g, '');
   if (digits) {
-    const msg = `¡Hola ${room.guest.guestName}! Te damos la bienvenida a ${room.hotel || 'tu hotel'}. Aquí tienes el acceso al control inteligente de tu habitación: ${url}`;
+    const msg = dt('waMsg', { name: room.guest.guestName, hotel: room.hotel || 'tu hotel', url });
     waBtn.onclick = () => window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, '_blank');
   } else {
     waBtn.disabled = true;
-    waBtn.title = 'El huésped no tiene teléfono registrado';
+    waBtn.title = dt('noPhone');
   }
 
   $('qr-end-btn').onclick = () => endStay(room.id, room.guest.token);
 }
 
 async function endStay(roomId, token) {
-  if (!confirm('¿Finalizar la estadía y desactivar el acceso de este huésped?')) return;
+  if (!confirm(dt('endConfirm'))) return;
   try {
     await apiFetch(`/admin/token/${token}`, { method: 'DELETE' });
     closeModal('modal-room');
     await loadRooms();
-    showToast('Estadía finalizada', 'success');
+    showToast(dt('endDone'), 'success');
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -798,42 +1105,52 @@ window.openNewStayModal = function(preselectId = null) {
 function renderNewStayForm(preselectId) {
   const avail = availableRooms();
   if (avail.length === 0) {
-    $('new-stay-form-wrap').innerHTML = `<div class="placeholder-view" style="height:160px"><div class="ph-ico">🏨</div><p>No hay habitaciones disponibles</p></div>`;
+    $('new-stay-form-wrap').innerHTML = `<div class="placeholder-view" style="height:160px"><div class="ph-ico">🏨</div><p>${dt('noRoomsAvail')}</p></div>`;
     return;
   }
   const opts = avail.map(r => `<option value="${r.id}" ${r.id === preselectId ? 'selected' : ''}>${r.name}</option>`).join('');
   const now      = new Date();
   const tomorrow = new Date(now.getTime() + 24 * 3600 * 1000);
+  const langOpts = GUEST_LANGS.map(l => `<option value="${l}" ${l === 'es' ? 'selected' : ''}>${dt('langName_' + l)}</option>`).join('');
+  const a11yOpts = A11Y_MODES.map(([v, k]) => `<option value="${v}" ${v === 'none' ? 'selected' : ''}>${dt(k)}</option>`).join('');
 
   $('new-stay-form-wrap').innerHTML = `
     <div class="form-grid">
       <div class="form-group full">
-        <label class="form-label">Habitación disponible</label>
+        <label class="form-label">${dt('fRoom')}</label>
         <select class="form-input" id="ns-room">${opts}</select>
       </div>
       <div class="form-group">
-        <label class="form-label">Nombre del huésped</label>
-        <input class="form-input" id="ns-guest" type="text" placeholder="Nombre completo">
+        <label class="form-label">${dt('fGuest')}</label>
+        <input class="form-input" id="ns-guest" type="text" placeholder="${dt('fGuestPh')}">
       </div>
       <div class="form-group">
-        <label class="form-label">Teléfono WhatsApp</label>
+        <label class="form-label">${dt('fPhone')}</label>
         <input class="form-input" id="ns-phone" type="tel" placeholder="+56 9 1234 5678">
       </div>
       <div class="form-group">
-        <label class="form-label">Check-in</label>
+        <label class="form-label">${dt('fCheckin')}</label>
         <input class="form-input" id="ns-checkin" type="datetime-local" value="${toLocalInputValue(now)}">
       </div>
       <div class="form-group">
-        <label class="form-label">Check-out</label>
+        <label class="form-label">${dt('fCheckout')}</label>
         <input class="form-input" id="ns-checkout" type="datetime-local" value="${toLocalInputValue(tomorrow)}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">${dt('guestLang')}</label>
+        <select class="form-input" id="ns-lang">${langOpts}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">${dt('guestA11y')}</label>
+        <select class="form-input" id="ns-a11y">${a11yOpts}</select>
       </div>
     </div>
     <div class="form-error" id="ns-error"></div>
     <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px" id="ns-submit">
-      Crear estadía y generar QR
+      ${dt('fSubmit')}
     </button>
     <p class="form-note" style="margin-top:10px;text-align:center">
-      El QR queda disponible para enviar por WhatsApp una vez creada la estadía.
+      ${dt('fNote')}
     </p>
   `;
 
@@ -849,46 +1166,48 @@ async function submitNewStay() {
   const phone    = $('ns-phone').value.trim();
   const checkin  = $('ns-checkin').value;
   const checkout = $('ns-checkout').value;
+  const lang     = $('ns-lang').value;
+  const accessibility = $('ns-a11y').value;
 
   if (!guest || !checkin || !checkout) {
-    error.textContent = 'Completa nombre, check-in y check-out.';
+    error.textContent = dt('fErrFields');
     return;
   }
   if (new Date(checkout) <= new Date(checkin)) {
-    error.textContent = 'El check-out debe ser posterior al check-in.';
+    error.textContent = dt('fErrDates');
     return;
   }
 
   const btn = $('ns-submit');
-  btn.innerHTML = '<span class="spinner"></span> Creando estadía...';
+  btn.innerHTML = `<span class="spinner"></span> ${dt('fCreating')}`;
   btn.disabled = true;
 
   try {
     const result = await apiFetch('/admin/token', {
       method: 'POST',
-      body: JSON.stringify({ roomId, guestName: guest, phone, checkin, checkout }),
+      body: JSON.stringify({ roomId, guestName: guest, phone, checkin, checkout, lang, accessibility }),
     });
     closeModal('modal-new-stay');
     await loadRooms();
-    showToast(`Estadía creada — QR listo para ${guest}`, 'success');
+    showToast(dt('stayCreated', { name: guest }), 'success');
 
     const room = rooms.find(r => r.id === roomId);
     if (room && room.guest) openRoomModal(roomId);
   } catch (err) {
     error.textContent = err.message;
-    btn.textContent = 'Crear estadía y generar QR';
+    btn.textContent = dt('fSubmit');
     btn.disabled = false;
   }
 }
 
 // ── CLOCK ─────────────────────────────────────────────────────────────────────
 function startClock() {
-  const DAYS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-  const MONTH = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const update = () => {
     const n = new Date();
-    const t = n.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    $('clock').textContent = `${DAYS[n.getDay()]} ${n.getDate()} ${MONTH[n.getMonth()]} · ${t}`;
+    const locale = DASH_LOCALES[dashLang] || 'es-CL';
+    const t = n.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const d = n.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
+    $('clock').textContent = `${d} · ${t}`;
   };
   update();
   setInterval(update, 1000);
@@ -926,6 +1245,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Escape') document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(m => closeModal(m.id));
   });
 
+  const panelLangSelect = $('panel-lang-select');
+  if (panelLangSelect) panelLangSelect.addEventListener('change', e => setDashLang(e.target.value));
+
+  applyDashLang();
   startClock();
 
   if (getAdminKey()) {

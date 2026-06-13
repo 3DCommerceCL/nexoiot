@@ -204,10 +204,22 @@ app.get('/api/room/:token', async (req, res) => {
     guestName: entry.guestName,
     checkin:   entry.checkin,
     checkout:  entry.checkout,
+    lang:          entry.lang || 'es',
+    accessibility: entry.accessibility || 'none',
     demoMode:  room.demo === true || tuya.isDemoMode(),
     plan:      room.plan || 'base',
     devices,
   });
+});
+
+// ── API: POST /api/room/:token/prefs ─────────────────────────────────────────
+// El huésped cambia su idioma o modo de accesibilidad desde la app.
+app.post('/api/room/:token/prefs', (req, res) => {
+  if (!rooms.getRoomByToken(req.params.token)) {
+    return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
+  }
+  rooms.updateTokenPrefs(req.params.token, req.body || {});
+  res.json({ success: true });
 });
 
 // ── API: POST /api/room/:token/command ────────────────────────────────────────
@@ -263,12 +275,12 @@ app.get('/api/tv/:roomId', (req, res) => {
 
 // ── ADMIN: POST /api/admin/token ──────────────────────────────────────────────
 app.post('/api/admin/token', adminAuth, (req, res) => {
-  const { roomId, guestName, checkin, checkout, phone } = req.body;
+  const { roomId, guestName, checkin, checkout, phone, lang, accessibility } = req.body;
   if (!roomId || !guestName || !checkin || !checkout) {
     return res.status(400).json({ error: 'Requeridos: roomId, guestName, checkin, checkout' });
   }
   try {
-    const token = rooms.generateToken(roomId, guestName, checkin, checkout, phone);
+    const token = rooms.generateToken(roomId, guestName, checkin, checkout, phone, lang, accessibility);
     res.json({
       token,
       url:       `${HOTEL_URL}/room/${token}`,
@@ -279,6 +291,14 @@ app.post('/api/admin/token', adminAuth, (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+// ── ADMIN: POST /api/admin/token/:token/prefs ─────────────────────────────────
+// Recepción cambia el idioma o la accesibilidad de una estadía activa.
+app.post('/api/admin/token/:token/prefs', adminAuth, (req, res) => {
+  const ok = rooms.updateTokenPrefs(req.params.token, req.body || {});
+  if (!ok) return res.status(404).json({ error: 'Token no encontrado o inactivo' });
+  res.json({ success: true });
 });
 
 // ── ADMIN: DELETE /api/admin/token/:token ─────────────────────────────────────

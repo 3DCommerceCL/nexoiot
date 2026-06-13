@@ -61,8 +61,12 @@ const getRooms  = () => readJSON(ROOMS_FILE);
 const getTokens = () => readJSON(TOKENS_FILE);
 const getHotels = () => readJSON(HOTELS_FILE);
 
+// ── IDIOMA Y ACCESIBILIDAD DEL HUÉSPED ───────────────────────────────────────
+const GUEST_LANGS          = ['es', 'en', 'pt'];
+const ACCESSIBILITY_MODES  = ['none', 'vision', 'hearing'];
+
 // ── GENERAR TOKEN ─────────────────────────────────────────────────────────────
-function generateToken(roomId, guestName, checkin, checkout, phone = '') {
+function generateToken(roomId, guestName, checkin, checkout, phone = '', lang = 'es', accessibility = 'none') {
   const rooms  = getRooms();
   const tokens = getTokens();
 
@@ -79,12 +83,25 @@ function generateToken(roomId, guestName, checkin, checkout, phone = '') {
     phone:     (phone || '').trim(),
     checkin:   new Date(checkin).toISOString(),
     checkout:  new Date(checkout).toISOString(),
+    lang:          GUEST_LANGS.includes(lang) ? lang : 'es',
+    accessibility: ACCESSIBILITY_MODES.includes(accessibility) ? accessibility : 'none',
     active:    true,
     createdAt: new Date().toISOString(),
   };
 
   writeJSON(TOKENS_FILE, tokens);
   return token;
+}
+
+// ── ACTUALIZAR PREFERENCIAS (idioma / accesibilidad) ─────────────────────────
+function updateTokenPrefs(token, { lang, accessibility } = {}) {
+  const tokens = getTokens();
+  const entry  = tokens[token];
+  if (!entry || !entry.active) return false;
+  if (lang          && GUEST_LANGS.includes(lang))                   entry.lang = lang;
+  if (accessibility && ACCESSIBILITY_MODES.includes(accessibility))  entry.accessibility = accessibility;
+  writeJSON(TOKENS_FILE, tokens);
+  return true;
 }
 
 // ── VALIDAR TOKEN ─────────────────────────────────────────────────────────────
@@ -133,6 +150,8 @@ function listActiveTokens() {
       phone:     t.phone,
       checkin:   t.checkin,
       checkout:  t.checkout,
+      lang:          t.lang || 'es',
+      accessibility: t.accessibility || 'none',
       createdAt: t.createdAt,
     }));
 }
@@ -148,4 +167,4 @@ function getActiveTokenForRoom(roomId) {
   return candidates.length ? candidates[0][0] : null;
 }
 
-module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels };
+module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs };

@@ -38,20 +38,20 @@
   </div>
   <div class="sidebar-nav">
     <button class="nav-item active" data-view="room">
-      <span class="nav-ico">🏠</span>Habitación
+      <span class="nav-ico">🏠</span><span data-i18n="navRoom">Habitación</span>
     </button>
     <button class="nav-item" data-view="scenes">
-      <span class="nav-ico">🎬</span>Escenas
+      <span class="nav-ico">🎬</span><span data-i18n="navScenes">Escenas</span>
     </button>
     <button class="nav-item" data-view="climate">
-      <span class="nav-ico">❄️</span>Clima
+      <span class="nav-ico">❄️</span><span data-i18n="navClimate">Clima</span>
       <span class="premium-badge">Premium</span>
     </button>
     <button class="nav-item" data-view="settings">
-      <span class="nav-ico">⚙️</span>Ajustes
+      <span class="nav-ico">⚙️</span><span data-i18n="navSettings">Ajustes</span>
     </button>
     <button class="nav-item" data-view="support">
-      <span class="nav-ico">🎧</span>Soporte
+      <span class="nav-ico">🎧</span><span data-i18n="navSupport">Soporte</span>
     </button>
   </div>
 </nav>
@@ -71,7 +71,7 @@
         <button class="hamburger-btn" id="hamburger-btn" aria-label="Abrir menú">☰</button>
         <span class="hotel-name" id="hotel-name">Nexo IoT</span>
       </div>
-      <button class="checkout-btn" aria-label="Información de check-out">
+      <button class="checkout-btn" aria-label="Información de check-out" data-i18n="checkoutBtn">
         🚪 Check-out
       </button>
     </div>
@@ -88,35 +88,35 @@
 
   <!-- ── VISTA: HABITACIÓN ────────────────────────────────────────────────── -->
   <div class="view" id="view-room">
-    <div class="section-label">Controles</div>
+    <div class="section-label" data-i18n="sectionControls">Controles</div>
     <div class="device-grid" id="device-grid" role="main" aria-label="Controles de habitación"></div>
-    <div class="section-label" style="margin-top:18px">Funciones del plan</div>
+    <div class="section-label" style="margin-top:18px" data-i18n="sectionPlan">Funciones del plan</div>
     <div class="device-grid" id="plan-grid" role="group" aria-label="Funciones según el plan del hotel"></div>
   </div>
 
   <!-- ── VISTA: ESCENAS ───────────────────────────────────────────────────── -->
   <div class="view hidden" id="view-scenes">
-    <div class="section-label">Escenas</div>
+    <div class="section-label" data-i18n="sectionScenes">Escenas</div>
     <div class="scenes-grid" role="group" aria-label="Escenas rápidas">
       <button class="scene-card" data-scene="night" aria-label="Escena noche">
         <span class="scene-card-ico">🌙</span>
-        <span class="scene-card-title">Noche</span>
-        <span class="scene-card-desc">Apaga las luces principales y enciende el LED bajo cama</span>
+        <span class="scene-card-title" data-i18n="sceneNightTitle">Noche</span>
+        <span class="scene-card-desc" data-i18n="sceneNightDesc">Apaga las luces principales y enciende el LED bajo cama</span>
       </button>
       <button class="scene-card" data-scene="morning" aria-label="Escena mañana">
         <span class="scene-card-ico">☀️</span>
-        <span class="scene-card-title">Mañana</span>
-        <span class="scene-card-desc">Abre la cortina y enciende las luces en tono cálido</span>
+        <span class="scene-card-title" data-i18n="sceneMorningTitle">Mañana</span>
+        <span class="scene-card-desc" data-i18n="sceneMorningDesc">Abre la cortina y enciende las luces en tono cálido</span>
       </button>
       <button class="scene-card" data-scene="relax" aria-label="Escena relax">
         <span class="scene-card-ico">🎬</span>
-        <span class="scene-card-title">Relax</span>
-        <span class="scene-card-desc">Ambiente con luces de color suave y cortina a media altura</span>
+        <span class="scene-card-title" data-i18n="sceneRelaxTitle">Relax</span>
+        <span class="scene-card-desc" data-i18n="sceneRelaxDesc">Ambiente con luces de color suave y cortina a media altura</span>
       </button>
       <button class="scene-card" data-scene="off" aria-label="Apagar todo">
         <span class="scene-card-ico">⚡</span>
-        <span class="scene-card-title">Apagar todo</span>
-        <span class="scene-card-desc">Apaga todas las luces y enchufes de la habitación</span>
+        <span class="scene-card-title" data-i18n="sceneOffTitle">Apagar todo</span>
+        <span class="scene-card-desc" data-i18n="sceneOffDesc">Apaga todas las luces y enchufes de la habitación</span>
       </button>
     </div>
   </div>
@@ -128,24 +128,33 @@
 
   <!-- ── VISTA: AJUSTES ───────────────────────────────────────────────────── -->
   <div class="view hidden" id="view-settings">
-    <div class="section-label">Ajustes</div>
+    <div class="section-label" data-i18n="sectionSettings">Ajustes</div>
     <div class="settings-list">
-      <div class="settings-row"><span>Hotel</span><span id="set-hotel">—</span></div>
-      <div class="settings-row"><span>Habitación</span><span id="set-room">—</span></div>
-      <div class="settings-row"><span>Huésped</span><span id="set-guest">—</span></div>
-      <div class="settings-row"><span>Check-in</span><span id="set-checkin">—</span></div>
-      <div class="settings-row"><span>Check-out</span><span id="set-checkout">—</span></div>
-      <div class="settings-row"><span>Modo</span><span id="set-mode">—</span></div>
+      <div class="settings-row"><span data-i18n="setHotel">Hotel</span><span id="set-hotel">—</span></div>
+      <div class="settings-row"><span data-i18n="setRoom">Habitación</span><span id="set-room">—</span></div>
+      <div class="settings-row"><span data-i18n="setGuest">Huésped</span><span id="set-guest">—</span></div>
+      <div class="settings-row"><span data-i18n="setCheckin">Check-in</span><span id="set-checkin">—</span></div>
+      <div class="settings-row"><span data-i18n="setCheckout">Check-out</span><span id="set-checkout">—</span></div>
+      <div class="settings-row"><span data-i18n="setMode">Modo</span><span id="set-mode">—</span></div>
+      <div class="settings-row pref-row">
+        <span data-i18n="language">Idioma</span>
+        <div class="pref-options" id="lang-options"></div>
+      </div>
+      <div class="settings-row pref-row">
+        <span data-i18n="accessibility">Accesibilidad</span>
+        <div class="pref-options" id="a11y-options"></div>
+      </div>
+      <div class="pref-note" id="a11y-note" style="display:none"></div>
     </div>
   </div>
 
   <!-- ── VISTA: SOPORTE ───────────────────────────────────────────────────── -->
   <div class="view hidden" id="view-support">
-    <div class="section-label">Soporte</div>
+    <div class="section-label" data-i18n="sectionSupport">Soporte</div>
     <div class="support-card">
       <span class="support-card-ico">🎧</span>
-      <p>¿Necesitas ayuda con tu habitación o tienes alguna duda?</p>
-      <button class="support-btn" id="call-reception-btn">📞 Llamar a recepción</button>
+      <p data-i18n="supportQuestion">¿Necesitas ayuda con tu habitación o tienes alguna duda?</p>
+      <button class="support-btn" id="call-reception-btn" data-i18n="callReception">📞 Llamar a recepción</button>
     </div>
   </div>
 

@@ -532,6 +532,60 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 .settings-row span:first-child { color: var(--text2); }
 .settings-row span:last-child  { color: var(--text); font-weight: 600; text-align: right; }
 
+/* ── PREFERENCIAS: IDIOMA Y ACCESIBILIDAD ─────────────────────────────────── */
+.pref-row { flex-wrap: wrap; gap: 8px; }
+.pref-options { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.pref-btn {
+  padding: 7px 13px; border-radius: 999px;
+  border: 1px solid var(--border); background: #fff;
+  color: var(--text2); font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: var(--font); transition: all .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.pref-btn:hover  { border-color: var(--teal); color: var(--teal); }
+.pref-btn.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+.pref-note {
+  font-size: 11px; color: var(--text2); line-height: 1.5;
+  padding: 10px 12px; margin-top: 10px;
+  background: var(--teal-l); border-radius: var(--rsm);
+}
+
+/* ── ACCESIBILIDAD: BAJA VISIÓN ───────────────────────────────────────────────
+   Texto y controles más grandes, con mayor contraste. */
+.a11y-vision .card-label     { font-size: 17px; }
+.a11y-vision .card-status    { font-size: 14px; color: rgba(255,255,255,.92); }
+.a11y-vision .card-ico       { width: 44px; height: 44px; font-size: 22px; }
+.a11y-vision .toggle         { width: 60px; height: 32px; border-radius: 16px; }
+.a11y-vision .toggle::after  { width: 26px; height: 26px; }
+.a11y-vision .toggle.on::after { transform: translateX(28px); }
+.a11y-vision .toggle.toggle-sm { width: 48px; height: 26px; }
+.a11y-vision .toggle.toggle-sm::after { width: 20px; height: 20px; }
+.a11y-vision .toggle.toggle-sm.on::after { transform: translateX(22px); }
+.a11y-vision .ct-btn, .a11y-vision .source-btn, .a11y-vision .level-btn { font-size: 13px; padding: 10px 6px; border-width: 2px; }
+.a11y-vision .curtain-btn    { font-size: 15px; padding: 13px 6px; border-width: 2px; }
+.a11y-vision .slider-lbl, .a11y-vision .slider-val { font-size: 13px; }
+.a11y-vision input[type=range] { height: 7px; }
+.a11y-vision input[type=range]::-webkit-slider-thumb { width: 26px; height: 26px; }
+.a11y-vision .manual-row     { font-size: 13px; }
+.a11y-vision .manual-note    { font-size: 12px; }
+.a11y-vision .ch-label, .a11y-vision .feature-row-label { font-size: 15px; }
+.a11y-vision .nav-item       { font-size: 16px; padding: 14px 12px; }
+.a11y-vision .section-label  { font-size: 13px; color: var(--text); }
+.a11y-vision .settings-row   { font-size: 15px; }
+.a11y-vision .scene-card-title { font-size: 16px; }
+.a11y-vision .scene-card-desc  { font-size: 13px; color: rgba(255,255,255,.9); }
+.a11y-vision .room-name      { font-size: 26px; }
+.a11y-vision .toast          { font-size: 15px; }
+
+/* ── ACCESIBILIDAD: AUDITIVA ──────────────────────────────────────────────────
+   Avisos visuales destacados (los toasts además duran más vía JS). */
+.a11y-hearing .toast {
+  font-size: 15px; font-weight: 600; border-width: 2px;
+  box-shadow: 0 10px 30px rgba(16,24,40,.22);
+}
+.a11y-hearing #toast-container { bottom: 40%; }
+.a11y-hearing .door-status, .a11y-hearing .demo-banner { animation: blink-badge 1.2s infinite; }
+
 /* ── VISTA: SOPORTE ───────────────────────────────────────────────────────── */
 .support-card {
   display: flex; flex-direction: column; align-items: center; text-align: center;
