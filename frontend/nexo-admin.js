@@ -9,37 +9,16 @@ const KEY_STORAGE = 'nexo_admin_key';
 
 const $ = id => document.getElementById(id);
 
-const PLAN_LABELS = { base: 'Base', premium: 'Premium', max_comfort: 'Max Comfort' };
+// PLAN_LABELS viene de shared.js
 
 let hotels = [];
 
 function getAdminKey() { return sessionStorage.getItem(KEY_STORAGE) || ''; }
 
-async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Key': getAdminKey(),
-      ...(opts.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Error HTTP ${res.status}`);
-  }
-  return res.json();
-}
+const apiFetch = createApiFetch(API_URL, () => ({ 'X-Admin-Key': getAdminKey() }));
 
 function showToast(msg) {
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
-  $('toast-container').appendChild(t);
-  setTimeout(() => {
-    t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; t.style.transition = 'all .3s';
-    setTimeout(() => t.remove(), 300);
-  }, 3000);
+  renderToast(msg, { axis: 'x' });
 }
 
 window.openHotel = function(id) {

@@ -12,14 +12,9 @@ const HOTEL_ID     = new URLSearchParams(location.search).get('hotel');
 
 const $ = id => document.getElementById(id);
 
-// ── NIVELES DE PLAN ───────────────────────────────────────────────────────────
-const PLAN_TIERS  = { base: 0, premium: 1, max_comfort: 2 };
-const PLAN_LABELS = { base: 'Base', premium: 'Premium', max_comfort: 'Max Comfort' };
-const planLevel   = plan => PLAN_TIERS[plan] ?? 0;
-
 // ── IDIOMA DEL PANEL (recepcionista) ──────────────────────────────────────────
+// PLAN_TIERS, PLAN_LABELS, planLevel y LOCALES vienen de shared.js
 const DASH_LANG_KEY = 'nexo_dash_lang';
-const DASH_LOCALES  = { es: 'es-CL', en: 'en-US', pt: 'pt-BR' };
 let dashLang = localStorage.getItem(DASH_LANG_KEY) || 'es';
 
 const DT = {
@@ -253,14 +248,8 @@ const DT = {
   },
 };
 
-function dt(key, vars) {
-  let s = (DT[dashLang] || DT.es)[key] ?? DT.es[key] ?? key;
-  if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, v);
-  return s;
-}
-
-// Etiqueta del dispositivo traducida (con fallback al label del backend)
-const dtDev = (key, dev) => (DT[dashLang] || DT.es).devices?.[key] || dev.label;
+const dt    = makeTranslator(DT, () => dashLang);
+const dtDev = makeDevLabel(DT, () => dashLang);
 
 // Idiomas y modos de accesibilidad disponibles para huéspedes
 const GUEST_LANGS = ['es', 'en', 'pt'];
@@ -300,21 +289,7 @@ let rooms = []; // [{ id, name, hotel, floor, guest: {...} | null }]
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function getAdminKey() { return sessionStorage.getItem(KEY_STORAGE) || ''; }
 
-async function apiFetch(path, opts = {}) {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Admin-Key': getAdminKey(),
-      ...(opts.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Error HTTP ${res.status}`);
-  }
-  return res.json();
-}
+const apiFetch = createApiFetch(API_URL, () => ({ 'X-Admin-Key': getAdminKey() }));
 
 function toLocalInputValue(date) {
   const pad = n => String(n).padStart(2, '0');
@@ -325,21 +300,14 @@ function checkoutInfo(iso) {
   const checkout = new Date(iso);
   const now = new Date();
   const diffDays = Math.floor((checkout.setHours(0,0,0,0) - new Date(now).setHours(0,0,0,0)) / 86400000);
-  const time = new Date(iso).toLocaleTimeString(DASH_LOCALES[dashLang] || 'es-CL', { hour: '2-digit', minute: '2-digit' });
+  const time = new Date(iso).toLocaleTimeString(LOCALES[dashLang] || 'es-CL', { hour: '2-digit', minute: '2-digit' });
   if (diffDays <= 0) return { label: dt('coToday', { t: time }), urgency: 'today' };
   if (diffDays === 1) return { label: dt('coTomorrow', { t: time }), urgency: 'tomorrow' };
   return { label: dt('coDays', { n: diffDays }), urgency: 'later' };
 }
 
 function showToast(msg, type = '') {
-  const t = document.createElement('div');
-  t.className = `toast ${type}`;
-  t.textContent = msg;
-  $('toast-container').appendChild(t);
-  setTimeout(() => {
-    t.style.opacity = '0'; t.style.transform = 'translateX(20px)'; t.style.transition = 'all .3s';
-    setTimeout(() => t.remove(), 300);
-  }, 3000);
+  renderToast(msg, { type, axis: 'x' });
 }
 
 window.closeModal = function(id) {
@@ -1204,7 +1172,7 @@ async function submitNewStay() {
 function startClock() {
   const update = () => {
     const n = new Date();
-    const locale = DASH_LOCALES[dashLang] || 'es-CL';
+    const locale = LOCALES[dashLang] || 'es-CL';
     const t = n.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const d = n.toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' });
     $('clock').textContent = `${d} · ${t}`;

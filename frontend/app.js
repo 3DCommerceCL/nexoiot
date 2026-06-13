@@ -69,8 +69,8 @@ const app = {
 };
 
 // ── IDIOMAS (i18n) ────────────────────────────────────────────────────────────
+// LOCALES, PLAN_TIERS y planLevel vienen de shared.js
 const LANG_NAMES = { es: 'Español', en: 'English', pt: 'Português' };
-const LOCALES    = { es: 'es-CL',   en: 'en-US',   pt: 'pt-BR' };
 
 const I18N = {
   es: {
@@ -303,20 +303,8 @@ const I18N = {
   },
 };
 
-function t(key, vars) {
-  let s = (I18N[app.lang] || I18N.es)[key] ?? I18N.es[key] ?? key;
-  if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, v);
-  return s;
-}
-
-// Etiqueta del dispositivo traducida (con fallback al label del backend)
-function devLabel(key, cfg) {
-  return (I18N[app.lang] || I18N.es).devices?.[key] || cfg.label;
-}
-
-// ── NIVELES DE PLAN ───────────────────────────────────────────────────────────
-const PLAN_TIERS = { base: 0, premium: 1, max_comfort: 2 };
-const planLevel = plan => PLAN_TIERS[plan] ?? 0;
+const t        = makeTranslator(I18N, () => app.lang);
+const devLabel = makeDevLabel(I18N, () => app.lang);
 
 // ── ESCENAS RÁPIDAS ───────────────────────────────────────────────────────────
 const SCENES = {
@@ -1529,17 +1517,7 @@ function showError(type) {
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 function showToast(msg, type = '') {
-  const c = document.getElementById('toast-container');
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = msg;
-  c.appendChild(el);
   // Con accesibilidad auditiva los avisos visuales duran más
-  const dur = app.a11y === 'hearing' ? 7000 : 3000;
-  setTimeout(() => {
-    el.style.transition = 'opacity .3s, transform .3s';
-    el.style.opacity = '0';
-    el.style.transform = 'translateY(8px)';
-    setTimeout(() => el.remove(), 300);
-  }, dur);
+  const duration = app.a11y === 'hearing' ? 7000 : 3000;
+  renderToast(msg, { type, axis: 'y', duration });
 }
