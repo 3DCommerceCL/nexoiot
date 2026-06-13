@@ -41,6 +41,14 @@ const DT = {
     kpiTotal: 'Total habitaciones',
     kpiRegistered: 'Registradas en el sistema',
     roomShort: 'Hab {n}',
+    requestsTitle: 'Solicitudes de huéspedes',
+    requestTowels: 'Toallas / amenities',
+    requestRoomService: 'Room service',
+    requestSub: 'Hab {room} · {guest} · {time}',
+    requestResolveBtn: 'Resuelto ✓',
+    requestResolved: 'Solicitud marcada como resuelta',
+    noRequests: 'No hay solicitudes pendientes',
+    dndBadge: 'No molestar',
     quickView: 'Habitaciones — vista rápida',
     filterAll: 'Todas',
     filterOccupied: 'Ocupadas',
@@ -139,6 +147,14 @@ const DT = {
     kpiTotal: 'Total rooms',
     kpiRegistered: 'Registered in the system',
     roomShort: 'Room {n}',
+    requestsTitle: 'Guest requests',
+    requestTowels: 'Towels / amenities',
+    requestRoomService: 'Room service',
+    requestSub: 'Room {room} · {guest} · {time}',
+    requestResolveBtn: 'Resolved ✓',
+    requestResolved: 'Request marked as resolved',
+    noRequests: 'No pending requests',
+    dndBadge: 'Do Not Disturb',
     quickView: 'Rooms — quick view',
     filterAll: 'All',
     filterOccupied: 'Occupied',
@@ -237,6 +253,14 @@ const DT = {
     kpiTotal: 'Total de quartos',
     kpiRegistered: 'Registrados no sistema',
     roomShort: 'Quarto {n}',
+    requestsTitle: 'Solicitações dos hóspedes',
+    requestTowels: 'Toalhas / amenities',
+    requestRoomService: 'Room service',
+    requestSub: 'Quarto {room} · {guest} · {time}',
+    requestResolveBtn: 'Resolvido ✓',
+    requestResolved: 'Solicitação marcada como resolvida',
+    noRequests: 'Não há solicitações pendentes',
+    dndBadge: 'Não perturbe',
     quickView: 'Quartos — visão rápida',
     filterAll: 'Todos',
     filterOccupied: 'Ocupados',
@@ -394,6 +418,7 @@ async function login() {
     $('login-screen').classList.add('hidden');
     $('sidebar').classList.remove('hidden');
     $('main').classList.remove('hidden');
+    loadRequests();
   } catch (err) {
     sessionStorage.removeItem(KEY_STORAGE);
     error.textContent = dt('loginErrBad');
@@ -426,6 +451,57 @@ async function loadRooms() {
   renderRooms('overview');
   if (state.view === 'rooms') renderRooms('rooms', state.filter);
 }
+
+// ── SOLICITUDES DE HUÉSPEDES ──────────────────────────────────────────────────
+let requests = [];
+
+async function loadRequests() {
+  const qs = HOTEL_ID ? `?hotel=${encodeURIComponent(HOTEL_ID)}&status=pending` : '?status=pending';
+  try {
+    requests = await apiFetch(`/admin/requests${qs}`);
+  } catch {
+    requests = [];
+  }
+  renderRequests();
+}
+
+const REQUEST_ICONS = { towels: '🧺', roomservice: '🍽' };
+
+function timeAgo(iso) {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
+  if (mins < 1)  return '<1m';
+  if (mins < 60) return `${mins}m`;
+  return `${Math.round(mins / 60)}h`;
+}
+
+function renderRequests() {
+  const list = $('requests-list');
+  if (!list) return;
+  if (!requests.length) {
+    list.innerHTML = `<div class="request-empty">${dt('noRequests')}</div>`;
+    return;
+  }
+  list.innerHTML = requests.map(r => `
+    <div class="request-item" id="req-${r.id}">
+      <span class="request-ico">${REQUEST_ICONS[r.type] || '🔔'}</span>
+      <div class="request-body">
+        <div class="request-title">${dt(r.type === 'roomservice' ? 'requestRoomService' : 'requestTowels')}</div>
+        <div class="request-sub">${dt('requestSub', { room: r.roomName, guest: r.guestName, time: timeAgo(r.createdAt) })}</div>
+      </div>
+      <button class="btn btn-sm btn-outline-teal" onclick="resolveRequest('${r.id}')">${dt('requestResolveBtn')}</button>
+    </div>`).join('');
+}
+
+window.resolveRequest = async function(id) {
+  try {
+    await apiFetch(`/admin/requests/${id}/resolve`, { method: 'POST' });
+    requests = requests.filter(r => r.id !== id);
+    renderRequests();
+    showToast(dt('requestResolved'), 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
 
 const occupiedRooms  = () => rooms.filter(r => r.guest);
 const availableRooms = () => rooms.filter(r => !r.guest);
@@ -473,12 +549,14 @@ function buildRoomCard(room) {
       ? `<span class="badge">🌐 ${room.guest.lang.toUpperCase()}</span>` : '';
     const a11yBadge = room.guest.accessibility && room.guest.accessibility !== 'none'
       ? `<span class="badge" title="${dt(room.guest.accessibility === 'vision' ? 'a11yVision' : 'a11yHearing')}">${room.guest.accessibility === 'vision' ? '👁' : '🦻'}</span>` : '';
+    const dndBadge = room.guest.dnd
+      ? `<span class="badge" title="${dt('dndBadge')}">🔕</span>` : '';
     return `
     <div class="room-card" id="rc-${room.id}">
       <div class="rc-top">
         <span class="rc-num">${room.name}</span>
       </div>
-      <div class="rc-badges"><span class="badge badge-floor">${dt('floor', { n: room.floor })}</span>${planBadge}${langBadge}${a11yBadge}</div>
+      <div class="rc-badges"><span class="badge badge-floor">${dt('floor', { n: room.floor })}</span>${planBadge}${langBadge}${a11yBadge}${dndBadge}</div>
       <div class="rc-guest">${room.guest.guestName}</div>
       <div class="rc-checkout ${co.urgency}">${co.urgency === 'today' ? '⚠️' : '🗓'} ${co.label}</div>
       <div class="rc-footer">
@@ -566,6 +644,7 @@ function applyDashLang() {
     renderRooms('overview');
     if (state.view === 'rooms') renderRooms('rooms', state.filter);
   }
+  renderRequests();
 }
 
 // ── ROOM MODAL ────────────────────────────────────────────────────────────────
@@ -1291,7 +1370,11 @@ document.addEventListener('DOMContentLoaded', () => {
         $('login-screen').classList.add('hidden');
         $('sidebar').classList.remove('hidden');
         $('main').classList.remove('hidden');
+        loadRequests();
       })
       .catch(() => sessionStorage.removeItem(KEY_STORAGE));
   }
+
+  // Solicitudes de huéspedes: refrescar periódicamente
+  setInterval(() => { if (getAdminKey()) loadRequests(); }, 20_000);
 });

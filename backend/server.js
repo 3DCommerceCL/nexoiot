@@ -206,6 +206,7 @@ app.get('/api/room/:token', async (req, res) => {
     checkout:  entry.checkout,
     lang:          entry.lang || 'es',
     accessibility: entry.accessibility || 'none',
+    dnd:       entry.dnd || false,
     demoMode:  room.demo === true || tuya.isDemoMode(),
     plan:      room.plan || 'base',
     devices,
@@ -220,6 +221,20 @@ app.post('/api/room/:token/prefs', (req, res) => {
   }
   rooms.updateTokenPrefs(req.params.token, req.body || {});
   res.json({ success: true });
+});
+
+// ── API: POST /api/room/:token/request ────────────────────────────────────────
+// El huésped pide toallas/amenities o room service desde la app.
+app.post('/api/room/:token/request', (req, res) => {
+  const { type, note } = req.body || {};
+  const request = rooms.createRequest(req.params.token, type, note);
+  if (!request) {
+    if (!rooms.getRoomByToken(req.params.token)) {
+      return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
+    }
+    return res.status(400).json({ error: 'Tipo de solicitud no válido' });
+  }
+  res.json({ success: true, request });
 });
 
 // ── API: POST /api/room/:token/command ────────────────────────────────────────
@@ -358,6 +373,19 @@ app.get('/api/admin/hotels', adminAuth, (req, res) => {
       };
     })
   );
+});
+
+// ── ADMIN: GET /api/admin/requests ────────────────────────────────────────────
+// Acepta ?hotel=<hotelId> y ?status=pending|done para filtrar.
+app.get('/api/admin/requests', adminAuth, (req, res) => {
+  res.json(rooms.listRequests({ hotelId: req.query.hotel, status: req.query.status }));
+});
+
+// ── ADMIN: POST /api/admin/requests/:id/resolve ───────────────────────────────
+app.post('/api/admin/requests/:id/resolve', adminAuth, (req, res) => {
+  const ok = rooms.resolveRequest(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Solicitud no encontrada' });
+  res.json({ success: true });
 });
 
 // ── HEALTH CHECK ──────────────────────────────────────────────────────────────

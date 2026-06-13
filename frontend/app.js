@@ -60,6 +60,7 @@ const app = {
   plan:    'base', // 'base' | 'premium' | 'max_comfort'
   lang:    'es',   // idioma del huésped: 'es' | 'en' | 'pt'
   a11y:    'none', // accesibilidad: 'none' | 'vision' | 'hearing'
+  dnd:     false,  // No molestar
   data:    null,   // respuesta completa de la API (para re-render al cambiar idioma)
   _timers: {},   // debounce timers para sliders
   _wheelOpen: {}, // { key: bool } — selector de color RGB abierto/cerrado
@@ -94,6 +95,14 @@ const I18N = {
     sectionScenes: 'Escenas',
     sectionSettings: 'Ajustes',
     sectionSupport: 'Soporte',
+    sectionServices: 'Servicios',
+    dndTitle: 'No molestar',
+    dndDesc: 'El personal de limpieza no ingresará a tu habitación mientras esté activo',
+    requestTowels: '🧺 Pedir toallas / amenities',
+    requestRoomService: '🍽 Pedir room service',
+    toastRequestSent: 'Solicitud enviada a recepción',
+    toastDndOn: 'No molestar activado',
+    toastDndOff: 'No molestar desactivado',
     cdLeft: 'Faltan {t}',
     cdOverdue: 'Vencido hace {t}',
     cdNow: 'Venció ahora',
@@ -174,6 +183,14 @@ const I18N = {
     sectionScenes: 'Scenes',
     sectionSettings: 'Settings',
     sectionSupport: 'Support',
+    sectionServices: 'Services',
+    dndTitle: 'Do Not Disturb',
+    dndDesc: 'Housekeeping will not enter your room while this is active',
+    requestTowels: '🧺 Request towels / amenities',
+    requestRoomService: '🍽 Request room service',
+    toastRequestSent: 'Request sent to the front desk',
+    toastDndOn: 'Do Not Disturb on',
+    toastDndOff: 'Do Not Disturb off',
     cdLeft: '{t} left',
     cdOverdue: 'Overdue by {t}',
     cdNow: 'Just expired',
@@ -254,6 +271,14 @@ const I18N = {
     sectionScenes: 'Cenas',
     sectionSettings: 'Ajustes',
     sectionSupport: 'Suporte',
+    sectionServices: 'Serviços',
+    dndTitle: 'Não perturbe',
+    dndDesc: 'A equipe de limpeza não entrará no seu quarto enquanto estiver ativo',
+    requestTowels: '🧺 Pedir toalhas / amenities',
+    requestRoomService: '🍽 Pedir room service',
+    toastRequestSent: 'Solicitação enviada à recepção',
+    toastDndOn: 'Não perturbe ativado',
+    toastDndOff: 'Não perturbe desativado',
     cdLeft: 'Faltam {t}',
     cdOverdue: 'Vencido há {t}',
     cdNow: 'Venceu agora',
@@ -441,6 +466,7 @@ function renderApp(data) {
   if (!I18N[app.lang]) app.lang = 'es';
   app.a11y = (window.location.protocol === 'file:' && localStorage.getItem('nexo_a11y'))
     || data.accessibility || 'none';
+  app.dnd = data.dnd || false;
 
   document.documentElement.lang = app.lang;
   applyA11y();
@@ -538,6 +564,8 @@ function applyTexts() {
 
   document.getElementById('demo-banner').textContent = t('demoBanner');
 
+  document.getElementById('dnd-toggle')?.classList.toggle('on', app.dnd);
+
   renderPrefsRows();
 }
 
@@ -591,6 +619,33 @@ function setLang(lang) {
   savePrefs({ lang });
 }
 
+// ── NO MOLESTAR ───────────────────────────────────────────────────────────────
+function toggleDnd() {
+  app.dnd = !app.dnd;
+  document.getElementById('dnd-toggle')?.classList.toggle('on', app.dnd);
+  showToast(app.dnd ? t('toastDndOn') : t('toastDndOff'), '');
+  savePrefs({ dnd: app.dnd });
+}
+
+// ── SOLICITUDES DE SERVICIO (toallas/amenities, room service) ───────────────
+async function sendServiceRequest(type) {
+  if (window.location.protocol === 'file:') {
+    showToast(t('toastRequestSent'), 'success');
+    return;
+  }
+  try {
+    const res = await fetch(`${API}/room/${app.token}/request`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ type }),
+    });
+    if (!res.ok) throw new Error();
+    showToast(t('toastRequestSent'), 'success');
+  } catch {
+    showToast(t('toastCmdFail'), 'error');
+  }
+}
+
 function setA11y(mode) {
   if (mode === app.a11y) return;
   app.a11y = mode;
@@ -641,6 +696,11 @@ function initNav() {
   document.getElementById('call-reception-btn')?.addEventListener('click', () => {
     alert(t('callReceptionMsg'));
   });
+
+  // No molestar y solicitudes de servicio
+  document.getElementById('dnd-toggle')?.addEventListener('click', toggleDnd);
+  document.getElementById('request-towels-btn')?.addEventListener('click', () => sendServiceRequest('towels'));
+  document.getElementById('request-roomservice-btn')?.addEventListener('click', () => sendServiceRequest('roomservice'));
 }
 
 // ── ÍCONOS PERSONALIZADOS ─────────────────────────────────────────────────────
