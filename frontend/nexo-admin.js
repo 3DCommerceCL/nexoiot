@@ -25,6 +25,18 @@ window.openHotel = function(id) {
   location.href = `./dashboard.html?hotel=${encodeURIComponent(id)}`;
 };
 
+// ── NAVEGACIÓN ENTRE VISTAS ───────────────────────────────────────────────────
+const VIEW_TITLES = { hotels: 'Hoteles', analytics: 'Analíticas' };
+
+function setView(view) {
+  document.querySelectorAll('.nav-item[data-view]').forEach(el =>
+    el.classList.toggle('active', el.dataset.view === view));
+  $('view-hotels').classList.toggle('hidden', view !== 'hotels');
+  $('view-analytics').classList.toggle('hidden', view !== 'analytics');
+  $('tb-title').textContent = VIEW_TITLES[view] || '';
+  if (view === 'analytics') renderAnalytics();
+}
+
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 async function login() {
   const key   = $('login-key').value.trim();
@@ -57,6 +69,7 @@ async function loadHotels() {
   hotels = await apiFetch('/admin/hotels');
   renderKPIs();
   renderHotels();
+  if (!$('view-analytics').classList.contains('hidden')) renderAnalytics();
 }
 
 function renderKPIs() {
@@ -122,6 +135,94 @@ function renderHotels() {
   $('hotel-grid').innerHTML = hotels.map(buildHotelCard).join('');
 }
 
+// ── ANALÍTICAS AGREGADAS (multi-hotel) ───────────────────────────────────────
+function renderAnalytics() {
+  if (!hotels.length) {
+    $('analytics-kpi-row').innerHTML = '';
+    $('occupancy-list').innerHTML = '<div class="analytics-empty">Sin hoteles registrados todavía.</div>';
+    $('plan-dist-list').innerHTML = '<div class="analytics-empty">Sin hoteles registrados todavía.</div>';
+    $('pending-req-list').innerHTML = '<div class="analytics-empty">Sin hoteles registrados todavía.</div>';
+    return;
+  }
+
+  const totalRooms = hotels.reduce((sum, h) => sum + h.rooms, 0);
+  const totalOcc   = hotels.reduce((sum, h) => sum + h.occupied, 0);
+  const totalPending = hotels.reduce((sum, h) => sum + (h.pendingRequests || 0), 0);
+  const avgOcc = totalRooms ? Math.round((totalOcc / totalRooms) * 100) : 0;
+  const occByHotel = hotels.map(h => ({ h, pct: h.rooms ? Math.round((h.occupied / h.rooms) * 100) : 0 }));
+  const busiest = occByHotel.reduce((a, b) => (b.pct > a.pct ? b : a), occByHotel[0]);
+  const quietest = occByHotel.reduce((a, b) => (b.pct < a.pct ? b : a), occByHotel[0]);
+
+  $('analytics-kpi-row').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Ocupación promedio</div>
+      <div class="kpi-value">${avgOcc}%</div>
+      <div class="kpi-sub">${totalOcc} / ${totalRooms} habitaciones</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Hotel más ocupado</div>
+      <div class="kpi-value" style="font-size:18px">${busiest.h.name}</div>
+      <div class="kpi-sub">${busiest.pct}% de ocupación</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Hotel con más disponibilidad</div>
+      <div class="kpi-value" style="font-size:18px">${quietest.h.name}</div>
+      <div class="kpi-sub">${quietest.pct}% de ocupación</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Solicitudes pendientes</div>
+      <div class="kpi-value">${totalPending}</div>
+      <div class="kpi-sub">En todos los hoteles</div>
+    </div>
+  `;
+
+  $('occupancy-list').innerHTML = occByHotel
+    .slice()
+    .sort((a, b) => b.pct - a.pct)
+    .map(({ h, pct }) => `
+      <div class="analytics-row">
+        <div class="analytics-row-label">${h.name}</div>
+        <div class="analytics-row-bar kpi-prog-track"><div class="kpi-prog-fill" style="width:${pct}%"></div></div>
+        <div class="analytics-row-value">${h.occupied} / ${h.rooms} (${pct}%)</div>
+      </div>`)
+    .join('');
+
+  const planTotals = hotels.reduce((acc, h) => {
+    for (const [plan, count] of Object.entries(h.planCounts || {})) {
+      acc[plan] = (acc[plan] || 0) + count;
+    }
+    return acc;
+  }, {});
+  const planOrder = ['base', 'premium', 'max_comfort'];
+  $('plan-dist-list').innerHTML = planOrder
+    .filter(plan => planTotals[plan])
+    .map(plan => {
+      const count = planTotals[plan];
+      const pct = totalRooms ? Math.round((count / totalRooms) * 100) : 0;
+      return `
+      <div class="analytics-row">
+        <div class="analytics-row-label"><span class="plan-pill ${plan}">${PLAN_LABELS[plan] || plan}</span></div>
+        <div class="analytics-row-bar kpi-prog-track"><div class="kpi-prog-fill" style="width:${pct}%"></div></div>
+        <div class="analytics-row-value">${count} habitaciones (${pct}%)</div>
+      </div>`;
+    })
+    .join('');
+
+  const withPending = hotels.filter(h => h.pendingRequests > 0);
+  $('pending-req-list').innerHTML = withPending.length
+    ? withPending
+        .slice()
+        .sort((a, b) => b.pendingRequests - a.pendingRequests)
+        .map(h => `
+          <div class="analytics-row">
+            <div class="analytics-row-label">${h.name}</div>
+            <div class="analytics-row-bar"></div>
+            <div class="analytics-row-value">${h.pendingRequests} pendiente${h.pendingRequests === 1 ? '' : 's'}</div>
+          </div>`)
+        .join('')
+    : '<div class="analytics-empty">Sin solicitudes pendientes en ningún hotel.</div>';
+}
+
 function startClock() {
   const DAYS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const MONTH = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -138,6 +239,9 @@ document.addEventListener('DOMContentLoaded', () => {
   $('login-btn').addEventListener('click', login);
   $('login-key').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
   $('logout-btn').addEventListener('click', logout);
+
+  document.querySelectorAll('.nav-item[data-view]').forEach(el =>
+    el.addEventListener('click', () => setView(el.dataset.view)));
 
   startClock();
 

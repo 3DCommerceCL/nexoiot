@@ -73,6 +73,16 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .plan-pill.max_comfort{background:var(--purple-l);color:var(--purple)}
 .hc-footer{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text2);padding-top:8px;border-top:1px solid var(--border)}
 
+/* ── ANALYTICS ── */
+.analytics-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow)}
+.analytics-row{display:flex;align-items:center;gap:14px;padding:9px 0}
+.analytics-row:not(:last-child){border-bottom:1px solid var(--border)}
+.analytics-row-label{width:160px;flex-shrink:0;font-size:12px;font-weight:600;color:var(--text)}
+.analytics-row-bar{flex:1}
+.analytics-row-value{width:90px;flex-shrink:0;text-align:right;font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums}
+.analytics-empty{font-size:12px;color:var(--text2);padding:6px 0}
+.plan-pill-row .plan-pill{display:inline-block}
+
 /* ── PLACEHOLDER NOTE ── */
 .preview-note{background:var(--purple-l);border:1px solid rgba(83,74,183,.25);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--purple);margin-bottom:20px;line-height:1.5}
 
@@ -137,9 +147,13 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
     <div class="sb-hotel">Panel General</div>
   </div>
   <nav class="sb-nav">
-    <div class="nav-item active">
+    <div class="nav-item active" data-view="hotels">
       <span class="nav-icon">🏨</span>
       <span class="nav-label">Hoteles</span>
+    </div>
+    <div class="nav-item" data-view="analytics">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Analíticas</span>
     </div>
     <div class="nav-item">
       <span class="nav-icon">⚙️</span>
@@ -156,7 +170,7 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 <!-- MAIN -->
 <main class="main hidden" id="main">
   <header class="top-bar">
-    <div class="tb-title">Hoteles</div>
+    <div class="tb-title" id="tb-title">Hoteles</div>
     <div class="tb-right">
       <div class="clock" id="clock"></div>
       <button class="btn btn-outline" id="logout-btn">Salir</button>
@@ -164,12 +178,33 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
   </header>
 
   <div class="content">
-    <div class="kpi-row" id="kpi-row"></div>
+    <div id="view-hotels">
+      <div class="kpi-row" id="kpi-row"></div>
 
-    <div class="sec-header">
-      <span class="sec-title">Hoteles — vista general</span>
+      <div class="sec-header">
+        <span class="sec-title">Hoteles — vista general</span>
+      </div>
+      <div class="hotel-grid" id="hotel-grid"></div>
     </div>
-    <div class="hotel-grid" id="hotel-grid"></div>
+
+    <div id="view-analytics" class="hidden">
+      <div class="kpi-row" id="analytics-kpi-row"></div>
+
+      <div class="sec-header">
+        <span class="sec-title">Ocupación por hotel</span>
+      </div>
+      <div class="analytics-card" id="occupancy-list"></div>
+
+      <div class="sec-header">
+        <span class="sec-title">Distribución de planes</span>
+      </div>
+      <div class="analytics-card" id="plan-dist-list"></div>
+
+      <div class="sec-header">
+        <span class="sec-title">Solicitudes pendientes por hotel</span>
+      </div>
+      <div class="analytics-card" id="pending-req-list"></div>
+    </div>
   </div>
 </main>
 

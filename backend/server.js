@@ -409,12 +409,18 @@ app.get('/api/admin/hotels', adminAuth, (req, res) => {
   const hotels = rooms.getHotels();
   const r = rooms.getRooms();
   const activeTokens = rooms.listActiveTokens();
+  const pendingRequests = rooms.listRequests({ status: 'pending' });
 
   res.json(
     Object.keys(hotels).map(id => {
       const hotelRooms = Object.keys(r).filter(roomId => r[roomId].demo !== true && r[roomId].hotelId === id);
       const occupied = hotelRooms.filter(roomId => activeTokens.some(t => t.roomId === roomId)).length;
       const plans = [...new Set(hotelRooms.map(roomId => r[roomId].plan || 'base'))];
+      const planCounts = hotelRooms.reduce((acc, roomId) => {
+        const plan = r[roomId].plan || 'base';
+        acc[plan] = (acc[plan] || 0) + 1;
+        return acc;
+      }, {});
       return {
         id,
         name:     hotels[id].name,
@@ -422,6 +428,8 @@ app.get('/api/admin/hotels', adminAuth, (req, res) => {
         rooms:    hotelRooms.length,
         occupied,
         plans,
+        planCounts,
+        pendingRequests: pendingRequests.filter(req => req.hotelId === id).length,
       };
     })
   );
