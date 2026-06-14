@@ -245,6 +245,29 @@ body {
   padding: 0 20px 8px;
 }
 
+/* ── FAVORITOS (accesos rápidos) ─────────────────────────────────────────── */
+.favorites-bar { padding: 0 12px 14px; }
+.favorites-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: var(--text2);
+  padding: 0 8px 8px;
+}
+.favorites-row {
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px;
+}
+.fav-chip {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  background: var(--card); border: 1px solid var(--border); border-radius: 999px;
+  padding: 8px 14px; font-size: 12px; font-weight: 600; color: var(--text);
+  cursor: pointer; transition: background .2s, color .2s, border-color .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.fav-chip-ico { font-size: 14px; line-height: 1; }
+.fav-chip.on {
+  background: linear-gradient(135deg, #00B985, var(--teal));
+  border-color: transparent; color: #fff;
+}
+
 /* ── DEVICE GRID ──────────────────────────────────────────────────────────── */
 .device-grid {
   display: grid;
@@ -276,6 +299,14 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   margin-bottom: 10px;
 }
+.card-head-actions { display: flex; align-items: center; gap: 10px; }
+.fav-btn {
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-size: 18px; line-height: 1; color: rgba(255,255,255,.5);
+  transition: color .2s, transform .15s;
+}
+.fav-btn:active { transform: scale(1.15); }
+.fav-btn.active { color: #FFD66B; }
 .card-ico-name  { display: flex; align-items: center; gap: 10px; }
 .card-ico {
   width: 36px; height: 36px; border-radius: 10px;

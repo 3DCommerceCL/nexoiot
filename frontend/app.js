@@ -61,6 +61,7 @@ const app = {
   lang:    'es',   // idioma del huésped: 'es' | 'en' | 'pt'
   a11y:    'none', // accesibilidad: 'none' | 'vision' | 'hearing'
   dnd:     false,  // No molestar
+  favorites: [],  // claves de dispositivos marcados como favoritos (accesos directos)
   data:    null,   // respuesta completa de la API (para re-render al cambiar idioma)
   _timers: {},   // debounce timers para sliders
   _wheelOpen: {}, // { key: bool } — selector de color RGB abierto/cerrado
@@ -112,6 +113,9 @@ const I18N = {
     connOffline: 'Sin conexión',
     toastOnline: 'Conexión restablecida',
     toastOffline: 'Sin conexión a internet',
+    sectionFavorites: 'Accesos rápidos',
+    favToggle: 'Marcar como favorito',
+    toastFavMax: 'Máximo 3 accesos rápidos. Quita uno para agregar otro.',
     cdLeft: 'Faltan {t}',
     cdOverdue: 'Vencido hace {t}',
     cdNow: 'Venció ahora',
@@ -209,6 +213,9 @@ const I18N = {
     connOffline: 'Offline',
     toastOnline: 'Connection restored',
     toastOffline: 'No internet connection',
+    sectionFavorites: 'Quick access',
+    favToggle: 'Mark as favorite',
+    toastFavMax: 'Maximum of 3 quick shortcuts. Remove one to add another.',
     cdLeft: '{t} left',
     cdOverdue: 'Overdue by {t}',
     cdNow: 'Just expired',
@@ -306,6 +313,9 @@ const I18N = {
     connOffline: 'Sem conexão',
     toastOnline: 'Conexão restabelecida',
     toastOffline: 'Sem conexão com a internet',
+    sectionFavorites: 'Acessos rápidos',
+    favToggle: 'Marcar como favorito',
+    toastFavMax: 'Máximo de 3 acessos rápidos. Remova um para adicionar outro.',
     cdLeft: 'Faltam {t}',
     cdOverdue: 'Vencido há {t}',
     cdNow: 'Venceu agora',
@@ -495,6 +505,10 @@ function renderApp(data) {
     || data.accessibility || 'none';
   app.dnd = data.dnd || false;
 
+  try {
+    app.favorites = JSON.parse(localStorage.getItem(`nexo_favs_${app.token || 'static'}`) || '[]');
+  } catch { app.favorites = []; }
+
   document.documentElement.lang = app.lang;
   applyA11y();
   applyAutoTheme();
@@ -508,6 +522,7 @@ function renderApp(data) {
 
   // Grid de dispositivos
   renderGrid();
+  renderFavorites();
 
   // Funciones del plan (placeholders) y vista de clima
   renderPlanGrid();
@@ -532,6 +547,9 @@ function renderApp(data) {
   grid.addEventListener('click',  handleGridClick);
   grid.addEventListener('input',  handleGridInput);
   grid.addEventListener('change', handleGridInput);
+
+  // Delegación de eventos para la barra de favoritos
+  document.getElementById('favorites-bar')?.addEventListener('click', handleFavBarClick);
 
   // Delegación de eventos para las funciones del plan (placeholders)
   const planGrid = document.getElementById('plan-grid');
@@ -783,6 +801,56 @@ const DEVICE_ICON_OVERRIDES = {
 };
 const deviceIcon = (key, fallback) => DEVICE_ICON_OVERRIDES[key] || fallback;
 
+// ── FAVORITOS (accesos directos) ─────────────────────────────────────────────
+const FAV_MAX = 3;
+
+function favBtn(key) {
+  const active = app.favorites.includes(key);
+  return `<button type="button" class="fav-btn ${active ? 'active' : ''}" data-key="${key}" data-action="toggle-favorite" aria-label="${t('favToggle')}">${active ? '★' : '☆'}</button>`;
+}
+
+function saveFavorites() {
+  try { localStorage.setItem(`nexo_favs_${app.token || 'static'}`, JSON.stringify(app.favorites)); } catch {}
+}
+
+function renderFavorites() {
+  const bar = document.getElementById('favorites-bar');
+  if (!bar) return;
+  const items = app.favorites
+    .map(key => ({ key, cfg: app.config[key] }))
+    .filter(({ key, cfg }) => cfg && app.devices[key]);
+
+  if (!items.length) {
+    bar.classList.add('hidden');
+    bar.innerHTML = '';
+    return;
+  }
+
+  bar.classList.remove('hidden');
+  bar.innerHTML = `
+    <div class="favorites-label">${t('sectionFavorites')}</div>
+    <div class="favorites-row">${items.map(({ key, cfg }) => buildFavChip(key, cfg)).join('')}</div>`;
+}
+
+function buildFavChip(key, cfg) {
+  const s = app.devices[key] || {};
+  const prop = cfg.type === 'switch_3ch' ? 'ch1' : 'on';
+  const on = !!s[prop];
+  const ico = cfg.type === 'ac' ? '❄️' : cfg.type === 'switch' || cfg.type === 'switch_3ch' ? '🔌' : deviceIcon(key, '💡');
+  return `<button type="button" class="fav-chip ${on ? 'on' : ''}" data-key="${key}" data-prop="${prop}" data-action="fav-toggle">
+    <span class="fav-chip-ico">${ico}</span><span class="fav-chip-label">${devLabel(key, cfg)}</span>
+  </button>`;
+}
+
+function handleFavBarClick(e) {
+  const chip = e.target.closest('[data-action="fav-toggle"]');
+  if (!chip) return;
+  const key  = chip.dataset.key;
+  const prop = chip.dataset.prop;
+  doCmd(key, { [prop]: !app.devices[key]?.[prop] });
+  renderFavorites();
+}
+
 // ── MODO MANUAL (luces / enchufes) ───────────────────────────────────────────
 function manualRow(key) {
   const manual = !!app._manual[key];
@@ -859,7 +927,10 @@ function buildLightCard(key) {
         <span class="card-ico">${deviceIcon(key, '💡')}</span>
         <span class="card-label">${devLabel(key, cfg)}</span>
       </div>
-      <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
+      <div class="card-head-actions">
+        ${favBtn(key)}
+        <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
+      </div>
     </div>
     <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onF') : t('offF'))}</div>
     ${on && !manual ? `
@@ -908,7 +979,10 @@ function buildLEDCard(key) {
         <span class="card-ico">${deviceIcon(key, '💡')}</span>
         <span class="card-label">${devLabel(key, cfg)}</span>
       </div>
-      <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
+      <div class="card-head-actions">
+        ${favBtn(key)}
+        <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
+      </div>
     </div>
     <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onM') : t('offM'))}</div>
     ${on && !manual ? `
@@ -975,7 +1049,10 @@ function buildSwitchCard(key) {
   return `<div class="device-card ${on && !manual ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">${on ? '🔌' : '⬜'}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
-      <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-switch"></div>
+      <div class="card-head-actions">
+        ${favBtn(key)}
+        <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-switch"></div>
+      </div>
     </div>
     <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onM') : t('offM'))}</div>
     ${manualRow(key)}
@@ -1004,6 +1081,7 @@ function buildSwitch3CHCard(key) {
   return `<div class="device-card full-width ${anyOn ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">${ico}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
+      <div class="card-head-actions">${favBtn(key)}</div>
     </div>
     ${rows}
     ${manualRow(key)}
@@ -1020,7 +1098,10 @@ function buildACCard(key) {
   return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">${devLabel(key, cfg)}</span></div>
-      <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-ac"></div>
+      <div class="card-head-actions">
+        ${favBtn(key)}
+        <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-ac"></div>
+      </div>
     </div>
     <div class="ac-temp-display">
       <div class="ac-temp-val ${on ? 'on' : ''}">${temp}°C</div>
@@ -1390,6 +1471,26 @@ function handlePlanGridInput(e) {
 
 // ── EVENT: CLICK EN EL GRID ───────────────────────────────────────────────────
 function handleGridClick(e) {
+  // Marcar/desmarcar favorito (acceso directo)
+  const favBtnEl = e.target.closest('[data-action="toggle-favorite"]');
+  if (favBtnEl) {
+    const key = favBtnEl.dataset.key;
+    const idx = app.favorites.indexOf(key);
+    if (idx >= 0) {
+      app.favorites.splice(idx, 1);
+    } else {
+      if (app.favorites.length >= FAV_MAX) {
+        showToast(t('toastFavMax'), '');
+        return;
+      }
+      app.favorites.push(key);
+    }
+    saveFavorites();
+    updateCard(key);
+    renderFavorites();
+    return;
+  }
+
   // Modo manual (luces / enchufes)
   const manualTog = e.target.closest('[data-action="toggle-manual"]');
   if (manualTog) {
