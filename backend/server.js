@@ -203,11 +203,12 @@ app.get('/api/room/:token', async (req, res) => {
     const raw    = statusResults[i].status === 'fulfilled' ? statusResults[i].value : null;
     const online = raw !== null && raw.online;
     devices[name] = {
-      label:     dev.label,
-      type:      dev.type,
-      channels:  dev.channels || null,
-      available: online,
-      state:     online ? statusToState(dev.type, raw.status) : null,
+      label:        dev.label,
+      type:         dev.type,
+      channels:     dev.channels || null,
+      available:    online,
+      manualUnlock: dev.manualUnlock === true,
+      state:        online ? statusToState(dev.type, raw.status) : null,
     };
   });
 
@@ -392,6 +393,16 @@ app.post('/api/admin/rooms/:roomId/scene', adminAuth, async (req, res) => {
   const failed = results.filter(r => r.status === 'rejected').length;
   rooms.addActivity(req.params.roomId, 'scene_off', '');
   res.json({ success: true, failed });
+});
+
+// ── ADMIN: POST /api/admin/rooms/:roomId/devices/:deviceKey/manual-unlock ─────
+// El hotel habilita o deshabilita que el huésped pueda liberar manualmente el
+// motor de una cortina (control físico) desde la app.
+app.post('/api/admin/rooms/:roomId/devices/:deviceKey/manual-unlock', adminAuth, (req, res) => {
+  const { allowed } = req.body || {};
+  const ok = rooms.setManualUnlock(req.params.roomId, req.params.deviceKey, allowed);
+  if (!ok) return res.status(404).json({ error: 'Habitación o dispositivo no encontrado' });
+  res.json({ success: true });
 });
 
 // ── ADMIN: GET /api/admin/rooms/:roomId/activity ──────────────────────────────

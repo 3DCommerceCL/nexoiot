@@ -85,6 +85,17 @@ const getHotels   = () => readJSON(HOTELS_FILE);
 const getRequests = () => readJSON(REQUESTS_FILE);
 const getActivityLog = () => readJSON(ACTIVITY_FILE);
 
+// Habilita/deshabilita el modo manual (motor desbloqueado) de una cortina
+// según lo configure el hotel desde el panel.
+function setManualUnlock(roomId, deviceKey, allowed) {
+  const allRooms = getRooms();
+  const room = allRooms[roomId];
+  if (!room || !room.devices[deviceKey]) return false;
+  room.devices[deviceKey].manualUnlock = !!allowed;
+  writeJSON(ROOMS_FILE, allRooms);
+  return true;
+}
+
 // ── REGISTRO DE ACTIVIDAD POR HABITACIÓN ──────────────────────────────────────
 // type: 'checkin' | 'qr_resent' | 'checkout' | 'prefs_changed' | 'service_request'
 //       | 'request_resolved' | 'scene_off'
@@ -281,4 +292,4 @@ function resolveRequest(id) {
   return true;
 }
 
-module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity };
+module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity, setManualUnlock };

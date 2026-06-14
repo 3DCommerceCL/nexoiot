@@ -1168,7 +1168,18 @@ function buildCurtainCard(key, dev, ico) {
     <div class="curtain-track"><div class="curtain-fill" style="width:${pct}%"></div></div>
     <div class="curtain-label">${label}</div>
     ${buildUnlockRow(key, unlocked)}
+    ${buildAllowManualUnlockRow(key, !!dev.manualUnlock)}
   </div>`;
+}
+
+// Configuración del hotel: permite (o no) que el huésped vea y use el
+// desbloqueo manual del motor de esta cortina en su app.
+function buildAllowManualUnlockRow(key, allowed) {
+  return `<div class="manual-row">
+    <span>${dt('allowManualUnlock')}</span>
+    <div class="toggle-sw toggle-sw-sm ${allowed ? 'on' : ''}" onclick="toggleAllowManualUnlock('${key}')"></div>
+  </div>
+  <div class="manual-note">${dt('allowManualUnlockNote')}</div>`;
 }
 
 function buildMultiSwitchCard(key, dev, ico) {
@@ -1273,6 +1284,23 @@ window.toggleUnlock = function(key) {
   const dev = state.currentRoom.devices[key];
   dev.state.unlocked = !dev.state.unlocked;
   renderDevGrid();
+};
+
+window.toggleAllowManualUnlock = async function(key) {
+  const dev = state.currentRoom.devices[key];
+  const allowed = !dev.manualUnlock;
+  dev.manualUnlock = allowed;
+  renderDevGrid();
+  try {
+    await apiFetch(`/admin/rooms/${state.currentRoom.id}/devices/${key}/manual-unlock`, {
+      method: 'POST',
+      body: JSON.stringify({ allowed }),
+    });
+  } catch (err) {
+    dev.manualUnlock = !allowed;
+    renderDevGrid();
+    showToast(err.message, 'error');
+  }
 };
 
 // ── ACTIVITY LOG ──────────────────────────────────────────────────────────────

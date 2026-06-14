@@ -151,7 +151,6 @@ const I18N = {
     checkoutMsg: 'Para el check-out, por favor dirígete a recepción o llama al interno del hotel.',
     manualNote: 'Control manual activado — usa el interruptor físico de la habitación. Desactívalo para volver a controlarlo desde la app.',
     unlockNoteOn: 'Motor desbloqueado — mueve la cortina con la mano. Bloquéalo para volver a controlarla desde la app.',
-    unlockNoteOff: 'Disponible solo si el motor del riel/roller admite liberación manual (depende del modelo instalado).',
     toastManualOn: 'Modo manual activado — luz fija en cálido, ahora se enciende/apaga con el interruptor físico',
     toastManualOff: 'Modo manual desactivado — control desde la app restaurado',
     toastUnlockOn: 'Motor desbloqueado — mueve la cortina con la mano',
@@ -249,7 +248,6 @@ const I18N = {
     checkoutMsg: 'For check-out, please go to the front desk or call the hotel extension.',
     manualNote: 'Manual control enabled — use the physical switch in the room. Turn it off to control from the app again.',
     unlockNoteOn: 'Motor unlocked — move the curtain by hand. Lock it to control it from the app again.',
-    unlockNoteOff: 'Only available if the curtain motor supports manual release (depends on the installed model).',
     toastManualOn: 'Manual mode enabled — light set to warm, now controlled by the physical switch',
     toastManualOff: 'Manual mode disabled — app control restored',
     toastUnlockOn: 'Motor unlocked — move the curtain by hand',
@@ -347,7 +345,6 @@ const I18N = {
     checkoutMsg: 'Para o check-out, dirija-se à recepção ou ligue para o ramal do hotel.',
     manualNote: 'Controle manual ativado — use o interruptor físico do quarto. Desative para voltar a controlar pelo app.',
     unlockNoteOn: 'Motor destravado — mova a cortina com a mão. Trave para voltar a controlá-la pelo app.',
-    unlockNoteOff: 'Disponível apenas se o motor da cortina permitir liberação manual (depende do modelo instalado).',
     toastManualOn: 'Modo manual ativado — luz fixa em tom quente, agora liga/desliga pelo interruptor físico',
     toastManualOff: 'Modo manual desativado — controle pelo app restaurado',
     toastUnlockOn: 'Motor destravado — mova a cortina com a mão',
@@ -486,7 +483,7 @@ function renderApp(data) {
 
   // Construir estado
   for (const [key, dev] of Object.entries(data.devices)) {
-    app.config[key]  = { type: dev.type, label: dev.label, channels: dev.channels, available: dev.available };
+    app.config[key]  = { type: dev.type, label: dev.label, channels: dev.channels, available: dev.available, manualUnlock: !!dev.manualUnlock };
     app.devices[key] = dev.state ? { ...dev.state } : {};
   }
 
@@ -731,6 +728,8 @@ function applyTheme() {
     dark = hour >= 20 || hour < 7;
   }
   document.body.classList.toggle('theme-dark', dark);
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) btn.textContent = dark ? '☀️' : '🌙';
 }
 
 function setTheme(mode) {
@@ -806,6 +805,12 @@ function initNav() {
   document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
     localStorage.setItem(`nexo_onboarded_${app.token || 'static'}`, '1');
     document.getElementById('onboarding-overlay')?.classList.add('hidden');
+  });
+
+  // Acceso rápido al tema desde el encabezado (alterna claro/oscuro)
+  document.getElementById('theme-toggle-btn')?.addEventListener('click', () => {
+    const dark = document.body.classList.contains('theme-dark');
+    setTheme(dark ? 'light' : 'dark');
   });
 }
 
@@ -883,15 +888,16 @@ function manualRow(key) {
 }
 
 // ── MOTOR DE CORTINA DESBLOQUEADO ─────────────────────────────────────────────
-// Nota: esto depende de que el motor del riel/roller tenga liberación manual
-// (no todos los modelos la incluyen) — a confirmar según el motor instalado.
+// Solo se muestra si el hotel habilitó el modo manual para esta cortina
+// (checkbox "Permitir modo manual" en el panel del hotel).
 function unlockRow(key) {
+  if (!app.config[key]?.manualUnlock) return '';
   const unlocked = !!app._unlocked[key];
   return `<div class="manual-row">
     <span>${t('unlockMotor')}</span>
     <div class="toggle toggle-sm ${unlocked ? 'on' : ''}" data-key="${key}" data-action="toggle-unlock"></div>
   </div>
-  <div class="manual-note">${unlocked ? t('unlockNoteOn') : t('unlockNoteOff')}</div>`;
+  ${unlocked ? `<div class="manual-note">${t('unlockNoteOn')}</div>` : ''}`;
 }
 
 // ── RENDER GRID ────────────────────────────────────────────────────────────────
