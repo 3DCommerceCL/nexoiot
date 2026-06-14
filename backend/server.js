@@ -20,7 +20,6 @@ const FRONTEND_URL = (process.env.FRONTEND_URL || 'https://3dcommercecl.github.i
 
 // ── MIDDLEWARE ────────────────────────────────────────────────────────────────
 const ALLOWED_ORIGINS = [
-  'https://niglet.netlify.app',                       // frontend (Netlify, legado)
   'https://3dcommercecl.github.io',                   // frontend (GitHub Pages)
   'https://nexoiot-production.up.railway.app',        // mismo Railway (health checks, etc.)
   /^http:\/\/localhost(:\d+)?$/,                       // desarrollo local (cualquier puerto)

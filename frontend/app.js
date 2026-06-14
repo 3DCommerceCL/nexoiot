@@ -6,8 +6,7 @@
 
 // URL base del backend.
 // En local (file:// o localhost:3000): usa '/api' (mismo origen).
-// En Netlify sin proxy: pon la URL completa en window.NEXO_API_URL dentro de index.html.
-// En Netlify con proxy en netlify.toml: deja window.NEXO_API_URL = '' y Netlify redirige.
+// En GitHub Pages: pon la URL completa del backend en window.NEXO_API_URL dentro de index.html.
 const API = ((window.NEXO_API_URL || '').replace(/\/$/, '') || '') + '/api';
 
 // ── DATOS MOCK para modo estático (sin servidor) ──────────────────────────────
