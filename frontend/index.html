@@ -101,28 +101,9 @@
   <!-- ── VISTA: ESCENAS ───────────────────────────────────────────────────── -->
   <div class="view hidden" id="view-scenes">
     <div class="section-label" data-i18n="sectionScenes">Escenas</div>
-    <div class="scenes-grid" role="group" aria-label="Escenas rápidas">
-      <button class="scene-card" data-scene="night" aria-label="Escena noche">
-        <span class="scene-card-ico">🌙</span>
-        <span class="scene-card-title" data-i18n="sceneNightTitle">Noche</span>
-        <span class="scene-card-desc" data-i18n="sceneNightDesc">Apaga las luces principales y enciende el LED bajo cama</span>
-      </button>
-      <button class="scene-card" data-scene="morning" aria-label="Escena mañana">
-        <span class="scene-card-ico">☀️</span>
-        <span class="scene-card-title" data-i18n="sceneMorningTitle">Mañana</span>
-        <span class="scene-card-desc" data-i18n="sceneMorningDesc">Abre la cortina y enciende las luces en tono cálido</span>
-      </button>
-      <button class="scene-card" data-scene="relax" aria-label="Escena relax">
-        <span class="scene-card-ico">🎬</span>
-        <span class="scene-card-title" data-i18n="sceneRelaxTitle">Relax</span>
-        <span class="scene-card-desc" data-i18n="sceneRelaxDesc">Ambiente con luces de color suave y cortina a media altura</span>
-      </button>
-      <button class="scene-card" data-scene="off" aria-label="Apagar todo">
-        <span class="scene-card-ico">⚡</span>
-        <span class="scene-card-title" data-i18n="sceneOffTitle">Apagar todo</span>
-        <span class="scene-card-desc" data-i18n="sceneOffDesc">Apaga todas las luces y enchufes de la habitación</span>
-      </button>
-    </div>
+    <div class="scenes-grid" id="scenes-grid" role="group" aria-label="Escenas rápidas"></div>
+    <button class="support-btn" id="scene-new-btn" style="width:100%;margin-top:14px" data-i18n="sceneNewBtn">➕ Crear nueva escena</button>
+    <p class="scenes-hint" data-i18n="scenesHint">Toca una escena para activarla. Usa ✏️ para guardar la configuración actual de tu habitación en esa escena.</p>
   </div>
 
   <!-- ── VISTA: CLIMA (Premium) ───────────────────────────────────────────── -->
@@ -200,6 +181,21 @@
       <li><span class="onboarding-ico-sm">🎧</span><span data-i18n="onbSupport">Pide servicios o ayuda desde Soporte</span></li>
     </ul>
     <button class="support-btn" id="onboarding-dismiss" data-i18n="onbGotIt">Entendido</button>
+  </div>
+</div>
+
+<!-- ── MODAL: NUEVA ESCENA ─────────────────────────────────────────────────── -->
+<div class="onboarding-overlay hidden" id="scene-modal-overlay">
+  <div class="onboarding-card">
+    <div class="onboarding-ico">🎬</div>
+    <h2 data-i18n="sceneNewTitle">Nueva escena</h2>
+    <p class="scene-modal-desc" data-i18n="sceneNewDesc">Se guardará la configuración actual de tu habitación con el nombre e ícono que elijas.</p>
+    <input type="text" class="scene-name-input" id="scene-name-input" maxlength="30" data-i18n-placeholder="sceneNamePlaceholder" placeholder="Nombre de la escena">
+    <div class="scene-icon-picker" id="scene-icon-picker"></div>
+    <div class="scene-modal-actions">
+      <button class="support-btn" id="scene-modal-cancel" data-i18n="sceneCancelBtn">Cancelar</button>
+      <button class="support-btn" id="scene-modal-save" data-i18n="sceneSaveBtn">Guardar</button>
+    </div>
   </div>
 </div>
 

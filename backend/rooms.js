@@ -175,6 +175,77 @@ function updateTokenPrefs(token, { lang, accessibility, dnd } = {}) {
   return true;
 }
 
+// ── ESCENAS PERSONALIZADAS DEL HUÉSPED (por estadía/token) ───────────────────
+const DEFAULT_SCENE_IDS = ['night', 'morning', 'relax', 'off'];
+const MAX_CUSTOM_SCENES = 6;
+const MAX_SCENE_STEPS   = 20;
+
+// Guarda/sobrescribe una escena para la estadía actual.
+// id: uno de DEFAULT_SCENE_IDS (sobrescribe sus pasos) o 'custom_<...>' (nueva o existente).
+// Si id no se entrega o no existe como personalizada, se genera una nueva.
+function saveScene(token, { id, name, icon, steps } = {}) {
+  const tokens = getTokens();
+  const entry  = tokens[token];
+  if (!entry || !entry.active) return null;
+
+  const result = getRoomByToken(token);
+  if (!result) return null;
+  const { room } = result;
+
+  if (!Array.isArray(steps) || steps.length === 0 || steps.length > MAX_SCENE_STEPS) return null;
+
+  const cleanSteps = [];
+  for (const step of steps) {
+    if (!step || typeof step.dev !== 'string' || !room.devices[step.dev]) return null;
+    if (!step.cmd || typeof step.cmd !== 'object' || Array.isArray(step.cmd)) return null;
+    const cmd = {};
+    for (const [k, v] of Object.entries(step.cmd)) {
+      if (typeof v === 'number' || typeof v === 'boolean' || typeof v === 'string') cmd[k] = v;
+    }
+    cleanSteps.push({ dev: step.dev, cmd });
+  }
+
+  if (!entry.scenes) entry.scenes = {};
+
+  if (id && DEFAULT_SCENE_IDS.includes(id)) {
+    entry.scenes[id] = { steps: cleanSteps };
+    writeJSON(TOKENS_FILE, tokens);
+    return { id };
+  }
+
+  // Escena personalizada: nueva o existente
+  const cleanName = (name || '').toString().trim().slice(0, 30);
+  const cleanIcon = (icon || '🎬').toString().trim().slice(0, 4);
+
+  let targetId = (id && typeof id === 'string' && id.startsWith('custom_') && entry.scenes[id]) ? id : null;
+
+  if (!targetId) {
+    if (!cleanName) return null;
+    const customCount = Object.keys(entry.scenes).filter(k => k.startsWith('custom_')).length;
+    if (customCount >= MAX_CUSTOM_SCENES) return null;
+    targetId = `custom_${crypto.randomBytes(4).toString('base64url')}`;
+  }
+
+  entry.scenes[targetId] = {
+    name: cleanName || entry.scenes[targetId]?.name || 'Escena',
+    icon: cleanIcon,
+    steps: cleanSteps,
+  };
+  writeJSON(TOKENS_FILE, tokens);
+  return { id: targetId };
+}
+
+// Elimina una escena personalizada, o restaura una escena por defecto a su configuración original.
+function deleteScene(token, id) {
+  const tokens = getTokens();
+  const entry  = tokens[token];
+  if (!entry || !entry.active) return false;
+  if (!entry.scenes || !entry.scenes[id]) return false;
+  delete entry.scenes[id];
+  writeJSON(TOKENS_FILE, tokens);
+  return true;
+}
+
 // ── VALIDAR TOKEN ─────────────────────────────────────────────────────────────
 // Retorna el registro del token si es válido y activo, o null si no.
 function validateToken(token) {
@@ -292,4 +363,4 @@ function resolveRequest(id) {
   return true;
 }
 
-module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity, setManualUnlock };
+module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity, setManualUnlock, saveScene, deleteScene };

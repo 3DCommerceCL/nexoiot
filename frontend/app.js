@@ -63,6 +63,7 @@ const app = {
   theme:   'auto', // tema: 'auto' | 'light' | 'dark'
   dnd:     false,  // No molestar
   favorites: [],  // claves de dispositivos marcados como favoritos (accesos directos)
+  scenes:  {},    // escenas personalizadas/sobrescritas por el huésped (desde la API)
   data:    null,   // respuesta completa de la API (para re-render al cambiar idioma)
   _timers: {},   // debounce timers para sliders
   _wheelOpen: {}, // { key: bool } — selector de color RGB abierto/cerrado
@@ -128,6 +129,26 @@ const I18N = {
     sceneRelaxDesc: 'Ambiente con luces de color suave y cortina a media altura',
     sceneOffTitle: 'Apagar todo',
     sceneOffDesc: 'Apaga todas las luces y enchufes de la habitación',
+    sceneCustomDesc: 'Escena personalizada',
+    sceneNewBtn: '➕ Crear nueva escena',
+    sceneNewTitle: 'Nueva escena',
+    sceneNewDesc: 'Se guardará la configuración actual de tu habitación con el nombre e ícono que elijas.',
+    sceneNamePlaceholder: 'Nombre de la escena',
+    sceneSaveBtn: 'Guardar',
+    sceneCancelBtn: 'Cancelar',
+    sceneEditTitle: 'Guardar estado actual',
+    sceneEditConfirm: '¿Guardar la configuración actual de tu habitación en la escena "{name}"? Se reemplazará la anterior.',
+    sceneDeleteTitle: 'Eliminar escena',
+    sceneDeleteConfirm: '¿Eliminar la escena "{name}"?',
+    sceneResetTitle: 'Restaurar escena original',
+    sceneResetConfirm: '¿Restaurar la escena "{name}" a su configuración original?',
+    scenesHint: 'Toca una escena para activarla. Usa ✏️ para guardar la configuración actual de tu habitación en esa escena, o ➕ para crear una nueva.',
+    toastSceneSaved: 'Escena guardada',
+    toastSceneSaveFail: 'No se pudo guardar la escena',
+    toastSceneDeleted: 'Escena eliminada',
+    toastSceneDeleteFail: 'No se pudo eliminar la escena',
+    toastSceneNameRequired: 'Escribe un nombre para la escena',
+    toastSceneMax: 'Has alcanzado el máximo de escenas personalizadas',
     setHotel: 'Hotel',
     setRoom: 'Habitación',
     setGuest: 'Huésped',
@@ -225,6 +246,26 @@ const I18N = {
     sceneRelaxDesc: 'Soft colored lights with the curtain at half height',
     sceneOffTitle: 'All off',
     sceneOffDesc: 'Turns off every light and outlet in the room',
+    sceneCustomDesc: 'Custom scene',
+    sceneNewBtn: '➕ Create new scene',
+    sceneNewTitle: 'New scene',
+    sceneNewDesc: 'The current configuration of your room will be saved with the name and icon you choose.',
+    sceneNamePlaceholder: 'Scene name',
+    sceneSaveBtn: 'Save',
+    sceneCancelBtn: 'Cancel',
+    sceneEditTitle: 'Save current state',
+    sceneEditConfirm: 'Save your room\'s current configuration to the scene "{name}"? This will replace the previous one.',
+    sceneDeleteTitle: 'Delete scene',
+    sceneDeleteConfirm: 'Delete the scene "{name}"?',
+    sceneResetTitle: 'Reset scene to default',
+    sceneResetConfirm: 'Reset the scene "{name}" to its original configuration?',
+    scenesHint: 'Tap a scene to activate it. Use ✏️ to save your room\'s current configuration to that scene, or ➕ to create a new one.',
+    toastSceneSaved: 'Scene saved',
+    toastSceneSaveFail: 'Could not save the scene',
+    toastSceneDeleted: 'Scene deleted',
+    toastSceneDeleteFail: 'Could not delete the scene',
+    toastSceneNameRequired: 'Enter a name for the scene',
+    toastSceneMax: 'You have reached the maximum number of custom scenes',
     setHotel: 'Hotel',
     setRoom: 'Room',
     setGuest: 'Guest',
@@ -322,6 +363,26 @@ const I18N = {
     sceneRelaxDesc: 'Ambiente com luzes coloridas suaves e cortina a meia altura',
     sceneOffTitle: 'Desligar tudo',
     sceneOffDesc: 'Apaga todas as luzes e tomadas do quarto',
+    sceneCustomDesc: 'Cena personalizada',
+    sceneNewBtn: '➕ Criar nova cena',
+    sceneNewTitle: 'Nova cena',
+    sceneNewDesc: 'A configuração atual do seu quarto será salva com o nome e ícone que você escolher.',
+    sceneNamePlaceholder: 'Nome da cena',
+    sceneSaveBtn: 'Salvar',
+    sceneCancelBtn: 'Cancelar',
+    sceneEditTitle: 'Salvar estado atual',
+    sceneEditConfirm: 'Salvar a configuração atual do seu quarto na cena "{name}"? Isso substituirá a anterior.',
+    sceneDeleteTitle: 'Excluir cena',
+    sceneDeleteConfirm: 'Excluir a cena "{name}"?',
+    sceneResetTitle: 'Restaurar cena original',
+    sceneResetConfirm: 'Restaurar a cena "{name}" para sua configuração original?',
+    scenesHint: 'Toque em uma cena para ativá-la. Use ✏️ para salvar a configuração atual do seu quarto nessa cena, ou ➕ para criar uma nova.',
+    toastSceneSaved: 'Cena salva',
+    toastSceneSaveFail: 'Não foi possível salvar a cena',
+    toastSceneDeleted: 'Cena excluída',
+    toastSceneDeleteFail: 'Não foi possível excluir a cena',
+    toastSceneNameRequired: 'Digite um nome para a cena',
+    toastSceneMax: 'Você atingiu o máximo de cenas personalizadas',
     setHotel: 'Hotel',
     setRoom: 'Quarto',
     setGuest: 'Hóspede',
@@ -402,6 +463,73 @@ const SCENES = {
     { dev: 'enchufe',      cmd: { ch1: false, ch2: false } },
   ],
 };
+
+// Metadatos de las escenas por defecto: ícono y textos (vía i18n)
+const DEFAULT_SCENES_META = {
+  night:   { ico: '🌙', titleKey: 'sceneNightTitle',   descKey: 'sceneNightDesc' },
+  morning: { ico: '☀️', titleKey: 'sceneMorningTitle', descKey: 'sceneMorningDesc' },
+  relax:   { ico: '🎬', titleKey: 'sceneRelaxTitle',   descKey: 'sceneRelaxDesc' },
+  off:     { ico: '⚡', titleKey: 'sceneOffTitle',     descKey: 'sceneOffDesc' },
+};
+const DEFAULT_SCENE_IDS = Object.keys(DEFAULT_SCENES_META);
+
+// Íconos disponibles para escenas personalizadas
+const SCENE_ICON_CHOICES = ['🎬','🌙','☀️','🛋️','🧘','🎉','📖','☕','🍿','💡','🎵','🛏️'];
+
+// Campos relevantes a capturar por tipo de dispositivo al guardar una escena
+const SCENE_CAPTURE_FIELDS = {
+  light:      ['on', 'intensity', 'colorTemp'],
+  light_rgb:  ['on', 'intensity', 'colorTemp', 'hue', 'saturation', 'mode'],
+  curtain:    ['position'],
+  switch:     ['on'],
+  switch_3ch: ['ch1', 'ch2', 'ch3'],
+};
+
+// Devuelve los pasos a aplicar para una escena (override del huésped si existe, sino el default)
+function getSceneSteps(id) {
+  const override = app.scenes[id];
+  if (override) return override.steps;
+  return SCENES[id] || null;
+}
+
+// Lista de escenas a mostrar en la vista, en orden: defaults primero, luego personalizadas
+function getSceneList() {
+  const list = DEFAULT_SCENE_IDS.map(id => ({
+    id,
+    icon:  DEFAULT_SCENES_META[id].ico,
+    title: t(DEFAULT_SCENES_META[id].titleKey),
+    desc:  t(DEFAULT_SCENES_META[id].descKey),
+    isCustom: false,
+    hasOverride: !!app.scenes[id],
+  }));
+  Object.entries(app.scenes).forEach(([id, scene]) => {
+    if (DEFAULT_SCENE_IDS.includes(id)) return;
+    list.push({
+      id,
+      icon:  scene.icon || '🎬',
+      title: scene.name || t('sceneCustomDesc'),
+      desc:  t('sceneCustomDesc'),
+      isCustom: true,
+      hasOverride: true,
+    });
+  });
+  return list;
+}
+
+// Captura el estado actual de los dispositivos controlables como pasos de escena
+function captureSceneSteps() {
+  const steps = [];
+  Object.entries(app.config).forEach(([dev, cfg]) => {
+    if (!cfg.available) return;
+    const fields = SCENE_CAPTURE_FIELDS[cfg.type];
+    if (!fields) return;
+    const s = app.devices[dev] || {};
+    const cmd = {};
+    fields.forEach(f => { if (s[f] !== undefined) cmd[f] = s[f]; });
+    if (Object.keys(cmd).length) steps.push({ dev, cmd });
+  });
+  return steps;
+}
 
 // ── EXTRAER TOKEN DE LA URL ────────────────────────────────────────────────────
 function getToken() {
@@ -488,6 +616,7 @@ function renderApp(data) {
   }
 
   app.plan = data.plan || 'base';
+  app.scenes = data.scenes || {};
 
   // Idioma y accesibilidad del huésped (en modo estático, localStorage manda)
   app.lang = (window.location.protocol === 'file:' && localStorage.getItem('nexo_lang'))
@@ -517,6 +646,7 @@ function renderApp(data) {
   // Grid de dispositivos
   renderGrid();
   renderFavorites();
+  renderScenes();
 
   // Funciones del plan (placeholders) y vista de clima
   renderPlanGrid();
@@ -531,10 +661,11 @@ function renderApp(data) {
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
 
-  // Listeners de escenas
-  document.querySelectorAll('.scene-card').forEach(btn => {
-    btn.addEventListener('click', () => applyScene(btn.dataset.scene));
-  });
+  // Delegación de eventos para la vista de Escenas
+  document.getElementById('scenes-grid').addEventListener('click', handleSceneGridClick);
+  document.getElementById('scene-new-btn').addEventListener('click', openSceneModal);
+  document.getElementById('scene-modal-cancel').addEventListener('click', closeSceneModal);
+  document.getElementById('scene-modal-save').addEventListener('click', saveNewScene);
 
   // Delegación de eventos para los controles del grid
   const grid = document.getElementById('device-grid');
@@ -570,6 +701,7 @@ function renderApp(data) {
 function applyTexts() {
   // Elementos estáticos marcados con data-i18n en index.html
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = t(el.dataset.i18nPlaceholder); });
 
   const d = app.data;
   if (!d) return;
@@ -671,6 +803,7 @@ function setLang(lang) {
   renderGrid();
   renderPlanGrid();
   renderClimateView();
+  renderScenes();
   savePrefs({ lang });
 }
 
@@ -1656,29 +1789,172 @@ function handleGridInput(e) {
 }
 
 // ── ESCENAS ───────────────────────────────────────────────────────────────────
-async function applyScene(sceneName) {
-  const scene = SCENES[sceneName];
-  if (!scene) return;
+function renderScenes() {
+  const grid = document.getElementById('scenes-grid');
+  grid.innerHTML = getSceneList().map(scene => {
+    const actions = scene.isCustom
+      ? `<button class="scene-action-btn" data-scene-action="edit"   data-scene="${scene.id}" title="${t('sceneEditTitle')}"   aria-label="${t('sceneEditTitle')}">✏️</button>
+         <button class="scene-action-btn" data-scene-action="delete" data-scene="${scene.id}" title="${t('sceneDeleteTitle')}" aria-label="${t('sceneDeleteTitle')}">🗑️</button>`
+      : `<button class="scene-action-btn" data-scene-action="edit" data-scene="${scene.id}" title="${t('sceneEditTitle')}" aria-label="${t('sceneEditTitle')}">✏️</button>
+         ${scene.hasOverride ? `<button class="scene-action-btn" data-scene-action="reset" data-scene="${scene.id}" title="${t('sceneResetTitle')}" aria-label="${t('sceneResetTitle')}">↺</button>` : ''}`;
 
-  const btn = document.querySelector(`.scene-card[data-scene="${sceneName}"]`);
+    return `<button class="scene-card" data-scene="${scene.id}" aria-label="${scene.title}">
+      <div class="scene-card-actions">${actions}</div>
+      <span class="scene-card-ico">${scene.icon}</span>
+      <span class="scene-card-title">${scene.title}</span>
+      <span class="scene-card-desc">${scene.desc}</span>
+    </button>`;
+  }).join('');
+}
+
+function handleSceneGridClick(e) {
+  const actionBtn = e.target.closest('[data-scene-action]');
+  if (actionBtn) {
+    e.stopPropagation();
+    const id = actionBtn.dataset.scene;
+    const action = actionBtn.dataset.sceneAction;
+    if (action === 'edit')   return confirmSaveSceneOverride(id);
+    if (action === 'delete') return confirmDeleteScene(id);
+    if (action === 'reset')  return confirmDeleteScene(id);
+    return;
+  }
+  const card = e.target.closest('.scene-card');
+  if (card) applyScene(card.dataset.scene);
+}
+
+async function applyScene(sceneId) {
+  const steps = getSceneSteps(sceneId);
+  if (!steps) return;
+
+  const btn = document.querySelector(`.scene-card[data-scene="${sceneId}"]`);
   if (btn) btn.classList.add('loading');
 
   // Filtrar solo los dispositivos que existen en esta habitación
-  const steps = scene.filter(({ dev }) => app.config[dev]);
+  const validSteps = steps.filter(({ dev }) => app.config[dev]);
 
   // Optimistic: aplicar estados localmente
-  steps.forEach(({ dev, cmd, optimistic }) => {
+  validSteps.forEach(({ dev, cmd, optimistic }) => {
     Object.assign(app.devices[dev], cmd, optimistic || {});
   });
   renderGrid();
 
   try {
-    await Promise.all(steps.map(({ dev, cmd }) => apiCommand(dev, cmd)));
+    await Promise.all(validSteps.map(({ dev, cmd }) => apiCommand(dev, cmd)));
     showToast(t('toastScene'), 'success');
   } catch {
     showToast(t('toastSceneFail'), 'error');
   } finally {
     if (btn) btn.classList.remove('loading');
+  }
+}
+
+// Guarda el estado actual de la habitación como pasos de una escena (nueva o existente)
+async function apiSaveScene(payload) {
+  if (window.location.protocol === 'file:') return { success: true, id: payload.id || `custom_${Date.now()}` };
+  const res = await fetch(`${API}/room/${app.token}/scenes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('SAVE_SCENE_FAILED');
+  return res.json();
+}
+
+async function apiDeleteScene(id) {
+  if (window.location.protocol === 'file:') return { success: true };
+  const res = await fetch(`${API}/room/${app.token}/scenes/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error('DELETE_SCENE_FAILED');
+  return res.json();
+}
+
+// Sobrescribe una escena existente (default o personalizada) con el estado actual de la habitación
+async function confirmSaveSceneOverride(id) {
+  const scene = getSceneList().find(s => s.id === id);
+  if (!scene) return;
+  if (!confirm(t('sceneEditConfirm', { name: scene.title }))) return;
+
+  const steps = captureSceneSteps();
+  try {
+    const res = await apiSaveScene({ id, name: scene.title, icon: scene.icon, steps });
+    if (!app.scenes[id]) app.scenes[id] = {};
+    app.scenes[id].steps = steps;
+    if (scene.isCustom) {
+      app.scenes[id].name = scene.title;
+      app.scenes[id].icon = scene.icon;
+    }
+    renderScenes();
+    showToast(t('toastSceneSaved'), 'success');
+  } catch {
+    showToast(t('toastSceneSaveFail'), 'error');
+  }
+}
+
+// Elimina una escena personalizada, o restaura una escena por defecto a su configuración original
+async function confirmDeleteScene(id) {
+  const scene = getSceneList().find(s => s.id === id);
+  if (!scene) return;
+  const msg = scene.isCustom ? t('sceneDeleteConfirm', { name: scene.title }) : t('sceneResetConfirm', { name: scene.title });
+  if (!confirm(msg)) return;
+
+  try {
+    await apiDeleteScene(id);
+    delete app.scenes[id];
+    renderScenes();
+    showToast(t('toastSceneDeleted'), 'success');
+  } catch {
+    showToast(t('toastSceneDeleteFail'), 'error');
+  }
+}
+
+// ── MODAL: NUEVA ESCENA ───────────────────────────────────────────────────────
+let sceneModalIcon = SCENE_ICON_CHOICES[0];
+
+function openSceneModal() {
+  const nameInput = document.getElementById('scene-name-input');
+  nameInput.value = '';
+  sceneModalIcon = SCENE_ICON_CHOICES[0];
+
+  const picker = document.getElementById('scene-icon-picker');
+  picker.innerHTML = SCENE_ICON_CHOICES.map((ico, i) =>
+    `<button type="button" class="scene-icon-opt ${i === 0 ? 'active' : ''}" data-icon="${ico}">${ico}</button>`
+  ).join('');
+  picker.querySelectorAll('.scene-icon-opt').forEach(btn => {
+    btn.addEventListener('click', () => {
+      picker.querySelectorAll('.scene-icon-opt').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      sceneModalIcon = btn.dataset.icon;
+    });
+  });
+
+  document.getElementById('scene-modal-overlay').classList.remove('hidden');
+  nameInput.focus();
+}
+
+function closeSceneModal() {
+  document.getElementById('scene-modal-overlay').classList.add('hidden');
+}
+
+async function saveNewScene() {
+  const name = document.getElementById('scene-name-input').value.trim();
+  if (!name) {
+    showToast(t('toastSceneNameRequired'), 'error');
+    return;
+  }
+  const customCount = Object.keys(app.scenes).filter(id => !DEFAULT_SCENE_IDS.includes(id)).length;
+  if (customCount >= 6) {
+    showToast(t('toastSceneMax'), 'error');
+    return;
+  }
+
+  const steps = captureSceneSteps();
+  try {
+    const result = await apiSaveScene({ name, icon: sceneModalIcon, steps });
+    app.scenes[result.id] = { name, icon: sceneModalIcon, steps };
+    renderScenes();
+    closeSceneModal();
+    showToast(t('toastSceneSaved'), 'success');
+  } catch {
+    showToast(t('toastSceneSaveFail'), 'error');
   }
 }
 

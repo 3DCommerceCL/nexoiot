@@ -225,7 +225,30 @@ app.get('/api/room/:token', async (req, res) => {
     demoMode:  room.demo === true || tuya.isDemoMode(),
     plan:      room.plan || 'base',
     devices,
+    scenes:    entry.scenes || {},
   });
+});
+
+// ── API: POST /api/room/:token/scenes ─────────────────────────────────────────
+// El huésped guarda el estado actual como escena (nueva o sobrescribiendo una existente).
+app.post('/api/room/:token/scenes', (req, res) => {
+  if (!rooms.getRoomByToken(req.params.token)) {
+    return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
+  }
+  const result = rooms.saveScene(req.params.token, req.body || {});
+  if (!result) return res.status(400).json({ error: 'Datos de escena no válidos' });
+  res.json({ success: true, id: result.id });
+});
+
+// ── API: DELETE /api/room/:token/scenes/:id ───────────────────────────────────
+// Elimina una escena personalizada o restaura una escena por defecto.
+app.delete('/api/room/:token/scenes/:id', (req, res) => {
+  if (!rooms.getRoomByToken(req.params.token)) {
+    return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
+  }
+  const ok = rooms.deleteScene(req.params.token, req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Escena no encontrada' });
+  res.json({ success: true });
 });
 
 // ── API: POST /api/room/:token/prefs ─────────────────────────────────────────
