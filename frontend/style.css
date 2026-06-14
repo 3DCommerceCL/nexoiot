@@ -126,6 +126,20 @@ body {
 .countdown.soon    { background: rgba(240,160,48,.28);  color: #FFE3B0; }
 .countdown.urgent  { background: rgba(255,255,255,.22); color: #FFB3B3; animation: blink-badge 1s infinite; }
 .countdown.expired { background: #fff;                  color: var(--alert); animation: blink-badge 1s infinite; }
+
+/* ── INDICADOR DE CONEXIÓN ────────────────────────────────────────────────── */
+.conn-status {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+  font-size: 11px; color: rgba(255,255,255,.7);
+}
+.conn-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #4ADE80; flex-shrink: 0;
+}
+.conn-status.offline { color: #FFB3B3; }
+.conn-status.offline .conn-dot {
+  background: var(--alert); animation: blink-badge 1s infinite;
+}
 @keyframes blink-badge { 0%,100%{opacity:1} 50%{opacity:.55} }
 
 .door-status {
@@ -436,7 +450,7 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 }
 .onboarding-overlay.hidden { display: none; }
 .onboarding-card {
-  background: #fff; border-radius: 18px; padding: 28px 24px;
+  background: var(--card); border-radius: 18px; padding: 28px 24px;
   max-width: 340px; width: 100%; text-align: center;
   box-shadow: 0 16px 40px rgba(16,24,40,.25);
 }
@@ -461,7 +475,7 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
   pointer-events: none;
 }
 .toast {
-  background: #fff; border: 1px solid var(--border);
+  background: var(--card); border: 1px solid var(--border);
   border-radius: 10px; padding: 11px 16px;
   font-size: 13px; color: var(--text);
   animation: toastIn .25s ease;
@@ -541,7 +555,7 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 .pref-options { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .pref-btn {
   padding: 7px 13px; border-radius: 999px;
-  border: 1px solid var(--border); background: #fff;
+  border: 1px solid var(--border); background: var(--card);
   color: var(--text2); font-size: 12px; font-weight: 600;
   cursor: pointer; font-family: var(--font); transition: all .15s;
   -webkit-tap-highlight-color: transparent;

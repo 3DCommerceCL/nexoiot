@@ -28,3 +28,18 @@
   --r:        18px;
   --rsm:      10px;
 }
+
+/* ── MODO OSCURO AUTOMÁTICO (app del huésped, según hora del día) ──────────── */
+body.theme-dark {
+  --bg:       #14171C;
+  --card:     #1E2229;
+  --card2:    #262B33;
+  --sidebar:  #1E2229;
+  --border:   #323843;
+  --text:     #F0F2F5;
+  --text2:    #9AA1AD;
+  --text3:    #5A6170;
+  --icon-bg:  #262B33;
+  --header-grad: linear-gradient(135deg,#0B1622,#142C47);
+  --shadow:   0 1px 2px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.4);
+}

@@ -108,6 +108,10 @@ const I18N = {
     onbSettings: 'Cambia idioma y accesibilidad desde Ajustes',
     onbSupport: 'Pide servicios o ayuda desde Soporte',
     onbGotIt: 'Entendido',
+    connOnline: 'En línea',
+    connOffline: 'Sin conexión',
+    toastOnline: 'Conexión restablecida',
+    toastOffline: 'Sin conexión a internet',
     cdLeft: 'Faltan {t}',
     cdOverdue: 'Vencido hace {t}',
     cdNow: 'Venció ahora',
@@ -201,6 +205,10 @@ const I18N = {
     onbSettings: 'Change language and accessibility from Settings',
     onbSupport: 'Request services or help from Support',
     onbGotIt: 'Got it',
+    connOnline: 'Online',
+    connOffline: 'Offline',
+    toastOnline: 'Connection restored',
+    toastOffline: 'No internet connection',
     cdLeft: '{t} left',
     cdOverdue: 'Overdue by {t}',
     cdNow: 'Just expired',
@@ -294,6 +302,10 @@ const I18N = {
     onbSettings: 'Altere idioma e acessibilidade em Configurações',
     onbSupport: 'Solicite serviços ou ajuda em Suporte',
     onbGotIt: 'Entendi',
+    connOnline: 'Online',
+    connOffline: 'Sem conexão',
+    toastOnline: 'Conexão restabelecida',
+    toastOffline: 'Sem conexão com a internet',
     cdLeft: 'Faltam {t}',
     cdOverdue: 'Vencido há {t}',
     cdNow: 'Venceu agora',
@@ -485,6 +497,8 @@ function renderApp(data) {
 
   document.documentElement.lang = app.lang;
   applyA11y();
+  applyAutoTheme();
+  setInterval(applyAutoTheme, 10 * 60 * 1000);
   applyTexts();
 
   startClock(new Date(data.checkout));
@@ -584,6 +598,8 @@ function applyTexts() {
 
   document.getElementById('demo-banner').textContent = t('demoBanner');
 
+  updateConnStatus();
+
   document.getElementById('dnd-toggle')?.classList.toggle('on', app.dnd);
 
   renderPrefsRows();
@@ -680,6 +696,31 @@ function applyA11y() {
   document.body.classList.toggle('a11y-vision',  app.a11y === 'vision');
   document.body.classList.toggle('a11y-hearing', app.a11y === 'hearing');
 }
+
+// ── MODO OSCURO AUTOMÁTICO SEGÚN LA HORA ──────────────────────────────────────
+// Entre las 20:00 y las 07:00 (hora local del dispositivo) se aplica el tema oscuro.
+function applyAutoTheme() {
+  const hour = new Date().getHours();
+  document.body.classList.toggle('theme-dark', hour >= 20 || hour < 7);
+}
+
+// ── INDICADOR DE ESTADO DE CONEXIÓN ───────────────────────────────────────────
+function updateConnStatus() {
+  const el = document.getElementById('conn-status');
+  if (!el) return;
+  const online = navigator.onLine;
+  el.classList.toggle('offline', !online);
+  el.innerHTML = `<span class="conn-dot"></span>${online ? t('connOnline') : t('connOffline')}`;
+}
+
+window.addEventListener('online', () => {
+  updateConnStatus();
+  showToast(t('toastOnline'), 'success');
+});
+window.addEventListener('offline', () => {
+  updateConnStatus();
+  showToast(t('toastOffline'), 'error');
+});
 
 // Clicks en los selectores de idioma/accesibilidad
 document.addEventListener('click', e => {
