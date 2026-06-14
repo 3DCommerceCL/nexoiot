@@ -103,6 +103,11 @@ const I18N = {
     toastRequestSent: 'Solicitud enviada a recepción',
     toastDndOn: 'No molestar activado',
     toastDndOff: 'No molestar desactivado',
+    onbTitle: '¡Bienvenido!',
+    onbScenes: 'Activa escenas rápidas para tu habitación en un toque',
+    onbSettings: 'Cambia idioma y accesibilidad desde Ajustes',
+    onbSupport: 'Pide servicios o ayuda desde Soporte',
+    onbGotIt: 'Entendido',
     cdLeft: 'Faltan {t}',
     cdOverdue: 'Vencido hace {t}',
     cdNow: 'Venció ahora',
@@ -191,6 +196,11 @@ const I18N = {
     toastRequestSent: 'Request sent to the front desk',
     toastDndOn: 'Do Not Disturb on',
     toastDndOff: 'Do Not Disturb off',
+    onbTitle: 'Welcome!',
+    onbScenes: 'Activate quick scenes for your room with one tap',
+    onbSettings: 'Change language and accessibility from Settings',
+    onbSupport: 'Request services or help from Support',
+    onbGotIt: 'Got it',
     cdLeft: '{t} left',
     cdOverdue: 'Overdue by {t}',
     cdNow: 'Just expired',
@@ -279,6 +289,11 @@ const I18N = {
     toastRequestSent: 'Solicitação enviada à recepção',
     toastDndOn: 'Não perturbe ativado',
     toastDndOff: 'Não perturbe desativado',
+    onbTitle: 'Bem-vindo!',
+    onbScenes: 'Ative cenas rápidas para o seu quarto em um toque',
+    onbSettings: 'Altere idioma e acessibilidade em Configurações',
+    onbSupport: 'Solicite serviços ou ajuda em Suporte',
+    onbGotIt: 'Entendi',
     cdLeft: 'Faltam {t}',
     cdOverdue: 'Vencido há {t}',
     cdNow: 'Venceu agora',
@@ -518,6 +533,11 @@ function renderApp(data) {
 
   // Navegación (sidebar y vistas)
   initNav();
+
+  // Onboarding: solo en la primera visita de este dispositivo
+  if (!localStorage.getItem('nexo_onboarded')) {
+    document.getElementById('onboarding-overlay')?.classList.remove('hidden');
+  }
 }
 
 // ── TEXTOS LOCALIZADOS (header, sidebar, ajustes y estáticos) ────────────────
@@ -701,6 +721,12 @@ function initNav() {
   document.getElementById('dnd-toggle')?.addEventListener('click', toggleDnd);
   document.getElementById('request-towels-btn')?.addEventListener('click', () => sendServiceRequest('towels'));
   document.getElementById('request-roomservice-btn')?.addEventListener('click', () => sendServiceRequest('roomservice'));
+
+  // Onboarding: cerrar y no volver a mostrar en este dispositivo
+  document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
+    localStorage.setItem('nexo_onboarded', '1');
+    document.getElementById('onboarding-overlay')?.classList.add('hidden');
+  });
 }
 
 // ── ÍCONOS PERSONALIZADOS ─────────────────────────────────────────────────────

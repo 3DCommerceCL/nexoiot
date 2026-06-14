@@ -428,6 +428,31 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 .ac-btn:hover, .ac-btn:active { background: rgba(255,255,255,.25); border-color: #fff; color: #fff; }
 .ac-range { font-size: 10px; color: rgba(255,255,255,.7); }
 
+/* ── ONBOARDING (primera visita) ──────────────────────────────────────────── */
+.onboarding-overlay {
+  position: fixed; inset: 0; background: rgba(16,24,40,.55);
+  z-index: 250; display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+}
+.onboarding-overlay.hidden { display: none; }
+.onboarding-card {
+  background: #fff; border-radius: 18px; padding: 28px 24px;
+  max-width: 340px; width: 100%; text-align: center;
+  box-shadow: 0 16px 40px rgba(16,24,40,.25);
+}
+.onboarding-ico { font-size: 40px; margin-bottom: 8px; }
+.onboarding-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.onboarding-list {
+  list-style: none; display: flex; flex-direction: column; gap: 14px;
+  margin-bottom: 22px; text-align: left;
+}
+.onboarding-list li {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 13px; color: var(--text2); line-height: 1.5;
+}
+.onboarding-ico-sm { font-size: 18px; flex-shrink: 0; }
+.onboarding-card .support-btn { width: 100%; justify-content: center; }
+
 /* ── TOAST ────────────────────────────────────────────────────────────────── */
 #toast-container {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
