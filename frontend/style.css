@@ -207,11 +207,6 @@ body {
 .nav-item .nav-ico { font-size: 18px; width: 22px; text-align: center; flex-shrink: 0; }
 .nav-item:hover  { background: rgba(16,24,40,.04); color: var(--text); }
 .nav-item.active { background: var(--teal-l); color: var(--teal); }
-.nav-item .premium-badge {
-  margin-left: auto; font-size: 9px; font-weight: 800;
-  letter-spacing: .5px; color: #1A1300; background: var(--warn);
-  padding: 2px 6px; border-radius: 5px; flex-shrink: 0;
-}
 
 /* ── SCENES (vista Escenas) ───────────────────────────────────────────────── */
 .scenes-grid {
@@ -519,21 +514,6 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 @keyframes toastIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
 
 /* ── FUNCIONES DEL PLAN (placeholders) ────────────────────────────────────── */
-.feature-card.locked {
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-  justify-content: center; gap: 6px; padding: 22px 12px;
-}
-.feature-lock-icon  { font-size: 28px; opacity: .7; }
-.feature-lock-title { font-size: 12px; font-weight: 700; color: #fff; }
-.feature-lock-desc  { font-size: 10px; color: rgba(255,255,255,.75); line-height: 1.4; }
-.feature-plan-badge {
-  margin-top: 4px; font-size: 9px; font-weight: 800; letter-spacing: .8px;
-  color: #1A1300; background: var(--warn); padding: 3px 9px; border-radius: 10px;
-}
-.feature-addon-badge {
-  margin-top: 4px; font-size: 9px; font-weight: 800; letter-spacing: .5px;
-  color: #fff; background: rgba(255,255,255,.20); padding: 3px 9px; border-radius: 10px;
-}
 .feature-row {
   display: flex; align-items: center; justify-content: space-between;
   padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.2);
@@ -555,20 +535,6 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 }
 .source-btn.active, .level-btn.active { background: rgba(255,255,255,.25); border-color: #fff; color: #fff; }
 .source-btn:hover, .level-btn:hover { color: #fff; border-color: rgba(255,255,255,.6); background: rgba(255,255,255,.10); }
-
-/* ── VISTA: CLIMA (Premium) ───────────────────────────────────────────────── */
-.premium-lock {
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-  gap: 10px; padding: 60px 32px;
-}
-.premium-lock-icon { font-size: 48px; opacity: .55; margin-bottom: 4px; }
-.premium-lock h3   { font-size: 18px; font-weight: 800; color: var(--text); }
-.premium-lock p    { font-size: 13px; color: var(--text2); line-height: 1.6; max-width: 320px; }
-.premium-badge-lg {
-  margin-top: 6px; font-size: 11px; font-weight: 800; letter-spacing: 1.5px;
-  color: #1A1300; background: var(--warn);
-  padding: 6px 16px; border-radius: 20px;
-}
 
 /* ── VISTA: AJUSTES ───────────────────────────────────────────────────────── */
 .settings-list { padding: 0 20px; }

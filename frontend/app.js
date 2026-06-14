@@ -165,12 +165,6 @@ const I18N = {
     voiceOff: 'Modo privado — solo control por app',
     bathAutoNote: ' · Programada para encenderse automáticamente si hay alguien dentro',
     bathManualNote: 'Control manual activado — luz fija en cálido, ahora se enciende/apaga con el interruptor físico del baño.',
-    voiceDesc: 'Controla tu habitación con Amazon Echo. Disponible en el plan Premium del hotel.',
-    bathDesc: 'Sensor de presencia + luz inteligente en el baño. Incluido en el plan Max Comfort.',
-    bidetDesc: 'Bidé inteligente con asiento calefaccionado. Incluido en el plan Max Comfort.',
-    rugDesc: 'Alfombra con calefacción para pie de cama o baño. Incluida en el plan Max Comfort.',
-    climateLockTitle: 'Control de Clima',
-    climateLockDesc: 'Ajusta la temperatura de tu habitación, revisa el sensor de ventana y crea automatizaciones con el aire acondicionado. Esta función está disponible en el plan Premium del hotel.',
     acSection: 'Aire Acondicionado',
     autoSection: 'Automatizaciones',
     doorOpen: '🚪 Puerta abierta',
@@ -265,12 +259,6 @@ const I18N = {
     voiceOff: 'Private mode — app control only',
     bathAutoNote: ' · Set to turn on automatically when someone is inside',
     bathManualNote: 'Manual control enabled — light set to warm, now controlled by the physical bathroom switch.',
-    voiceDesc: 'Control your room with Amazon Echo. Available on the hotel’s Premium plan.',
-    bathDesc: 'Presence sensor + smart bathroom light. Included in the Max Comfort plan.',
-    bidetDesc: 'Smart bidet with heated seat. Included in the Max Comfort plan.',
-    rugDesc: 'Heated rug for bedside or bathroom. Included in the Max Comfort plan.',
-    climateLockTitle: 'Climate Control',
-    climateLockDesc: 'Adjust your room temperature, check the window sensor and create AC automations. This feature is available on the hotel’s Premium plan.',
     acSection: 'Air Conditioning',
     autoSection: 'Automations',
     doorOpen: '🚪 Door open',
@@ -365,12 +353,6 @@ const I18N = {
     voiceOff: 'Modo privado — controle apenas pelo app',
     bathAutoNote: ' · Programada para acender automaticamente se houver alguém dentro',
     bathManualNote: 'Controle manual ativado — luz fixa em tom quente, agora liga/desliga pelo interruptor físico do banheiro.',
-    voiceDesc: 'Controle seu quarto com Amazon Echo. Disponível no plano Premium do hotel.',
-    bathDesc: 'Sensor de presença + luz inteligente no banheiro. Incluído no plano Max Comfort.',
-    bidetDesc: 'Bidê inteligente com assento aquecido. Incluído no plano Max Comfort.',
-    rugDesc: 'Tapete com aquecimento para beira da cama ou banheiro. Incluído no plano Max Comfort.',
-    climateLockTitle: 'Controle de Clima',
-    climateLockDesc: 'Ajuste a temperatura do quarto, verifique o sensor de janela e crie automações com o ar-condicionado. Esta função está disponível no plano Premium do hotel.',
     acSection: 'Ar-Condicionado',
     autoSection: 'Automações',
     doorOpen: '🚪 Porta aberta',
@@ -528,9 +510,9 @@ function renderApp(data) {
   renderPlanGrid();
   renderClimateView();
 
-  // Ocultar el badge "Premium" del menú si el plan ya lo incluye
-  if (planLevel(app.plan) >= PLAN_TIERS.premium) {
-    document.querySelector('.nav-item[data-view="climate"] .premium-badge')?.classList.add('hidden');
+  // Ocultar la sección "Clima" del menú si el plan de la habitación no la incluye
+  if (planLevel(app.plan) < PLAN_TIERS.premium) {
+    document.querySelector('.nav-item[data-view="climate"]')?.classList.add('hidden');
   }
 
   // Mostrar app
@@ -1115,12 +1097,11 @@ function buildACCard(key) {
 }
 
 // ── FUNCIONES DEL PLAN (placeholders no conectados a dispositivos reales) ────
-// title/desc son claves i18n que se resuelven al renderizar.
 const PLAN_FEATURES_INFO = {
-  voice:    { icon: '🔊', title: 'voiceTitle', desc: 'voiceDesc', minPlan: 'premium',     badge: 'PREMIUM' },
-  bathroom: { icon: '🚿', title: 'bathTitle',  desc: 'bathDesc',  minPlan: 'max_comfort', addonFrom: 'base', badge: 'MAX COMFORT' },
-  bidet:    { icon: '🚽', title: 'bidetTitle', desc: 'bidetDesc', minPlan: 'max_comfort', badge: 'MAX COMFORT' },
-  rug:      { icon: '🔥', title: 'rugTitle',   desc: 'rugDesc',   minPlan: 'max_comfort', badge: 'MAX COMFORT' },
+  voice:    { minPlan: 'premium' },
+  bathroom: { minPlan: 'max_comfort' },
+  bidet:    { minPlan: 'max_comfort' },
+  rug:      { minPlan: 'max_comfort' },
 };
 
 function renderPlanGrid() {
@@ -1134,21 +1115,12 @@ function renderPlanGrid() {
   ].join('');
 }
 
+// Si la habitación no tiene el plan requerido, la función se oculta por
+// completo (sin indicar que existe) para no exponer al huésped funciones
+// no disponibles en su estadía.
 function buildFeatureCard(key, info, builder) {
   if (planLevel(app.plan) >= planLevel(info.minPlan)) return builder();
-  return buildLockedCard(key, info);
-}
-
-function buildLockedCard(key, info) {
-  const isAddon = info.addonFrom && planLevel(app.plan) >= planLevel(info.addonFrom);
-  return `<div class="device-card feature-card locked" id="feature-${key}">
-    <div class="feature-lock-icon">${info.icon}</div>
-    <div class="feature-lock-title">${t(info.title)}</div>
-    <div class="feature-lock-desc">${t(info.desc)}</div>
-    ${isAddon
-      ? `<span class="feature-addon-badge">${t('addonBadge')}</span>`
-      : `<span class="feature-plan-badge">${info.badge}</span>`}
-  </div>`;
+  return '';
 }
 
 // ── TV ────────────────────────────────────────────────────────────────────────
@@ -1272,13 +1244,10 @@ function buildRugCard() {
 function renderClimateView() {
   const el = document.getElementById('climate-content');
 
+  // Sin plan Premium+ esta vista no es accesible (el nav-item está oculto),
+  // pero se deja vacía por seguridad si se llegara a invocar.
   if (planLevel(app.plan) < PLAN_TIERS.premium) {
-    el.innerHTML = `<div class="premium-lock">
-      <div class="premium-lock-icon">❄️</div>
-      <h3>${t('climateLockTitle')}</h3>
-      <p>${t('climateLockDesc')}</p>
-      <span class="premium-badge-lg">PREMIUM</span>
-    </div>`;
+    el.innerHTML = '';
     return;
   }
 
