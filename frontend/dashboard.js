@@ -17,6 +17,23 @@ const $ = id => document.getElementById(id);
 const DASH_LANG_KEY = 'nexo_dash_lang';
 let dashLang = localStorage.getItem(DASH_LANG_KEY) || 'es';
 
+// ── TEMA DEL PANEL (claro / oscuro) ───────────────────────────────────────────
+const DASH_THEME_KEY = 'nexo_dash_theme';
+
+function applyDashTheme() {
+  const dark = localStorage.getItem(DASH_THEME_KEY) === 'dark';
+  document.body.classList.toggle('theme-dark', dark);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = dark ? '☀️' : '🌙';
+}
+
+function toggleDashTheme() {
+  const dark = document.body.classList.toggle('theme-dark');
+  localStorage.setItem(DASH_THEME_KEY, dark ? 'dark' : 'light');
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = dark ? '☀️' : '🌙';
+}
+
 const DT = {
   es: {
     navOverview: 'Vista general',
@@ -1481,6 +1498,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('sidebar-backdrop').addEventListener('click', () => closeMobileSidebar());
+
+  applyDashTheme();
+  $('theme-toggle').addEventListener('click', toggleDashTheme);
 
   document.querySelectorAll('.nav-item').forEach(el => {
     el.addEventListener('click', () => {

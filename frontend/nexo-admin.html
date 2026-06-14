@@ -35,6 +35,8 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .top-bar{height:56px;min-height:56px;background:var(--header-grad);border-bottom:none;display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
 .tb-title{font-size:15px;font-weight:600;color:#fff;flex:1}
 .tb-right{display:flex;align-items:center;gap:12px;flex-shrink:0}
+.sb-toggle{background:none;border:none;color:rgba(255,255,255,.8);font-size:18px;cursor:pointer;padding:4px 8px;border-radius:6px;transition:color .15s,background .15s;flex-shrink:0}
+.sb-toggle:hover{color:#fff;background:rgba(255,255,255,.12)}
 .clock{font-size:12px;color:rgba(255,255,255,.7);font-variant-numeric:tabular-nums;white-space:nowrap}
 .preview-pill{font-size:10px;font-weight:700;letter-spacing:.5px;color:#fff;background:rgba(255,255,255,.16);padding:4px 10px;border-radius:20px}
 .top-bar .btn-outline{color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.4)}
@@ -172,6 +174,7 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
   <header class="top-bar">
     <div class="tb-title" id="tb-title">Hoteles</div>
     <div class="tb-right">
+      <button class="sb-toggle" id="theme-toggle" title="Modo oscuro">🌙</button>
       <div class="clock" id="clock"></div>
       <button class="btn btn-outline" id="logout-btn">Salir</button>
     </div>

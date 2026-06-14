@@ -15,6 +15,23 @@ let hotels = [];
 
 function getAdminKey() { return sessionStorage.getItem(KEY_STORAGE) || ''; }
 
+// ── TEMA DEL PANEL (claro / oscuro) ───────────────────────────────────────────
+const DASH_THEME_KEY = 'nexo_dash_theme';
+
+function applyDashTheme() {
+  const dark = localStorage.getItem(DASH_THEME_KEY) === 'dark';
+  document.body.classList.toggle('theme-dark', dark);
+  const btn = $('theme-toggle');
+  if (btn) btn.textContent = dark ? '☀️' : '🌙';
+}
+
+function toggleDashTheme() {
+  const dark = document.body.classList.toggle('theme-dark');
+  localStorage.setItem(DASH_THEME_KEY, dark ? 'dark' : 'light');
+  const btn = $('theme-toggle');
+  if (btn) btn.textContent = dark ? '☀️' : '🌙';
+}
+
 const apiFetch = createApiFetch(API_URL, () => ({ 'X-Admin-Key': getAdminKey() }));
 
 function showToast(msg) {
@@ -242,6 +259,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.nav-item[data-view]').forEach(el =>
     el.addEventListener('click', () => setView(el.dataset.view)));
+
+  applyDashTheme();
+  $('theme-toggle').addEventListener('click', toggleDashTheme);
 
   startClock();
 

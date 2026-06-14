@@ -60,6 +60,7 @@ const app = {
   plan:    'base', // 'base' | 'premium' | 'max_comfort'
   lang:    'es',   // idioma del huésped: 'es' | 'en' | 'pt'
   a11y:    'none', // accesibilidad: 'none' | 'vision' | 'hearing'
+  theme:   'auto', // tema: 'auto' | 'light' | 'dark'
   dnd:     false,  // No molestar
   favorites: [],  // claves de dispositivos marcados como favoritos (accesos directos)
   data:    null,   // respuesta completa de la API (para re-render al cambiar idioma)
@@ -138,6 +139,10 @@ const I18N = {
     language: 'Idioma',
     accessibility: 'Accesibilidad',
     a11yHearing: 'Auditiva',
+    theme: 'Tema',
+    themeAuto: 'Automático',
+    themeLight: 'Claro',
+    themeDark: 'Oscuro',
     a11yVisionNote: 'Texto y controles más grandes, con mayor contraste, para personas con baja visión.',
     a11yHearingNote: 'Avisos visuales destacados y de mayor duración en lugar de señales sonoras.',
     supportQuestion: '¿Necesitas ayuda con tu habitación o tienes alguna duda?',
@@ -232,6 +237,10 @@ const I18N = {
     language: 'Language',
     accessibility: 'Accessibility',
     a11yHearing: 'Hearing',
+    theme: 'Theme',
+    themeAuto: 'Automatic',
+    themeLight: 'Light',
+    themeDark: 'Dark',
     a11yVisionNote: 'Larger text and controls with higher contrast for low-vision guests.',
     a11yHearingNote: 'Prominent, longer-lasting visual alerts instead of sound cues.',
     supportQuestion: 'Need help with your room or have any questions?',
@@ -326,6 +335,10 @@ const I18N = {
     language: 'Idioma',
     accessibility: 'Acessibilidade',
     a11yHearing: 'Auditiva',
+    theme: 'Tema',
+    themeAuto: 'Automático',
+    themeLight: 'Claro',
+    themeDark: 'Escuro',
     a11yVisionNote: 'Texto e controles maiores, com mais contraste, para pessoas com baixa visão.',
     a11yHearingNote: 'Avisos visuais destacados e mais duradouros em vez de sinais sonoros.',
     supportQuestion: 'Precisa de ajuda com seu quarto ou tem alguma dúvida?',
@@ -491,10 +504,12 @@ function renderApp(data) {
     app.favorites = JSON.parse(localStorage.getItem(`nexo_favs_${app.token || 'static'}`) || '[]');
   } catch { app.favorites = []; }
 
+  app.theme = localStorage.getItem('nexo_theme') || 'auto';
+
   document.documentElement.lang = app.lang;
   applyA11y();
-  applyAutoTheme();
-  setInterval(applyAutoTheme, 10 * 60 * 1000);
+  applyTheme();
+  setInterval(applyTheme, 10 * 60 * 1000);
   applyTexts();
 
   startClock(new Date(data.checkout));
@@ -626,6 +641,13 @@ function renderPrefsRows() {
       : app.a11y === 'hearing' ? t('a11yHearingNote') : '';
     note.style.display = app.a11y === 'none' ? 'none' : 'block';
   }
+  const themeEl = document.getElementById('theme-options');
+  if (themeEl) {
+    const modes = [['auto', 'themeAuto'], ['light', 'themeLight'], ['dark', 'themeDark']];
+    themeEl.innerHTML = modes.map(([m, k]) =>
+      `<button class="pref-btn ${app.theme === m ? 'active' : ''}" data-theme="${m}">${t(k)}</button>`
+    ).join('');
+  }
 }
 
 // Guarda idioma/accesibilidad en el servidor (o localStorage en modo estático)
@@ -697,11 +719,26 @@ function applyA11y() {
   document.body.classList.toggle('a11y-hearing', app.a11y === 'hearing');
 }
 
-// ── MODO OSCURO AUTOMÁTICO SEGÚN LA HORA ──────────────────────────────────────
-// Entre las 20:00 y las 07:00 (hora local del dispositivo) se aplica el tema oscuro.
-function applyAutoTheme() {
-  const hour = new Date().getHours();
-  document.body.classList.toggle('theme-dark', hour >= 20 || hour < 7);
+// ── TEMA (claro / oscuro / automático según la hora) ─────────────────────────
+// En modo "auto", entre las 20:00 y las 07:00 (hora local del dispositivo) se
+// aplica el tema oscuro. En "light"/"dark" el huésped fija el tema manualmente.
+function applyTheme() {
+  let dark;
+  if (app.theme === 'dark') dark = true;
+  else if (app.theme === 'light') dark = false;
+  else {
+    const hour = new Date().getHours();
+    dark = hour >= 20 || hour < 7;
+  }
+  document.body.classList.toggle('theme-dark', dark);
+}
+
+function setTheme(mode) {
+  if (mode === app.theme) return;
+  app.theme = mode;
+  localStorage.setItem('nexo_theme', mode);
+  applyTheme();
+  renderPrefsRows();
 }
 
 // ── INDICADOR DE ESTADO DE CONEXIÓN ───────────────────────────────────────────
@@ -722,12 +759,14 @@ window.addEventListener('offline', () => {
   showToast(t('toastOffline'), 'error');
 });
 
-// Clicks en los selectores de idioma/accesibilidad
+// Clicks en los selectores de idioma/accesibilidad/tema
 document.addEventListener('click', e => {
   const lb = e.target.closest('[data-lang]');
   if (lb) { setLang(lb.dataset.lang); return; }
   const ab = e.target.closest('[data-a11y]');
-  if (ab) setA11y(ab.dataset.a11y);
+  if (ab) { setA11y(ab.dataset.a11y); return; }
+  const tb = e.target.closest('[data-theme]');
+  if (tb) setTheme(tb.dataset.theme);
 });
 
 // ── NAVEGACIÓN: SIDEBAR Y VISTAS ──────────────────────────────────────────────
