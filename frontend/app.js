@@ -563,8 +563,8 @@ function renderApp(data) {
   // Navegación (sidebar y vistas)
   initNav();
 
-  // Onboarding: solo en la primera visita de este dispositivo
-  if (!localStorage.getItem('nexo_onboarded')) {
+  // Onboarding: solo la primera vez que se abre el enlace de esta estadía
+  if (!localStorage.getItem(`nexo_onboarded_${app.token || 'static'}`)) {
     document.getElementById('onboarding-overlay')?.classList.remove('hidden');
   }
 }
@@ -802,9 +802,9 @@ function initNav() {
   document.getElementById('request-towels-btn')?.addEventListener('click', () => sendServiceRequest('towels'));
   document.getElementById('request-roomservice-btn')?.addEventListener('click', () => sendServiceRequest('roomservice'));
 
-  // Onboarding: cerrar y no volver a mostrar en este dispositivo
+  // Onboarding: cerrar y no volver a mostrar para esta estadía
   document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
-    localStorage.setItem('nexo_onboarded', '1');
+    localStorage.setItem(`nexo_onboarded_${app.token || 'static'}`, '1');
     document.getElementById('onboarding-overlay')?.classList.add('hidden');
   });
 }
