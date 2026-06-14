@@ -12,6 +12,10 @@ const ROOMS_FILE    = path.join(__dirname, 'data/rooms.json');
 const TOKENS_FILE   = path.join(__dirname, 'data/tokens.json');
 const HOTELS_FILE   = path.join(__dirname, 'data/hotels.json');
 const REQUESTS_FILE = path.join(__dirname, 'data/requests.json');
+const ACTIVITY_FILE = path.join(__dirname, 'data/activity.json');
+
+// Cantidad máxima de registros de actividad guardados (global, los más viejos se descartan)
+const ACTIVITY_MAX = 500;
 
 // Token de demo preincluido — siempre disponible para pruebas
 const SEED_TOKENS = {
@@ -65,6 +69,7 @@ function readJSON(file) {
       return { ...SEED_TOKENS };
     }
     if (file === REQUESTS_FILE) return [];
+    if (file === ACTIVITY_FILE) return [];
     return {};
   }
 }
@@ -78,6 +83,30 @@ const getRooms    = () => readJSON(ROOMS_FILE);
 const getTokens   = () => readJSON(TOKENS_FILE);
 const getHotels   = () => readJSON(HOTELS_FILE);
 const getRequests = () => readJSON(REQUESTS_FILE);
+const getActivityLog = () => readJSON(ACTIVITY_FILE);
+
+// ── REGISTRO DE ACTIVIDAD POR HABITACIÓN ──────────────────────────────────────
+// type: 'checkin' | 'qr_resent' | 'checkout' | 'prefs_changed' | 'service_request'
+//       | 'request_resolved' | 'scene_off'
+function addActivity(roomId, type, detail = '') {
+  const log = getActivityLog();
+  log.push({
+    id:     crypto.randomBytes(6).toString('base64url').slice(0, 10),
+    roomId,
+    type,
+    detail,
+    at:     new Date().toISOString(),
+  });
+  if (log.length > ACTIVITY_MAX) log.splice(0, log.length - ACTIVITY_MAX);
+  writeJSON(ACTIVITY_FILE, log);
+}
+
+function listActivity(roomId, limit = 20) {
+  return getActivityLog()
+    .filter(a => a.roomId === roomId)
+    .sort((a, b) => new Date(b.at) - new Date(a.at))
+    .slice(0, limit);
+}
 
 // ── IDIOMA Y ACCESIBILIDAD DEL HUÉSPED ───────────────────────────────────────
 const GUEST_LANGS          = ['es', 'en', 'pt'];
@@ -108,6 +137,7 @@ function generateToken(roomId, guestName, checkin, checkout, phone = '', lang = 
   };
 
   writeJSON(TOKENS_FILE, tokens);
+  addActivity(roomId, 'checkin', guestName.trim());
   return token;
 }
 
@@ -116,10 +146,21 @@ function updateTokenPrefs(token, { lang, accessibility, dnd } = {}) {
   const tokens = getTokens();
   const entry  = tokens[token];
   if (!entry || !entry.active) return false;
-  if (lang          && GUEST_LANGS.includes(lang))                   entry.lang = lang;
-  if (accessibility && ACCESSIBILITY_MODES.includes(accessibility))  entry.accessibility = accessibility;
-  if (typeof dnd === 'boolean')                                      entry.dnd = dnd;
+  const changes = [];
+  if (lang          && GUEST_LANGS.includes(lang) && lang !== entry.lang) {
+    entry.lang = lang;
+    changes.push(`idioma → ${lang}`);
+  }
+  if (accessibility && ACCESSIBILITY_MODES.includes(accessibility) && accessibility !== entry.accessibility) {
+    entry.accessibility = accessibility;
+    changes.push(`accesibilidad → ${accessibility}`);
+  }
+  if (typeof dnd === 'boolean' && dnd !== entry.dnd) {
+    entry.dnd = dnd;
+    changes.push(dnd ? 'No molestar activado' : 'No molestar desactivado');
+  }
   writeJSON(TOKENS_FILE, tokens);
+  if (changes.length) addActivity(entry.roomId, 'prefs_changed', changes.join(', '));
   return true;
 }
 
@@ -137,10 +178,12 @@ function validateToken(token) {
 // ── EXPIRAR TOKEN ─────────────────────────────────────────────────────────────
 function expireToken(token) {
   const tokens = getTokens();
-  if (!tokens[token]) return false;
-  tokens[token].active    = false;
-  tokens[token].expiredAt = new Date().toISOString();
+  const entry = tokens[token];
+  if (!entry) return false;
+  entry.active    = false;
+  entry.expiredAt = new Date().toISOString();
   writeJSON(TOKENS_FILE, tokens);
+  addActivity(entry.roomId, 'checkout', entry.guestName);
   return true;
 }
 
@@ -214,6 +257,7 @@ function createRequest(token, type, note = '') {
 
   requests.push(request);
   writeJSON(REQUESTS_FILE, requests);
+  addActivity(entry.roomId, 'service_request', type);
   return request;
 }
 
@@ -233,7 +277,8 @@ function resolveRequest(id) {
   request.status     = 'done';
   request.resolvedAt = new Date().toISOString();
   writeJSON(REQUESTS_FILE, requests);
+  addActivity(request.roomId, 'request_resolved', request.type);
   return true;
 }
 
-module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest };
+module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity };

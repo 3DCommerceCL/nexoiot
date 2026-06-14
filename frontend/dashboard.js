@@ -75,6 +75,14 @@ const DT = {
     loadDevError: 'Error al cargar dispositivos: {e}',
     devicesSection: 'Control de dispositivos',
     qrSection: 'Acceso QR de la estadía',
+    activitySection: 'Actividad reciente',
+    activityEmpty: 'Sin actividad registrada todavía.',
+    activityCheckin: 'Check-in — QR generado',
+    activityCheckout: 'Check-out',
+    activityPrefsChanged: 'Preferencias actualizadas',
+    activityServiceRequest: 'Solicitud de servicio',
+    activityRequestResolved: 'Solicitud resuelta',
+    activitySceneOff: 'Apagado masivo de dispositivos',
     newStayTitle: 'Nueva estadía',
     newStaySub: 'Asignar habitación y generar QR de acceso',
     prefsSection: 'Preferencias del huésped',
@@ -187,6 +195,14 @@ const DT = {
     loadDevError: 'Failed to load devices: {e}',
     devicesSection: 'Device control',
     qrSection: 'Stay QR access',
+    activitySection: 'Recent activity',
+    activityEmpty: 'No activity recorded yet.',
+    activityCheckin: 'Check-in — QR generated',
+    activityCheckout: 'Check-out',
+    activityPrefsChanged: 'Preferences updated',
+    activityServiceRequest: 'Service request',
+    activityRequestResolved: 'Request resolved',
+    activitySceneOff: 'Bulk device shutdown',
     newStayTitle: 'New stay',
     newStaySub: 'Assign a room and generate the access QR',
     prefsSection: 'Guest preferences',
@@ -299,6 +315,14 @@ const DT = {
     loadDevError: 'Erro ao carregar dispositivos: {e}',
     devicesSection: 'Controle de dispositivos',
     qrSection: 'Acesso QR da estadia',
+    activitySection: 'Atividade recente',
+    activityEmpty: 'Nenhuma atividade registrada ainda.',
+    activityCheckin: 'Check-in — QR gerado',
+    activityCheckout: 'Check-out',
+    activityPrefsChanged: 'Preferências atualizadas',
+    activityServiceRequest: 'Solicitação de serviço',
+    activityRequestResolved: 'Solicitação resolvida',
+    activitySceneOff: 'Desligamento em massa de dispositivos',
     newStayTitle: 'Nova estadia',
     newStaySub: 'Atribuir quarto e gerar QR de acesso',
     prefsSection: 'Preferências do hóspede',
@@ -728,6 +752,7 @@ window.openRoomModal = async function(roomId) {
   } catch (err) {
     $('dev-grid').innerHTML = `<div class="form-note">${dt('loadDevError', { e: err.message })}</div>`;
   }
+  renderActivitySection(room);
 };
 
 // ── PREFERENCIAS DEL HUÉSPED (idioma + accesibilidad de la estadía) ──────────
@@ -1224,6 +1249,49 @@ window.toggleUnlock = function(key) {
   dev.state.unlocked = !dev.state.unlocked;
   renderDevGrid();
 };
+
+// ── ACTIVITY LOG ──────────────────────────────────────────────────────────────
+const ACTIVITY_ICONS = {
+  checkin: '🟢', checkout: '🔴', prefs_changed: '⚙️',
+  service_request: '🛎', request_resolved: '✅', scene_off: '🔌',
+};
+const ACTIVITY_LABELS = {
+  checkin: 'activityCheckin', checkout: 'activityCheckout', prefs_changed: 'activityPrefsChanged',
+  service_request: 'activityServiceRequest', request_resolved: 'activityRequestResolved', scene_off: 'activitySceneOff',
+};
+
+function activityDetailText(item) {
+  if (item.type === 'service_request' || item.type === 'request_resolved') {
+    return dt(item.detail === 'roomservice' ? 'requestRoomService' : 'requestTowels');
+  }
+  return item.detail || '';
+}
+
+async function renderActivitySection(room) {
+  $('activity-log').innerHTML = `<div class="form-note">${dt('loadingDevices')}</div>`;
+  try {
+    const log = await apiFetch(`/admin/rooms/${room.id}/activity`);
+    if (!log.length) {
+      $('activity-log').innerHTML = `<div class="form-note" style="padding:14px">${dt('activityEmpty')}</div>`;
+      return;
+    }
+    const locale = LOCALES[dashLang] || 'es-CL';
+    $('activity-log').innerHTML = log.map(item => {
+      const when = new Date(item.at).toLocaleString(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const detail = activityDetailText(item);
+      return `<div class="activity-item">
+        <span class="activity-ico">${ACTIVITY_ICONS[item.type] || '•'}</span>
+        <div class="activity-body">
+          <div class="activity-text">${dt(ACTIVITY_LABELS[item.type] || item.type)}</div>
+          ${detail ? `<div class="activity-detail">${detail}</div>` : ''}
+        </div>
+        <div class="activity-time">${when}</div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    $('activity-log').innerHTML = `<div class="form-note">${dt('loadDevError', { e: err.message })}</div>`;
+  }
+}
 
 // ── QR SECTION ────────────────────────────────────────────────────────────────
 function renderQRSection(room) {

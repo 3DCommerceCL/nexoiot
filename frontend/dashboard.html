@@ -231,6 +231,16 @@ input[type=range]:disabled{opacity:.3;pointer-events:none}
 .qr-url{font-size:12px;color:var(--teal);font-family:monospace;margin-bottom:14px;word-break:break-all}
 .qr-actions{display:flex;flex-direction:column;gap:8px}
 
+/* ── ACTIVITY LOG ── */
+.activity-log{display:flex;flex-direction:column;gap:2px;max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:12px;background:var(--card2)}
+.activity-item{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-bottom:1px solid var(--border);font-size:12px}
+.activity-item:last-child{border-bottom:none}
+.activity-ico{font-size:14px;line-height:1.4;flex-shrink:0}
+.activity-body{flex:1;min-width:0}
+.activity-text{color:var(--text)}
+.activity-detail{color:var(--text2)}
+.activity-time{color:var(--text3);font-size:11px;flex-shrink:0;white-space:nowrap}
+
 /* ── FORM ── */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .form-group{display:flex;flex-direction:column;gap:5px}
@@ -424,6 +434,10 @@ select.form-input option{background:var(--card);color:var(--text)}
       <div class="modal-section hidden" id="mr-qr-section">
         <div class="modal-section-title" data-i18n="qrSection">Acceso QR de la estadía</div>
         <div class="qr-section" id="qr-section"></div>
+      </div>
+      <div class="modal-section" id="mr-activity-section">
+        <div class="modal-section-title" data-i18n="activitySection">Actividad reciente</div>
+        <div class="activity-log" id="activity-log"></div>
       </div>
     </div>
   </div>

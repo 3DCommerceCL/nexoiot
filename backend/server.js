@@ -390,7 +390,18 @@ app.post('/api/admin/rooms/:roomId/scene', adminAuth, async (req, res) => {
   );
 
   const failed = results.filter(r => r.status === 'rejected').length;
+  rooms.addActivity(req.params.roomId, 'scene_off', '');
   res.json({ success: true, failed });
+});
+
+// ── ADMIN: GET /api/admin/rooms/:roomId/activity ──────────────────────────────
+// Historial de actividad de una habitación (check-in/out, cambios de preferencias,
+// solicitudes de servicio, escenas aplicadas), usado en el modal de detalle del panel.
+app.get('/api/admin/rooms/:roomId/activity', adminAuth, (req, res) => {
+  if (!rooms.getRooms()[req.params.roomId]) {
+    return res.status(404).json({ error: 'Habitación no encontrada' });
+  }
+  res.json(rooms.listActivity(req.params.roomId));
 });
 
 // ── ADMIN: GET /api/admin/hotels ──────────────────────────────────────────────
