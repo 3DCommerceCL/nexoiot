@@ -390,7 +390,7 @@ const A11Y_MODES  = [['none', 'a11yNone'], ['vision', 'a11yVision'], ['hearing',
 // title/desc son claves del diccionario DT que se resuelven al renderizar.
 const PLAN_FEATURES_INFO = {
   voice:    { icon: '🔊', title: 'voiceTitle',   desc: 'voiceDesc',   minPlan: 'premium',     badge: 'PREMIUM' },
-  bathroom: { icon: '🚿', title: 'bathTitle',    desc: 'bathDesc',    minPlan: 'max_comfort', addonFrom: 'base', badge: 'MAX COMFORT' },
+  bathroom: { icon: '🚿', title: 'bathTitle',    desc: 'bathDesc',    minPlan: 'max_comfort', badge: 'MAX COMFORT' },
   bidet:    { icon: '🚽', title: 'bidetTitle',   desc: 'bidetDesc',   minPlan: 'max_comfort', badge: 'MAX COMFORT' },
   rug:      { icon: '🔥', title: 'rugTitle',     desc: 'rugDesc',     minPlan: 'max_comfort', badge: 'MAX COMFORT' },
   climate:  { icon: '❄️', title: 'climateTitle', desc: 'climateDesc', minPlan: 'premium',     badge: 'PREMIUM' },
@@ -845,14 +845,11 @@ function buildFeatureCard(key, info, builder, plan) {
 }
 
 function buildLockedCard(key, info, plan) {
-  const isAddon = info.addonFrom && planLevel(plan) >= planLevel(info.addonFrom);
   return `<div class="dev-card feature-card locked">
     <div class="feature-lock-icon">${info.icon}</div>
     <div class="feature-lock-title">${dt(info.title)}</div>
     <div class="feature-lock-desc">${dt(info.desc)}</div>
-    ${isAddon
-      ? `<span class="feature-addon-badge">${dt('addonBadge')}</span>`
-      : `<span class="feature-plan-badge">${info.badge}</span>`}
+    <span class="feature-plan-badge">${info.badge}</span>
   </div>`;
 }
 
