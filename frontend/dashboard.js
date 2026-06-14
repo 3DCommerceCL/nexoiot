@@ -677,6 +677,7 @@ window.openRoomModal = async function(roomId) {
   $('mr-title').textContent    = dt('roomTitle', { name: room.name });
   $('mr-subtitle').textContent = `${room.guest.guestName} · ${dt('checkoutPrefix')}: ${checkoutInfo(room.guest.checkout).label}`;
   $('dev-grid').innerHTML = `<div class="form-note">${dt('loadingDevices')}</div>`;
+  $('climate-alert').classList.add('hidden');
   renderPrefsSection(room);
   $('modal-room').classList.remove('hidden');
 
@@ -760,6 +761,14 @@ function renderDevGrid() {
   cards.push(buildFeatureCard('bidet',    PLAN_FEATURES_INFO.bidet,    buildBidetCard,    plan));
   cards.push(buildFeatureCard('rug',      PLAN_FEATURES_INFO.rug,      buildRugCard,      plan));
   $('dev-grid').innerHTML = cards.join('');
+  updateClimateAlert();
+}
+
+function updateClimateAlert() {
+  const { plan } = state.currentRoom;
+  const s = state.placeholder.climate;
+  const active = planLevel(plan) >= PLAN_TIERS.premium && s.acOn && s.windowOpen;
+  $('climate-alert').classList.toggle('hidden', !active);
 }
 
 // ── FUNCIONES DEL PLAN (placeholders no conectados a dispositivos reales) ────

@@ -156,6 +156,7 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .modal-close:hover{background:rgba(16,24,40,.10);color:var(--text)}
 .modal-body{padding:20px 24px 24px}
 .modal-section{margin-bottom:20px}
+.climate-alert{background:var(--alert-l);color:var(--alert);border:1px solid var(--alert);border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;margin-bottom:16px}
 .modal-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:10px}
 
 /* ── DEVICE CONTROLS ── */
@@ -395,6 +396,7 @@ select.form-input option{background:var(--card);color:var(--text)}
       <button class="modal-close" onclick="closeModal('modal-room')">✕</button>
     </div>
     <div class="modal-body">
+      <div class="climate-alert hidden" id="climate-alert">⚠️ <span data-i18n="climateAlertMsg">Aire acondicionado encendido con la ventana abierta</span></div>
       <div class="modal-section" id="mr-prefs-section">
         <div class="modal-section-title" data-i18n="prefsSection">Preferencias del huésped</div>
         <div id="prefs-section"></div>

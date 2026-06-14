@@ -64,6 +64,7 @@ const SHARED_I18N = {
     simulateClose: 'Simular cierre',
     autoOffTitle: 'Apagar AC al abrir la ventana',
     autoOffDesc: 'Si está activo, el AC se apaga automáticamente y se notifica a recepción cuando se detecta una ventana abierta.',
+    climateAlertMsg: 'Aire acondicionado encendido con la ventana abierta — se está desperdiciando energía',
     devices: {
       led_cama: 'LED Bajo Cama', luz_techo: 'Luz Techo', luz_velador1: 'Luz Velador 1',
       luz_velador2: 'Luz Velador 2', cortina: 'Cortina', enchufe: 'Enchufe USB', puerta: 'Puerta',
@@ -116,6 +117,7 @@ const SHARED_I18N = {
     simulateClose: 'Simulate closing',
     autoOffTitle: 'Turn AC off when the window opens',
     autoOffDesc: 'When active, the AC turns off automatically and the front desk is notified whenever an open window is detected.',
+    climateAlertMsg: 'Air conditioning is on with the window open — energy is being wasted',
     devices: {
       led_cama: 'Under-bed LED', luz_techo: 'Ceiling Light', luz_velador1: 'Bedside Lamp 1',
       luz_velador2: 'Bedside Lamp 2', cortina: 'Curtain', enchufe: 'USB Outlet', puerta: 'Door',
@@ -168,6 +170,7 @@ const SHARED_I18N = {
     simulateClose: 'Simular fechamento',
     autoOffTitle: 'Desligar o AC ao abrir a janela',
     autoOffDesc: 'Quando ativo, o AC desliga automaticamente e a recepção é notificada ao detectar uma janela aberta.',
+    climateAlertMsg: 'Ar-condicionado ligado com a janela aberta — há desperdício de energia',
     devices: {
       led_cama: 'LED Sob a Cama', luz_techo: 'Luz do Teto', luz_velador1: 'Abajur 1',
       luz_velador2: 'Abajur 2', cortina: 'Cortina', enchufe: 'Tomada USB', puerta: 'Porta',
