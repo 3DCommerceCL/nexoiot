@@ -164,6 +164,20 @@ function commandToTuya(type, command) {
   return cmds;
 }
 
+// ── COMANDOS DE ESCENA (acciones masivas desde el panel) ─────────────────────
+function sceneCommandForDevice(type, scene) {
+  if (scene === 'off') {
+    switch (type) {
+      case 'light':
+      case 'light_rgb':
+      case 'switch':  return { on: false };
+      case 'switch_3ch': return { ch1: false, ch2: false, ch3: false };
+      default: return null; // cortinas y sensores no aplican
+    }
+  }
+  return null;
+}
+
 // ── RUTA: web app del huésped ─────────────────────────────────────────────────
 // Sirve index.html para /room/:token — el JS lee el token de la URL
 app.get('/room/:token', (_req, res) => {
@@ -350,6 +364,33 @@ app.get('/api/admin/rooms', adminAuth, (req, res) => {
         };
       })
   );
+});
+
+// ── ADMIN: POST /api/admin/rooms/:roomId/scene ────────────────────────────────
+// Aplica una escena a todos los dispositivos controlables de una habitación.
+// Por ahora solo soporta scene: 'off' (apagar luces y enchufes), usada para
+// acciones masivas como "apagar todo" en habitaciones que hacen checkout hoy.
+app.post('/api/admin/rooms/:roomId/scene', adminAuth, async (req, res) => {
+  const { scene } = req.body;
+  if (scene !== 'off') {
+    return res.status(400).json({ error: 'Escena no reconocida' });
+  }
+
+  const room = rooms.getRooms()[req.params.roomId];
+  if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
+
+  const results = await Promise.allSettled(
+    Object.values(room.devices).map(dev => {
+      const command = sceneCommandForDevice(dev.type, scene);
+      if (!command) return Promise.resolve();
+      const tuyaCmds = commandToTuya(dev.type, command);
+      if (!tuyaCmds.length) return Promise.resolve();
+      return tuya.sendCommand(dev.deviceId, tuyaCmds);
+    })
+  );
+
+  const failed = results.filter(r => r.status === 'rejected').length;
+  res.json({ success: true, failed });
 });
 
 // ── ADMIN: GET /api/admin/hotels ──────────────────────────────────────────────

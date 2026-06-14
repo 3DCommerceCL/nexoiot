@@ -38,6 +38,10 @@ const DT = {
     kpiReady: 'Listas para check-in',
     kpiCheckouts: 'Check-outs hoy',
     kpiNoCheckouts: 'Sin check-outs hoy',
+    bulkOffBtn: 'Apagar todo en estas habitaciones',
+    bulkOffConfirm: '¿Apagar luces y enchufes en {n} habitación(es) con check-out hoy?',
+    bulkOffDone: 'Listo: se apagaron {n} habitación(es)',
+    bulkOffPartial: 'Se apagaron {ok} de {total} habitación(es); algunas fallaron',
     kpiTotal: 'Total habitaciones',
     kpiRegistered: 'Registradas en el sistema',
     roomShort: 'Hab {n}',
@@ -146,6 +150,10 @@ const DT = {
     kpiReady: 'Ready for check-in',
     kpiCheckouts: 'Check-outs today',
     kpiNoCheckouts: 'No check-outs today',
+    bulkOffBtn: 'Turn off all in these rooms',
+    bulkOffConfirm: 'Turn off lights and outlets in {n} room(s) checking out today?',
+    bulkOffDone: 'Done: {n} room(s) turned off',
+    bulkOffPartial: '{ok} of {total} room(s) turned off; some failed',
     kpiTotal: 'Total rooms',
     kpiRegistered: 'Registered in the system',
     roomShort: 'Room {n}',
@@ -254,6 +262,10 @@ const DT = {
     kpiReady: 'Prontos para check-in',
     kpiCheckouts: 'Check-outs hoje',
     kpiNoCheckouts: 'Sem check-outs hoje',
+    bulkOffBtn: 'Desligar tudo nesses quartos',
+    bulkOffConfirm: 'Desligar luzes e tomadas em {n} quarto(s) com check-out hoje?',
+    bulkOffDone: 'Pronto: {n} quarto(s) desligados',
+    bulkOffPartial: '{ok} de {total} quarto(s) desligados; alguns falharam',
     kpiTotal: 'Total de quartos',
     kpiRegistered: 'Registrados no sistema',
     roomShort: 'Quarto {n}',
@@ -514,6 +526,24 @@ const occupiedRooms  = () => rooms.filter(r => r.guest);
 const availableRooms = () => rooms.filter(r => !r.guest);
 const todayCheckouts = () => occupiedRooms().filter(r => checkoutInfo(r.guest.checkout).urgency === 'today');
 
+// ── ACCIONES MASIVAS ──────────────────────────────────────────────────────────
+window.bulkTurnOffCheckouts = async function() {
+  const today = todayCheckouts();
+  if (!today.length) return;
+  if (!confirm(dt('bulkOffConfirm', { n: today.length }))) return;
+
+  const results = await Promise.allSettled(
+    today.map(r => apiFetch(`/admin/rooms/${r.id}/scene`, { method: 'POST', body: JSON.stringify({ scene: 'off' }) }))
+  );
+  const failed = results.filter(r => r.status === 'rejected').length;
+
+  if (failed) {
+    showToast(dt('bulkOffPartial', { ok: today.length - failed, total: today.length }), 'error');
+  } else {
+    showToast(dt('bulkOffDone', { n: today.length }), 'success');
+  }
+};
+
 // ── KPIs ──────────────────────────────────────────────────────────────────────
 function renderKPIs() {
   const occ   = occupiedRooms().length;
@@ -537,6 +567,7 @@ function renderKPIs() {
       <div class="kpi-label">${dt('kpiCheckouts')}</div>
       <div class="kpi-value">${today.length}</div>
       <div class="kpi-sub">${today.map(r => dt('roomShort', { n: r.name })).join(' · ') || dt('kpiNoCheckouts')}</div>
+      ${today.length ? `<button class="btn btn-sm btn-outline-teal" style="margin-top:10px;width:100%;border-color:rgba(255,255,255,.5);color:#fff" onclick="bulkTurnOffCheckouts()">${dt('bulkOffBtn')}</button>` : ''}
     </div>
     <div class="kpi-card">
       <div class="kpi-label">${dt('kpiTotal')}</div>
