@@ -53,6 +53,8 @@ const DT = {
     filterAll: 'Todas',
     filterOccupied: 'Ocupadas',
     filterAvailable: 'Disponibles',
+    searchPlaceholder: 'Buscar por habitación o huésped…',
+    noSearchResults: 'No se encontraron habitaciones ni huéspedes con ese criterio',
     floor: 'Piso {n}',
     floorCount: '{n} habitaciones',
     badgeAvailable: 'Disponible',
@@ -159,6 +161,8 @@ const DT = {
     filterAll: 'All',
     filterOccupied: 'Occupied',
     filterAvailable: 'Available',
+    searchPlaceholder: 'Search by room or guest…',
+    noSearchResults: 'No rooms or guests found matching that search',
     floor: 'Floor {n}',
     floorCount: '{n} rooms',
     badgeAvailable: 'Available',
@@ -265,6 +269,8 @@ const DT = {
     filterAll: 'Todos',
     filterOccupied: 'Ocupados',
     filterAvailable: 'Disponíveis',
+    searchPlaceholder: 'Buscar por quarto ou hóspede…',
+    noSearchResults: 'Nenhum quarto ou hóspede encontrado com esse critério',
     floor: 'Andar {n}',
     floorCount: '{n} quartos',
     badgeAvailable: 'Disponível',
@@ -369,6 +375,7 @@ const DEV_ICON_OVERRIDES = {
 const state = {
   view: 'overview',
   filter: 'all',
+  search: '',
   sidebarCollapsed: false,
   currentRoom: null,   // { id, token, devices, plan }
   placeholder: {},     // estado local de funciones del plan (no conectadas a dispositivos reales)
@@ -589,7 +596,21 @@ function renderRooms(target = 'overview', filter = 'all') {
   if (filter === 'occupied')  list = occupiedRooms();
   if (filter === 'available') list = availableRooms();
 
+  const q = state.search.trim().toLowerCase();
+  if (q) {
+    list = list.filter(r =>
+      r.name.toLowerCase().includes(q) ||
+      (r.guest && r.guest.guestName.toLowerCase().includes(q)));
+  }
+
   if (target === 'rooms') {
+    if (q) {
+      $(`room-grid-${target}`).innerHTML = list.length
+        ? `<div class="room-grid">${list.map(buildRoomCard).join('')}</div>`
+        : `<div class="no-results">${dt('noSearchResults')}</div>`;
+      return;
+    }
+
     const floors = [...new Set(list.map(r => r.floor))].sort((a, b) => a - b);
     $(`room-grid-${target}`).innerHTML = floors.map(floor => {
       const floorRooms = list.filter(r => r.floor === floor);
@@ -634,6 +655,7 @@ function setDashLang(lang) {
 function applyDashLang() {
   document.documentElement.lang = dashLang;
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = dt(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = dt(el.dataset.i18nPlaceholder); });
   const loginKey = $('login-key');
   if (loginKey) loginKey.placeholder = dt('loginPh');
   $('page-title').textContent = viewTitle(state.view);
@@ -1349,6 +1371,11 @@ document.addEventListener('DOMContentLoaded', () => {
       btn.classList.add('active');
       renderRooms('rooms', state.filter);
     });
+  });
+
+  $('room-search').addEventListener('input', e => {
+    state.search = e.target.value;
+    renderRooms('rooms', state.filter);
   });
 
   ['modal-room', 'modal-new-stay'].forEach(id => {
