@@ -176,11 +176,43 @@
     <div class="onboarding-ico">👋</div>
     <h2 data-i18n="onbTitle">¡Bienvenido!</h2>
     <ul class="onboarding-list">
-      <li><span class="onboarding-ico-sm">🎬</span><span data-i18n="onbScenes">Activa escenas rápidas para tu habitación en un toque</span></li>
+      <li><span class="onboarding-ico-sm">🎬</span><span data-i18n="onbScenes">Activa tus aparatos inteligentes desde aquí</span></li>
       <li><span class="onboarding-ico-sm">🌐</span><span data-i18n="onbSettings">Cambia idioma y accesibilidad desde Ajustes</span></li>
       <li><span class="onboarding-ico-sm">🎧</span><span data-i18n="onbSupport">Pide servicios o ayuda desde Soporte</span></li>
     </ul>
     <button class="support-btn" id="onboarding-dismiss" data-i18n="onbGotIt">Entendido</button>
+  </div>
+</div>
+
+<!-- ── TUTORIAL: ELEGIR SI HACER EL RECORRIDO GUIADO ───────────────────────── -->
+<div class="onboarding-overlay hidden" id="tutorial-choice-overlay">
+  <div class="onboarding-card">
+    <div class="onboarding-ico">🎓</div>
+    <h2 data-i18n="tutChoiceTitle">¿Sabes usar los controles smart?</h2>
+    <p class="scene-modal-desc" data-i18n="tutChoiceDesc">Podemos guiarte paso a paso para encender una luz y mover la cortina.</p>
+    <div class="tutorial-choice-actions">
+      <button class="support-btn" id="tutorial-start-btn" data-i18n="tutStartBtn">🎓 Iniciar tutorial</button>
+      <button class="support-btn tutorial-skip-btn" id="tutorial-skip-btn" data-i18n="tutSkipBtn">Sé usar aparatos smart</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TUTORIAL GUIADO (recorrido paso a paso) ─────────────────────────────── -->
+<div class="tutorial-overlay hidden" id="tutorial-overlay">
+  <div class="tutorial-highlight" id="tutorial-highlight"></div>
+  <button class="tutorial-exit-btn" id="tutorial-exit-btn" aria-label="Salir del tutorial">
+    ✕ <span data-i18n="tutExit">Salir</span>
+  </button>
+  <div class="tutorial-tooltip" id="tutorial-tooltip">
+    <h3 id="tutorial-title"></h3>
+    <p id="tutorial-desc"></p>
+    <div class="tutorial-tooltip-footer">
+      <span class="tutorial-step-count" id="tutorial-step-count"></span>
+      <div class="tutorial-tooltip-actions">
+        <button class="tutorial-nav-btn" id="tutorial-prev" data-i18n="tutPrev">Anterior</button>
+        <button class="tutorial-nav-btn primary" id="tutorial-next">Siguiente</button>
+      </div>
+    </div>
   </div>
 </div>
 

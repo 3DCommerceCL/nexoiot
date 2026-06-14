@@ -547,6 +547,55 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 .onboarding-ico-sm { font-size: 18px; flex-shrink: 0; }
 .onboarding-card .support-btn { width: 100%; justify-content: center; }
 
+/* ── TUTORIAL: ELEGIR RECORRIDO GUIADO ───────────────────────────────────── */
+.tutorial-choice-actions { display: flex; flex-direction: column; gap: 10px; }
+.tutorial-choice-actions .support-btn { width: 100%; justify-content: center; }
+.tutorial-skip-btn { background: var(--card2); color: var(--text2); box-shadow: none; }
+.tutorial-skip-btn:hover, .tutorial-skip-btn:active { background: var(--border); }
+
+/* ── TUTORIAL GUIADO (recorrido paso a paso) ─────────────────────────────── */
+.tutorial-overlay { position: fixed; inset: 0; z-index: 280; }
+.tutorial-overlay.hidden { display: none; }
+.tutorial-highlight {
+  position: fixed; border-radius: 14px;
+  box-shadow: 0 0 0 9999px rgba(16,24,40,.6);
+  border: 2px solid var(--teal);
+  pointer-events: none;
+  transition: top .25s ease, left .25s ease, width .25s ease, height .25s ease;
+}
+.tutorial-exit-btn {
+  position: fixed; top: 16px; right: 16px;
+  display: flex; align-items: center; gap: 6px;
+  background: var(--card); color: var(--text);
+  border: none; border-radius: 999px;
+  padding: 8px 14px; font-size: 12px; font-weight: 600;
+  font-family: var(--font); cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16,24,40,.25);
+  -webkit-tap-highlight-color: transparent;
+}
+.tutorial-tooltip {
+  position: fixed; max-width: 300px; width: calc(100% - 32px);
+  background: var(--card); border-radius: var(--r);
+  padding: 16px; box-shadow: 0 12px 30px rgba(16,24,40,.3);
+}
+.tutorial-tooltip h3 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.tutorial-tooltip p  { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 14px; }
+.tutorial-tooltip-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+}
+.tutorial-step-count { font-size: 11px; color: var(--text3); flex-shrink: 0; }
+.tutorial-tooltip-actions { display: flex; gap: 8px; }
+.tutorial-nav-btn {
+  background: var(--card2); color: var(--text2); border: none;
+  border-radius: var(--rsm); padding: 8px 14px;
+  font-size: 12px; font-weight: 700; font-family: var(--font);
+  cursor: pointer; transition: background .15s;
+  -webkit-tap-highlight-color: transparent;
+}
+.tutorial-nav-btn:hover, .tutorial-nav-btn:active { background: var(--border); }
+.tutorial-nav-btn.primary { background: var(--teal); color: #fff; }
+.tutorial-nav-btn.primary:hover, .tutorial-nav-btn.primary:active { background: var(--teal-d); }
+
 /* ── TOAST ────────────────────────────────────────────────────────────────── */
 #toast-container {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);

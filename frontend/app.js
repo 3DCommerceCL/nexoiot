@@ -107,10 +107,25 @@ const I18N = {
     toastDndOn: 'No molestar activado',
     toastDndOff: 'No molestar desactivado',
     onbTitle: '¡Bienvenido!',
-    onbScenes: 'Activa escenas rápidas para tu habitación en un toque',
+    onbScenes: 'Activa tus aparatos inteligentes desde aquí',
     onbSettings: 'Cambia idioma y accesibilidad desde Ajustes',
     onbSupport: 'Pide servicios o ayuda desde Soporte',
     onbGotIt: 'Entendido',
+    tutChoiceTitle: '¿Sabes usar los controles smart?',
+    tutChoiceDesc: 'Podemos guiarte paso a paso para encender una luz y mover la cortina.',
+    tutStartBtn: '🎓 Iniciar tutorial',
+    tutSkipBtn: 'Sé usar aparatos smart',
+    tutExit: 'Salir',
+    tutPrev: 'Anterior',
+    tutNext: 'Siguiente',
+    tutFinish: 'Finalizar',
+    tutStepCount: 'Paso {n} de {total}',
+    tutLightTitle: 'Encender una luz',
+    tutLightDesc: 'Toca este interruptor para encender o apagar la luz. Cuando está encendida, puedes ajustar su intensidad y color.',
+    tutCurtainOpenTitle: 'Abrir la cortina',
+    tutCurtainOpenDesc: 'Toca este botón para abrir la cortina automáticamente.',
+    tutCurtainCloseTitle: 'Cerrar la cortina',
+    tutCurtainCloseDesc: 'Toca este botón para cerrar la cortina. También puedes usar el control deslizante para dejarla a media altura.',
     connOnline: 'En línea',
     connOffline: 'Sin conexión',
     toastOnline: 'Conexión restablecida',
@@ -224,10 +239,25 @@ const I18N = {
     toastDndOn: 'Do Not Disturb on',
     toastDndOff: 'Do Not Disturb off',
     onbTitle: 'Welcome!',
-    onbScenes: 'Activate quick scenes for your room with one tap',
+    onbScenes: 'Control your smart devices from here',
     onbSettings: 'Change language and accessibility from Settings',
     onbSupport: 'Request services or help from Support',
     onbGotIt: 'Got it',
+    tutChoiceTitle: 'Do you know how to use smart controls?',
+    tutChoiceDesc: 'We can walk you through turning on a light and moving the curtain.',
+    tutStartBtn: '🎓 Start tutorial',
+    tutSkipBtn: 'I know how to use smart devices',
+    tutExit: 'Exit',
+    tutPrev: 'Back',
+    tutNext: 'Next',
+    tutFinish: 'Finish',
+    tutStepCount: 'Step {n} of {total}',
+    tutLightTitle: 'Turn on a light',
+    tutLightDesc: 'Tap this switch to turn the light on or off. When it’s on, you can adjust its brightness and color.',
+    tutCurtainOpenTitle: 'Open the curtain',
+    tutCurtainOpenDesc: 'Tap this button to open the curtain automatically.',
+    tutCurtainCloseTitle: 'Close the curtain',
+    tutCurtainCloseDesc: 'Tap this button to close the curtain. You can also use the slider to leave it halfway.',
     connOnline: 'Online',
     connOffline: 'Offline',
     toastOnline: 'Connection restored',
@@ -341,10 +371,25 @@ const I18N = {
     toastDndOn: 'Não perturbe ativado',
     toastDndOff: 'Não perturbe desativado',
     onbTitle: 'Bem-vindo!',
-    onbScenes: 'Ative cenas rápidas para o seu quarto em um toque',
+    onbScenes: 'Controle seus dispositivos inteligentes a partir daqui',
     onbSettings: 'Altere idioma e acessibilidade em Configurações',
     onbSupport: 'Solicite serviços ou ajuda em Suporte',
     onbGotIt: 'Entendi',
+    tutChoiceTitle: 'Você sabe usar os controles smart?',
+    tutChoiceDesc: 'Podemos te guiar passo a passo para ligar uma luz e mover a cortina.',
+    tutStartBtn: '🎓 Iniciar tutorial',
+    tutSkipBtn: 'Já sei usar dispositivos smart',
+    tutExit: 'Sair',
+    tutPrev: 'Anterior',
+    tutNext: 'Próximo',
+    tutFinish: 'Finalizar',
+    tutStepCount: 'Passo {n} de {total}',
+    tutLightTitle: 'Ligar uma luz',
+    tutLightDesc: 'Toque neste interruptor para ligar ou desligar a luz. Quando estiver ligada, você pode ajustar o brilho e a cor.',
+    tutCurtainOpenTitle: 'Abrir a cortina',
+    tutCurtainOpenDesc: 'Toque neste botão para abrir a cortina automaticamente.',
+    tutCurtainCloseTitle: 'Fechar a cortina',
+    tutCurtainCloseDesc: 'Toque neste botão para fechar a cortina. Você também pode usar o controle deslizante para deixá-la na metade.',
     connOnline: 'Online',
     connOffline: 'Sem conexão',
     toastOnline: 'Conexão restabelecida',
@@ -902,6 +947,98 @@ document.addEventListener('click', e => {
 });
 
 // ── NAVEGACIÓN: SIDEBAR Y VISTAS ──────────────────────────────────────────────
+function switchView(view) {
+  document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+  document.getElementById(`view-${view}`)?.classList.remove('hidden');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelector(`.nav-item[data-view="${view}"]`)?.classList.add('active');
+}
+
+// ── TUTORIAL GUIADO (encender una luz / mover la cortina) ────────────────────
+const TUTORIAL_STEPS = [
+  {
+    view: 'room',
+    selector: () => document.querySelector('#device-grid .device-card:not(.offline) [data-action="toggle-light"]'),
+    titleKey: 'tutLightTitle',
+    descKey:  'tutLightDesc',
+  },
+  {
+    view: 'room',
+    selector: () => document.querySelector('#device-grid .curtain-btn[data-curtain="open"]'),
+    titleKey: 'tutCurtainOpenTitle',
+    descKey:  'tutCurtainOpenDesc',
+  },
+  {
+    view: 'room',
+    selector: () => document.querySelector('#device-grid .curtain-btn[data-curtain="close"]'),
+    titleKey: 'tutCurtainCloseTitle',
+    descKey:  'tutCurtainCloseDesc',
+  },
+];
+
+let tutorialStep = 0;
+
+function startTutorial() {
+  tutorialStep = 0;
+  showTutorialStep();
+}
+
+function showTutorialStep() {
+  // Saltar pasos cuyo dispositivo no existe en esta habitación
+  while (tutorialStep < TUTORIAL_STEPS.length && !TUTORIAL_STEPS[tutorialStep].selector()) {
+    tutorialStep++;
+  }
+  if (tutorialStep >= TUTORIAL_STEPS.length) return endTutorial();
+
+  const step = TUTORIAL_STEPS[tutorialStep];
+  switchView(step.view);
+  document.getElementById('tutorial-overlay').classList.remove('hidden');
+
+  requestAnimationFrame(() => {
+    const target = step.selector();
+    if (!target) { tutorialStep++; return showTutorialStep(); }
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => positionTutorial(target, step), 300);
+  });
+}
+
+function positionTutorial(target, step) {
+  const highlight = document.getElementById('tutorial-highlight');
+  const tooltip   = document.getElementById('tutorial-tooltip');
+  const pad = 6;
+
+  const rect = target.getBoundingClientRect();
+  highlight.style.top    = `${rect.top - pad}px`;
+  highlight.style.left   = `${rect.left - pad}px`;
+  highlight.style.width  = `${rect.width + pad * 2}px`;
+  highlight.style.height = `${rect.height + pad * 2}px`;
+
+  document.getElementById('tutorial-title').textContent = t(step.titleKey);
+  document.getElementById('tutorial-desc').textContent  = t(step.descKey);
+  document.getElementById('tutorial-step-count').textContent =
+    t('tutStepCount', { n: tutorialStep + 1, total: TUTORIAL_STEPS.length });
+  document.getElementById('tutorial-prev').style.visibility = tutorialStep === 0 ? 'hidden' : 'visible';
+  document.getElementById('tutorial-next').textContent =
+    tutorialStep === TUTORIAL_STEPS.length - 1 ? t('tutFinish') : t('tutNext');
+
+  const tooltipRect = tooltip.getBoundingClientRect();
+  let top = rect.bottom + pad + 14;
+  if (top + tooltipRect.height > window.innerHeight - 12) {
+    top = rect.top - pad - tooltipRect.height - 14;
+  }
+  top = Math.max(12, top);
+  let left = rect.left + rect.width / 2 - tooltipRect.width / 2;
+  left = Math.max(12, Math.min(left, window.innerWidth - tooltipRect.width - 12));
+  tooltip.style.top  = `${top}px`;
+  tooltip.style.left = `${left}px`;
+}
+
+function endTutorial() {
+  document.getElementById('tutorial-overlay')?.classList.add('hidden');
+  document.getElementById('tutorial-choice-overlay')?.classList.add('hidden');
+  localStorage.setItem(`nexo_onboarded_${app.token || 'static'}`, '1');
+}
+
 function initNav() {
   const sidebar  = document.getElementById('sidebar');
   const backdrop = document.getElementById('sidebar-backdrop');
@@ -915,11 +1052,7 @@ function initNav() {
 
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
-      const view = item.dataset.view;
-      document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-      document.getElementById(`view-${view}`)?.classList.remove('hidden');
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      item.classList.add('active');
+      switchView(item.dataset.view);
       closeSidebar();
     });
   });
@@ -934,10 +1067,41 @@ function initNav() {
   document.getElementById('request-towels-btn')?.addEventListener('click', () => sendServiceRequest('towels'));
   document.getElementById('request-roomservice-btn')?.addEventListener('click', () => sendServiceRequest('roomservice'));
 
-  // Onboarding: cerrar y no volver a mostrar para esta estadía
+  // Onboarding: al cerrar el mensaje de bienvenida, ofrecer el tutorial guiado
   document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
-    localStorage.setItem(`nexo_onboarded_${app.token || 'static'}`, '1');
     document.getElementById('onboarding-overlay')?.classList.add('hidden');
+    document.getElementById('tutorial-choice-overlay')?.classList.remove('hidden');
+  });
+
+  // El huésped ya sabe usar los controles smart: no mostrar el tutorial
+  document.getElementById('tutorial-skip-btn')?.addEventListener('click', () => {
+    document.getElementById('tutorial-choice-overlay')?.classList.add('hidden');
+    localStorage.setItem(`nexo_onboarded_${app.token || 'static'}`, '1');
+  });
+
+  // Iniciar el tutorial guiado paso a paso
+  document.getElementById('tutorial-start-btn')?.addEventListener('click', () => {
+    document.getElementById('tutorial-choice-overlay')?.classList.add('hidden');
+    startTutorial();
+  });
+
+  // Navegación y salida del tutorial guiado
+  document.getElementById('tutorial-exit-btn')?.addEventListener('click', endTutorial);
+  document.getElementById('tutorial-next')?.addEventListener('click', () => {
+    if (tutorialStep >= TUTORIAL_STEPS.length - 1) return endTutorial();
+    tutorialStep++;
+    showTutorialStep();
+  });
+  document.getElementById('tutorial-prev')?.addEventListener('click', () => {
+    if (tutorialStep === 0) return;
+    tutorialStep--;
+    showTutorialStep();
+  });
+  window.addEventListener('resize', () => {
+    if (document.getElementById('tutorial-overlay').classList.contains('hidden')) return;
+    const step = TUTORIAL_STEPS[tutorialStep];
+    const target = step?.selector();
+    if (target) positionTutorial(target, step);
   });
 
   // Acceso rápido al tema desde el encabezado (alterna claro/oscuro)
