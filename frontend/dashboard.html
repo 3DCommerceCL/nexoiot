@@ -269,13 +269,17 @@ select.form-input option{background:var(--card);color:var(--text)}
 @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
 
 /* ── RESPONSIVE ── */
+.sidebar-backdrop{display:none;position:fixed;inset:0;background:rgba(16,24,40,.45);z-index:150}
 @media(max-width:900px){
-  .sidebar{width:60px;min-width:60px}
-  .sidebar .sb-hotel,.sidebar .nav-label,.sidebar .sb-footer>*:not(.sb-status){display:none}
-  .sidebar .sb-logo{justify-content:center}
-  .sidebar .nav-item{padding:12px;justify-content:center}
-  .sidebar .sb-status span{display:none}
-  .sidebar .sb-status{justify-content:center}
+  .sidebar{position:fixed;top:0;left:0;height:100%;width:220px;min-width:220px;transform:translateX(-100%);transition:transform .25s;z-index:200;box-shadow:0 0 24px rgba(16,24,40,.25)}
+  .sidebar.collapsed{width:220px;min-width:220px}
+  .sidebar.collapsed .sb-hotel,.sidebar.collapsed .sb-logo span,.sidebar.collapsed .nav-label{display:block}
+  .sidebar.collapsed .sb-logo{justify-content:flex-start}
+  .sidebar.collapsed .nav-item{padding:10px 16px;justify-content:flex-start}
+  .sidebar.collapsed .sb-status span{display:inline}
+  .sidebar.collapsed .sb-status{justify-content:flex-start}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .sidebar-backdrop.show{display:block}
   .kpi-row{grid-template-columns:repeat(2,1fr)}
   .dev-grid{grid-template-columns:repeat(2,1fr)}
 }
@@ -351,6 +355,8 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="sb-version">Nexo IoT v1.0</div>
   </div>
 </aside>
+
+<div class="sidebar-backdrop" id="sidebar-backdrop"></div>
 
 <!-- MAIN -->
 <main class="main hidden" id="main">

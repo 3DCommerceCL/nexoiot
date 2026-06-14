@@ -691,6 +691,17 @@ function renderRooms(target = 'overview', filter = 'all') {
 const viewTitle = view =>
   ({ overview: dt('navOverview'), rooms: dt('navRooms'), settings: dt('navSettings') }[view] || view);
 
+// ── SIDEBAR MÓVIL (off-canvas) ───────────────────────────────────────────────
+function toggleMobileSidebar() {
+  $('sidebar').classList.toggle('mobile-open');
+  $('sidebar-backdrop').classList.toggle('show');
+}
+
+function closeMobileSidebar() {
+  $('sidebar').classList.remove('mobile-open');
+  $('sidebar-backdrop').classList.remove('show');
+}
+
 function navigate(view) {
   state.view = view;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
@@ -1464,12 +1475,21 @@ document.addEventListener('DOMContentLoaded', () => {
   $('btn-new-stay').addEventListener('click', () => openNewStayModal());
 
   $('sb-toggle').addEventListener('click', () => {
-    state.sidebarCollapsed = !state.sidebarCollapsed;
-    $('sidebar').classList.toggle('collapsed', state.sidebarCollapsed);
+    if (window.innerWidth <= 900) {
+      toggleMobileSidebar();
+    } else {
+      state.sidebarCollapsed = !state.sidebarCollapsed;
+      $('sidebar').classList.toggle('collapsed', state.sidebarCollapsed);
+    }
   });
 
+  $('sidebar-backdrop').addEventListener('click', () => closeMobileSidebar());
+
   document.querySelectorAll('.nav-item').forEach(el => {
-    el.addEventListener('click', () => navigate(el.dataset.view));
+    el.addEventListener('click', () => {
+      navigate(el.dataset.view);
+      closeMobileSidebar();
+    });
   });
 
   document.querySelectorAll('#filter-bar .filter-btn').forEach(btn => {
