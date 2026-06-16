@@ -13,8 +13,10 @@ const tuya      = require('./tuya');
 const rooms     = require('./rooms');
 const reservas  = require('./reservas');
 const bloqueos  = require('./bloqueos');
-const canales   = require('./canales');
-const cm        = require('./channel-manager');
+const canales       = require('./canales');
+const cm            = require('./channel-manager');
+const tarifas       = require('./tarifas');
+const bookingConfig = require('./booking-config');
 
 const app       = express();
 const PORT        = process.env.PORT      || 3000;
@@ -596,6 +598,28 @@ app.delete('/api/admin/reservas/:id', adminAuth, (req, res) => {
   res.json({ success: true });
 });
 
+// ── BOOKING ENGINE: GET /reservar/:slug ──────────────────────────────────────
+app.get('/reservar/:slug', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/booking-engine.html'));
+});
+
+// ── BOOKING ENGINE: GET /widget.js ────────────────────────────────────────────
+app.get('/widget.js', (_req, res) => {
+  res.set('Content-Type', 'application/javascript');
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.send(`(function(){
+    var el=document.getElementById('smartrooms-widget');
+    if(!el)return;
+    var slug=el.dataset.hotel;
+    var cfg=window.SMARTROOMS_CONFIG||{};
+    var iframe=document.createElement('iframe');
+    iframe.src='${HOTEL_URL}/reservar/'+slug;
+    iframe.style.cssText='border:none;width:100%;min-height:620px;border-radius:12px';
+    iframe.setAttribute('loading','lazy');
+    el.appendChild(iframe);
+  })();`);
+});
+
 // ── PUBLIC: GET /api/public/uf ────────────────────────────────────────────────
 app.get('/api/public/uf', (req, res) => {
   res.set('Cache-Control', 'public, max-age=3600');
@@ -636,19 +660,25 @@ app.get('/api/public/hotels/:slug/disponibilidad', publicLimiter, async (req, re
   if (!hotelData)
     return res.status(404).json({ error: 'Hotel no encontrado o reservas no disponibles en este canal', code: 'HOTEL_NOT_FOUND' });
 
-  // Habitaciones del hotel (excluir demo)
-  const allRooms = rooms.getRooms();
-  const hotelRooms = Object.entries(allRooms)
+  // Habitaciones del hotel (excluir demo; respetar rooms_visibles del booking config)
+  const bkConfig   = bookingConfig.getConfig(slug);
+  const allRooms   = rooms.getRooms();
+  let hotelRooms   = Object.entries(allRooms)
     .filter(([, r]) => r.hotelId === slug && r.demo !== true)
     .map(([id, r]) => ({ id, nombre: r.name, plan: r.plan || 'base' }));
 
-  // Reservas y bloqueos activos que se solapan con el rango
+  if (bkConfig.rooms_visibles?.length) {
+    hotelRooms = hotelRooms.filter(r => bkConfig.rooms_visibles.includes(r.id));
+  }
+
+  // Reservas, bloqueos y tarifas que se solapan con el rango
   const reservasActivas = reservas.getByHotel(slug, checkin, checkout)
     .filter(r => !['cancelled', 'checked_out'].includes(r.status));
   const bloqueosList = bloqueos.getBloqueosByHotelEnRango(slug, checkin, checkout);
+  const tarifasMap   = tarifas.getTarifasVigentes(slug, checkin, checkout);
 
   const roomsResult = hotelRooms.map(room => {
-    const estaOcupada  = reservasActivas.some(r => r.room_id === room.id);
+    const estaOcupada   = reservasActivas.some(r => r.room_id === room.id);
     const estaBloqueada = bloqueosList.some(b => b.room_id === room.id);
 
     if (estaOcupada || estaBloqueada) {
@@ -658,13 +688,21 @@ app.get('/api/public/hotels/:slug/disponibilidad', publicLimiter, async (req, re
       };
     }
 
-    // Tarifas disponibles después de implementar prompt 03
+    const tarifa    = tarifasMap.get(room.id) || tarifasMap.get('__gen__') || null;
+    const minNoches = tarifa?.min_noches || 1;
+    if (noches < minNoches) {
+      return { id: room.id, nombre: room.nombre, plan: room.plan, disponible: false, motivoBloqueo: `minimo_${minNoches}_noches` };
+    }
+
+    const precioUF = tarifa?.precio_uf || null;
     return {
-      id: room.id, nombre: room.nombre, plan: room.plan,
+      id:    room.id,
+      nombre: room.nombre,
+      plan:  room.plan,
       disponible: true,
-      precioPorNoche: null,
-      precioTotal:    null,
-      minNoches:      1,
+      precioPorNoche: precioUF ? { uf: precioUF, clp_referencial: Math.round(precioUF * valorUF) } : null,
+      precioTotal:    precioUF ? { uf: +(precioUF * noches).toFixed(2), clp_referencial: Math.round(precioUF * noches * valorUF) } : null,
+      minNoches,
     };
   });
 
@@ -679,6 +717,113 @@ app.get('/api/public/hotels/:slug/disponibilidad', publicLimiter, async (req, re
   res.set('X-Cache', 'MISS');
   res.set('Cache-Control', 'public, max-age=60');
   res.json(responseData);
+});
+
+// ── PUBLIC: GET /api/public/hotels/:slug/config ───────────────────────────────
+app.get('/api/public/hotels/:slug/config', (req, res) => {
+  const hotelData = rooms.getHotels()[req.params.slug];
+  if (!hotelData) return res.status(404).json({ error: 'Hotel no encontrado', code: 'HOTEL_NOT_FOUND' });
+  const cfg = bookingConfig.getConfig(req.params.slug);
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({
+    nombre:          hotelData.name,
+    location:        hotelData.location || null,
+    titulo:          cfg.titulo || `Reserva directa — ${hotelData.name}`,
+    colorPrimario:   cfg.color_primario,
+    colorSecundario: cfg.color_secundario,
+    logoUrl:         cfg.logo_url,
+    politicaCancel:  cfg.politica_cancel,
+    idiomas:         cfg.idiomas,
+    activo:          cfg.activo,
+  });
+});
+
+// ── PUBLIC: POST /api/public/hotels/:slug/reservas ────────────────────────────
+app.post('/api/public/hotels/:slug/reservas', publicLimiter, async (req, res) => {
+  const { slug } = req.params;
+  const hotelData = rooms.getHotels()[slug];
+  if (!hotelData) return res.status(404).json({ error: 'Hotel no encontrado', code: 'HOTEL_NOT_FOUND' });
+  if (!bookingConfig.isActivo(slug)) {
+    return res.status(403).json({ error: 'Reservas online no disponibles para este hotel', code: 'BOOKING_INACTIVE' });
+  }
+
+  const { roomId, guestName, guestEmail, guestPhone, checkin, checkout } = req.body;
+  if (!roomId || !guestName || !guestEmail || !checkin || !checkout) {
+    return res.status(400).json({ error: 'Faltan campos requeridos: roomId, guestName, guestEmail, checkin, checkout' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guestEmail)) {
+    return res.status(400).json({ error: 'Email inválido' });
+  }
+  if (checkin >= checkout) {
+    return res.status(400).json({ error: 'checkin debe ser anterior a checkout' });
+  }
+  const hoy = new Date().toISOString().slice(0, 10);
+  if (checkin < hoy) {
+    return res.status(400).json({ error: 'No se puede reservar en fechas pasadas' });
+  }
+
+  if (!reservas.checkDisponibilidad(roomId, checkin, checkout)) {
+    return res.status(409).json({ error: 'Habitación no disponible en esas fechas', code: 'UNAVAILABLE' });
+  }
+
+  const nueva = reservas.createReserva(slug, roomId, guestName, checkin, checkout, {
+    guestEmail, guestPhone: guestPhone || null, source: 'direct',
+  });
+
+  invalidarCacheDisponibilidad(slug);
+  cm.pushDisponibilidad(slug, roomId, checkin, checkout)
+    .catch(err => console.error('[cm] Push fallido tras reserva directa:', err.message));
+  // COMPLETAR: enviar email de confirmación al huésped (Resend o SendGrid)
+
+  res.status(201).json({
+    id:       nueva.id,
+    estado:   nueva.status,
+    checkin:  nueva.checkin,
+    checkout: nueva.checkout,
+    mensaje:  'Reserva confirmada.',
+  });
+});
+
+// ── ADMIN: GET /api/admin/tarifas ─────────────────────────────────────────────
+app.get('/api/admin/tarifas', adminAuth, (req, res) => {
+  const { hotel } = req.query;
+  if (!hotel) return res.status(400).json({ error: 'hotel requerido' });
+  res.json(tarifas.getByHotel(hotel));
+});
+
+// ── ADMIN: POST /api/admin/tarifas ────────────────────────────────────────────
+app.post('/api/admin/tarifas', adminAuth, (req, res) => {
+  const { hotelId, roomId, nombre, precioUF, desde, hasta, minNoches } = req.body;
+  if (!hotelId || !nombre || !precioUF || !desde || !hasta) {
+    return res.status(400).json({ error: 'Requeridos: hotelId, nombre, precioUF, desde, hasta' });
+  }
+  if (desde >= hasta) return res.status(400).json({ error: 'desde debe ser anterior a hasta' });
+  if (precioUF <= 0) return res.status(400).json({ error: 'precioUF debe ser mayor a 0' });
+  const t = tarifas.createTarifa(hotelId, roomId || null, nombre, precioUF, desde, hasta, minNoches || 1);
+  res.status(201).json(t);
+});
+
+// ── ADMIN: PATCH /api/admin/tarifas/:id ───────────────────────────────────────
+app.patch('/api/admin/tarifas/:id', adminAuth, (req, res) => {
+  if (!tarifas.getById(req.params.id)) return res.status(404).json({ error: 'Tarifa no encontrada' });
+  res.json(tarifas.updateTarifa(req.params.id, req.body));
+});
+
+// ── ADMIN: DELETE /api/admin/tarifas/:id ──────────────────────────────────────
+app.delete('/api/admin/tarifas/:id', adminAuth, (req, res) => {
+  if (!tarifas.deleteTarifa(req.params.id)) return res.status(404).json({ error: 'Tarifa no encontrada' });
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/booking-config/:hotelId ─────────────────────────────
+app.get('/api/admin/booking-config/:hotelId', adminAuth, (req, res) => {
+  res.json(bookingConfig.getConfig(req.params.hotelId));
+});
+
+// ── ADMIN: PUT /api/admin/booking-config/:hotelId ─────────────────────────────
+app.put('/api/admin/booking-config/:hotelId', adminAuth, (req, res) => {
+  const cfg = bookingConfig.upsertConfig(req.params.hotelId, req.body);
+  res.json(cfg);
 });
 
 // ── WEBHOOK: POST /api/webhook/reserva/:canalId ───────────────────────────────
