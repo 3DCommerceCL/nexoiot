@@ -1499,7 +1499,21 @@ async function submitNewStay() {
 }
 
 // ── CALENDARIO ────────────────────────────────────────────────────────────────
-let fcInstance = null;
+let fcInstance    = null;
+let occupancyMap  = new Map(); // clave: "roomId:YYYY-MM-DD" → reservaId
+
+function buildOccupancyMap(list) {
+  occupancyMap = new Map();
+  for (const r of list) {
+    if (r.status === 'cancelled' || r.status === 'checked_out') continue;
+    let d = new Date(r.checkin + 'T00:00:00');
+    const end = new Date(r.checkout + 'T00:00:00');
+    while (d < end) {
+      occupancyMap.set(`${r.room_id}:${d.toISOString().slice(0, 10)}`, r.id);
+      d.setDate(d.getDate() + 1);
+    }
+  }
+}
 
 function reservaToEvent(r) {
   const today = new Date().toISOString().slice(0, 10);
@@ -1536,12 +1550,25 @@ function initCalendar() {
         const from = info.startStr.slice(0, 10);
         const to   = info.endStr.slice(0, 10);
         const list = await apiFetch(`/admin/reservas?${hotelQs}from=${from}&to=${to}`);
+        buildOccupancyMap(list);
         success(list.map(reservaToEvent));
       } catch (e) { fail(e); }
     },
     editable: true,
-    eventResourceEditable: false,
     eventResizableFromStart: true,
+    eventAllow: (dropInfo, draggedEvent) => {
+      const newRoomId = dropInfo.resource?.id;
+      if (!newRoomId) return false;
+      let d = new Date(dropInfo.start);
+      const end = new Date(dropInfo.end);
+      while (d < end) {
+        const key     = `${newRoomId}:${d.toISOString().slice(0, 10)}`;
+        const blocked = occupancyMap.get(key);
+        if (blocked && blocked !== draggedEvent.id) return false;
+        d.setDate(d.getDate() + 1);
+      }
+      return true;
+    },
     expandRows: true,
     stickyHeaderDates: true,
     height: () => document.getElementById('fc-container').offsetHeight || 600,
