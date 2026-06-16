@@ -312,8 +312,10 @@ function getActiveTokenForRoom(roomId) {
   return candidates.length ? candidates[0][0] : null;
 }
 
-// ── SOLICITUDES DE SERVICIO (toallas/amenities, room service) ───────────────
-const REQUEST_TYPES = ['towels', 'roomservice'];
+// ── SOLICITUDES DE SERVICIO ───────────────────────────────────────────────────
+// towels/roomservice: amenities. cleaning: aseo. late_checkout: salida tardía.
+// maintenance/other: requieren note describiendo el problema o pedido.
+const REQUEST_TYPES = ['towels', 'roomservice', 'cleaning', 'late_checkout', 'maintenance', 'other'];
 
 function createRequest(token, type, note = '') {
   if (!REQUEST_TYPES.includes(type)) return null;
