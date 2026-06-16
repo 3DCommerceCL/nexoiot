@@ -43,8 +43,8 @@ window.openHotel = function(id) {
 };
 
 // ── NAVEGACIÓN ENTRE VISTAS ───────────────────────────────────────────────────
-const VIEW_TITLES = { hotels: 'Hoteles', analytics: 'Analíticas', channels: 'Canales OTA', booking: 'Motor de Reservas' };
-const ALL_VIEWS   = ['hotels', 'analytics', 'channels', 'booking'];
+const VIEW_TITLES = { hotels: 'Hoteles', analytics: 'Analíticas', channels: 'Canales OTA', booking: 'Motor de Reservas', pagos: 'Pagos' };
+const ALL_VIEWS   = ['hotels', 'analytics', 'channels', 'booking', 'pagos'];
 
 function setView(view) {
   document.querySelectorAll('.nav-item[data-view]').forEach(el =>
@@ -54,6 +54,7 @@ function setView(view) {
   if (view === 'analytics') renderAnalytics();
   if (view === 'channels')  initCanalView();
   if (view === 'booking')   initBookingView();
+  if (view === 'pagos')     initPagosView();
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
@@ -619,6 +620,82 @@ async function submitTarifa() {
   }
 }
 
+// ── PAGOS (historial de transacciones) ────────────────────────────────────────
+const TRANS_TIPO_LABEL   = { webpay: 'Tarjeta (Webpay)', mercadopago: 'Mercado Pago', efectivo: 'Efectivo', transferencia: 'Transferencia' };
+const TRANS_ESTADO_LABEL = { pendiente: 'Pendiente', aprobado: 'Aprobado', rechazado: 'Rechazado', anulado: 'Anulado' };
+
+function initPagosView() {
+  const sel = $('pg-hotel-filter');
+  const prevVal = sel.value;
+  sel.innerHTML = '<option value="">— Seleccionar hotel —</option>' +
+    hotels.map(h => `<option value="${h.id}">${h.name}</option>`).join('');
+  if (prevVal) sel.value = prevVal;
+  if (sel.value) loadTransacciones();
+}
+
+async function loadTransacciones() {
+  const hotelId = $('pg-hotel-filter').value;
+  if (!hotelId) { $('pg-list').innerHTML = ''; $('pg-kpi-row').innerHTML = ''; return; }
+
+  const desde = $('pg-desde').value;
+  const hasta = $('pg-hasta').value;
+  let qs = `?hotel=${encodeURIComponent(hotelId)}`;
+  if (desde) qs += `&desde=${desde}`;
+  if (hasta) qs += `&hasta=${hasta}`;
+
+  try {
+    const lista = await apiFetch(`/admin/transacciones${qs}`);
+    renderPagosKPI(lista);
+    renderPagosList(lista);
+  } catch (err) {
+    $('pg-list').innerHTML = `<div class="analytics-empty">Error: ${err.message}</div>`;
+  }
+}
+
+function renderPagosKPI(lista) {
+  const aprobadas  = lista.filter(t => t.estado === 'aprobado');
+  const totalCLP    = aprobadas.reduce((s, t) => s + t.monto_clp, 0);
+  const pendientes  = lista.filter(t => t.estado === 'pendiente').length;
+  const porTipo     = aprobadas.reduce((acc, t) => { acc[t.tipo] = (acc[t.tipo] || 0) + 1; return acc; }, {});
+  const tipoTop     = Object.entries(porTipo).sort((a, b) => b[1] - a[1])[0];
+
+  $('pg-kpi-row').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Total cobrado</div>
+      <div class="kpi-value">$${totalCLP.toLocaleString('es-CL')}</div>
+      <div class="kpi-sub">${aprobadas.length} transacciones aprobadas</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Pendientes</div>
+      <div class="kpi-value">${pendientes}</div>
+      <div class="kpi-sub">Esperando confirmación</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Medio más usado</div>
+      <div class="kpi-value" style="font-size:18px">${tipoTop ? (TRANS_TIPO_LABEL[tipoTop[0]] || tipoTop[0]) : '—'}</div>
+      <div class="kpi-sub">${tipoTop ? `${tipoTop[1]} cobros` : 'Sin datos'}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total transacciones</div>
+      <div class="kpi-value">${lista.length}</div>
+      <div class="kpi-sub">En el rango seleccionado</div>
+    </div>`;
+}
+
+function renderPagosList(lista) {
+  if (!lista.length) {
+    $('pg-list').innerHTML = '<div class="analytics-empty">Sin transacciones en este rango.</div>';
+    return;
+  }
+  $('pg-list').innerHTML = lista.map(t => `
+    <div class="mapping-row" style="margin-bottom:6px">
+      <span class="mapping-room" style="width:130px;flex:none">${TRANS_TIPO_LABEL[t.tipo] || t.tipo}</span>
+      <span class="mapping-ota" style="flex:1">${t.guest_name || 'Sin nombre'} · $${t.monto_clp.toLocaleString('es-CL')} CLP</span>
+      <span class="badge ${t.estado === 'aprobado' ? 'badge-active' : t.estado === 'pendiente' ? '' : 'badge-error'}" style="margin-right:8px">${TRANS_ESTADO_LABEL[t.estado] || t.estado}</span>
+      <span style="font-size:10px;color:var(--text3);white-space:nowrap">${new Date(t.created_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}</span>
+    </div>`).join('');
+}
+
 function startClock() {
   const DAYS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const MONTH = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -677,6 +754,10 @@ document.addEventListener('DOMContentLoaded', () => {
   $('tf-cancel').addEventListener('click', () => $('modal-tarifa').classList.remove('open'));
   $('tf-save').addEventListener('click', submitTarifa);
   $('modal-tarifa').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+
+  // Pagos
+  $('pg-hotel-filter').addEventListener('change', loadTransacciones);
+  $('pg-filtrar').addEventListener('click', loadTransacciones);
 
   if (getAdminKey()) {
     loadHotels()

@@ -204,6 +204,10 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
       <span class="nav-icon">🛒</span>
       <span class="nav-label">Motor Reservas</span>
     </div>
+    <div class="nav-item" data-view="pagos">
+      <span class="nav-icon">💳</span>
+      <span class="nav-label">Pagos</span>
+    </div>
     <div class="nav-item">
       <span class="nav-icon">⚙️</span>
       <span class="nav-label">Configuración</span>
@@ -300,6 +304,24 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
           </div>
           <div id="tarifas-list"></div>
         </div>
+      </div>
+    </div>
+
+    <div id="view-pagos" class="hidden">
+      <div class="canal-filter">
+        <select id="pg-hotel-filter">
+          <option value="">— Seleccionar hotel —</option>
+        </select>
+        <input class="form-input" id="pg-desde" type="date" style="max-width:160px">
+        <input class="form-input" id="pg-hasta" type="date" style="max-width:160px">
+        <button class="btn btn-outline btn-sm" id="pg-filtrar">Filtrar</button>
+      </div>
+      <div class="kpi-row" id="pg-kpi-row" style="margin-bottom:18px"></div>
+      <div class="analytics-card">
+        <div class="sec-header" style="margin-bottom:10px">
+          <span class="sec-title">Historial de transacciones</span>
+        </div>
+        <div id="pg-list"></div>
       </div>
     </div>
 
