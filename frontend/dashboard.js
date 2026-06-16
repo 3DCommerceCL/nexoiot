@@ -706,7 +706,7 @@ function renderRooms(target = 'overview', filter = 'all') {
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
 const viewTitle = view =>
-  ({ overview: dt('navOverview'), rooms: dt('navRooms'), settings: dt('navSettings') }[view] || view);
+  ({ overview: dt('navOverview'), rooms: dt('navRooms'), settings: dt('navSettings'), calendar: 'Calendario' }[view] || view);
 
 // ── SIDEBAR MÓVIL (off-canvas) ───────────────────────────────────────────────
 function toggleMobileSidebar() {
@@ -724,7 +724,9 @@ function navigate(view) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === `view-${view}`));
   $('page-title').textContent = viewTitle(view);
+  $('content').classList.toggle('cal-active', view === 'calendar');
   if (view === 'rooms') renderRooms('rooms', state.filter);
+  if (view === 'calendar') initCalendar();
 }
 
 // ── IDIOMA DEL PANEL ──────────────────────────────────────────────────────────
@@ -1496,6 +1498,203 @@ async function submitNewStay() {
   }
 }
 
+// ── CALENDARIO ────────────────────────────────────────────────────────────────
+let fcInstance = null;
+
+function reservaToEvent(r) {
+  const today = new Date().toISOString().slice(0, 10);
+  const isCoToday = r.checkout.slice(0, 10) === today;
+  return {
+    id: r.id,
+    resourceId: r.room_id,
+    title: r.guest_name,
+    start: r.checkin,
+    end: r.checkout,
+    classNames: ['ev-' + r.status, ...(isCoToday && r.status !== 'cancelled' ? ['ev-checkout-today'] : [])],
+    extendedProps: r,
+  };
+}
+
+function initCalendar() {
+  if (!window.FullCalendar) return;
+
+  if (fcInstance) {
+    fcInstance.updateSize();
+    return;
+  }
+
+  const container = $('fc-container');
+  const hotelId   = HOTEL_ID || rooms[0]?.hotel || '';
+  const hotelQs   = hotelId ? `hotel=${encodeURIComponent(hotelId)}&` : '';
+
+  fcInstance = new FullCalendar.Calendar(container, {
+    schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+    initialView: 'resourceTimelineWeek',
+    resources: rooms.map(r => ({ id: r.id, title: `${r.name} · P${r.floor}` })),
+    events: async (info, success, fail) => {
+      try {
+        const from = info.startStr.slice(0, 10);
+        const to   = info.endStr.slice(0, 10);
+        const list = await apiFetch(`/admin/reservas?${hotelQs}from=${from}&to=${to}`);
+        success(list.map(reservaToEvent));
+      } catch (e) { fail(e); }
+    },
+    editable: true,
+    eventResizableFromStart: true,
+    height: '100%',
+    resourceAreaHeaderContent: 'Habitación',
+    resourceAreaWidth: '150px',
+    headerToolbar: {
+      left:   'prev,next today',
+      center: 'title',
+      right:  'resourceTimelineWeek,resourceTimelineMonth',
+    },
+    buttonText: { today: 'Hoy', week: 'Semana', month: 'Mes' },
+    firstDay: 1,
+    eventDrop:   info => patchReservaDate(info),
+    eventResize: info => patchReservaDate(info),
+    dateClick: info => {
+      openReservaModal(null, { roomId: info.resource?.id, date: info.dateStr });
+    },
+    eventClick: info => {
+      openReservaModal(info.event.extendedProps);
+    },
+  });
+
+  fcInstance.render();
+}
+
+async function patchReservaDate(info) {
+  const ev   = info.event;
+  const body = {
+    checkin:  ev.startStr.slice(0, 10),
+    checkout: ev.endStr.slice(0, 10),
+    room_id:  ev.getResources()[0]?.id,
+  };
+  try {
+    await apiFetch(`/admin/reservas/${ev.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    info.revert();
+    showToast(err.message, 'error');
+  }
+}
+
+// Modal de reserva: null = nueva, objeto = edición
+function openReservaModal(reserva = null, prefill = {}) {
+  const isNew = !reserva;
+  $('rv-title').textContent    = isNew ? 'Nueva reserva' : `Reserva — ${reserva.guest_name}`;
+  $('rv-subtitle').textContent = isNew ? '' : `ID: ${reserva.id}`;
+
+  // Selector de habitaciones
+  const roomOpts = rooms.map(r =>
+    `<option value="${r.id}" ${(reserva?.room_id || prefill.roomId) === r.id ? 'selected' : ''}>${r.name} (P${r.floor})</option>`
+  ).join('');
+  $('rv-room').innerHTML = roomOpts;
+
+  // Campos
+  $('rv-guest').value    = reserva?.guest_name   || '';
+  $('rv-email').value    = reserva?.guest_email  || '';
+  $('rv-phone').value    = reserva?.guest_phone  || '';
+  $('rv-checkin').value  = (reserva?.checkin  || prefill.date || '').slice(0, 10);
+  $('rv-checkout').value = (reserva?.checkout || '').slice(0, 10);
+  $('rv-notes').value    = reserva?.notes        || '';
+  $('rv-error').textContent = '';
+
+  // Botones de estado (solo en edición)
+  const statusRow = $('rv-status-row');
+  const STATUSES  = [
+    { id: 'confirmed',   label: 'Confirmada' },
+    { id: 'pending',     label: 'Pendiente' },
+    { id: 'checked_in',  label: 'Check-in' },
+    { id: 'checked_out', label: 'Check-out' },
+  ];
+  if (!isNew) {
+    statusRow.innerHTML = STATUSES.map(s =>
+      `<button class="status-btn ${reserva.status === s.id ? 'active' : ''}" data-status="${s.id}">${s.label}</button>`
+    ).join('');
+    statusRow.querySelectorAll('.status-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        statusRow.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  } else {
+    statusRow.innerHTML = '';
+  }
+
+  // Guardar
+  const saveBtn = $('rv-save');
+  saveBtn.onclick = () => submitReservaModal(reserva?.id || null);
+
+  // Cancelar reserva (solo en edición)
+  const cancelBtn = $('rv-cancel-stay');
+  if (!isNew && reserva.status !== 'cancelled') {
+    cancelBtn.classList.remove('hidden');
+    cancelBtn.onclick = () => cancelReservaModal(reserva.id);
+  } else {
+    cancelBtn.classList.add('hidden');
+  }
+
+  $('modal-reserva').classList.remove('hidden');
+}
+
+async function submitReservaModal(existingId) {
+  const error    = $('rv-error');
+  error.textContent = '';
+  const guest    = $('rv-guest').value.trim();
+  const checkin  = $('rv-checkin').value;
+  const checkout = $('rv-checkout').value;
+  const roomId   = $('rv-room').value;
+
+  if (!guest || !checkin || !checkout) { error.textContent = 'Completa nombre, check-in y check-out.'; return; }
+  if (checkin >= checkout)             { error.textContent = 'El check-out debe ser posterior al check-in.'; return; }
+
+  const hotelId      = HOTEL_ID || rooms[0]?.hotel || '';
+  const activeStatus = $('rv-status-row').querySelector('.status-btn.active')?.dataset.status || 'confirmed';
+  const email        = $('rv-email').value.trim() || undefined;
+  const phone        = $('rv-phone').value.trim() || undefined;
+  const notes        = $('rv-notes').value.trim() || undefined;
+
+  // POST usa camelCase (así lo espera el backend); PATCH usa snake_case
+  const postBody = { hotelId, roomId, guestName: guest, guestEmail: email, guestPhone: phone, checkin, checkout, notes };
+  const patchBody = { room_id: roomId, guest_name: guest, guest_email: email, guest_phone: phone, checkin, checkout, notes, status: activeStatus };
+
+  const saveBtn = $('rv-save');
+  saveBtn.disabled = true;
+  saveBtn.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    if (existingId) {
+      await apiFetch(`/admin/reservas/${existingId}`, { method: 'PATCH', body: JSON.stringify(patchBody) });
+    } else {
+      await apiFetch('/admin/reservas', { method: 'POST', body: JSON.stringify(postBody) });
+    }
+    closeModal('modal-reserva');
+    if (fcInstance) fcInstance.refetchEvents();
+    showToast(existingId ? 'Reserva actualizada' : 'Reserva creada', 'success');
+  } catch (err) {
+    error.textContent = err.message;
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Guardar';
+  }
+}
+
+async function cancelReservaModal(id) {
+  if (!confirm('¿Cancelar esta reserva?')) return;
+  try {
+    await apiFetch(`/admin/reservas/${id}`, { method: 'DELETE' });
+    closeModal('modal-reserva');
+    if (fcInstance) fcInstance.refetchEvents();
+    showToast('Reserva cancelada', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
 // ── CLOCK ─────────────────────────────────────────────────────────────────────
 function startClock() {
   const update = () => {
@@ -1551,7 +1750,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRooms('rooms', state.filter);
   });
 
-  ['modal-room', 'modal-new-stay'].forEach(id => {
+  ['modal-room', 'modal-new-stay', 'modal-reserva'].forEach(id => {
     $(id).addEventListener('click', e => { if (e.target === $(id)) closeModal(id); });
   });
   document.addEventListener('keydown', e => {

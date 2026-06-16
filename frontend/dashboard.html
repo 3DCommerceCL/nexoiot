@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nexo IoT — Panel Hotel</title>
+<!-- FullCalendar Resource Timeline (cargado siempre, ~160 KB gzip) -->
+<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/main.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.15/main.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.15/main.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/resource-timeline@6.1.15/main.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/interaction@6.1.15/main.global.min.js"></script>
 <link rel="stylesheet" href="./theme.css">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -306,6 +312,46 @@ select.form-input option{background:var(--card);color:var(--text)}
   .modal{border-radius:0;max-height:100vh;height:100%}
   .modal-header,.modal-body{padding-left:16px;padding-right:16px}
 }
+
+/* ── CALENDARIO ── */
+.content.cal-active{padding:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
+#view-calendar{display:none;flex-direction:column;flex:1;overflow:hidden}
+#view-calendar.active{display:flex}
+#fc-container{flex:1;overflow:hidden;padding:0}
+/* Toolbar de FullCalendar: usar colores del proyecto */
+.fc .fc-toolbar{background:var(--header-grad);padding:10px 16px;border-radius:10px 10px 0 0;flex-wrap:wrap;gap:6px}
+.fc .fc-toolbar-title{color:#fff;font-size:14px;font-weight:600;font-family:var(--font)}
+.fc .fc-button{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:600;font-family:var(--font);text-transform:none;padding:5px 10px;border-radius:6px}
+.fc .fc-button:hover,.fc .fc-button:focus{background:rgba(255,255,255,.28);box-shadow:none}
+.fc .fc-button-active,.fc .fc-button-primary:not(:disabled).fc-button-active{background:rgba(255,255,255,.35);box-shadow:none}
+.fc .fc-button:disabled{opacity:.4}
+/* Recurso (habitación) en el sidebar del calendario */
+.fc .fc-resource-timeline-divider{background:var(--border)}
+.fc .fc-datagrid-cell-main{font-size:12px;font-weight:600;color:var(--text)}
+.fc td,.fc th{border-color:var(--border)}
+.fc .fc-scrollgrid{border-color:var(--border)}
+.fc .fc-timeline-slot-frame{background:var(--bg)}
+.fc .fc-resource-timeline .fc-datagrid-body{background:var(--card)}
+/* Eventos por estado */
+.fc-event.ev-confirmed  {background:var(--teal)!important;border-color:var(--teal-d)!important}
+.fc-event.ev-pending    {background:var(--warn)!important;border-color:#d4890a!important;color:#1A1D24!important}
+.fc-event.ev-pending .fc-event-title{color:#1A1D24}
+.fc-event.ev-checked_in {background:#2563eb!important;border-color:#1d4ed8!important}
+.fc-event.ev-checked_out{background:var(--text3)!important;border-color:var(--text2)!important}
+.fc-event.ev-cancelled  {background:var(--alert)!important;border-color:#c0392b!important;opacity:.5}
+.fc-event.ev-checkout-today{box-shadow:0 0 0 2px var(--warn) inset!important}
+/* Hover tooltip en evento */
+.fc-event{cursor:pointer}
+/* Leyenda de estados */
+.cal-legend{display:flex;gap:14px;flex-wrap:wrap;padding:8px 16px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0}
+.cal-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
+.cal-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+/* Modal de reserva */
+.reserva-status-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.status-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all .15s}
+.status-btn:hover{color:var(--text);border-color:var(--text3)}
+.status-btn.active{background:var(--teal-l);color:var(--teal);border-color:var(--teal)}
 </style>
 </head>
 <body>
@@ -338,6 +384,10 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="nav-item" data-view="rooms">
       <span class="nav-icon">🏨</span>
       <span class="nav-label" data-i18n="navRooms">Habitaciones</span>
+    </div>
+    <div class="nav-item" data-view="calendar">
+      <span class="nav-icon">📅</span>
+      <span class="nav-label">Calendario</span>
     </div>
     <div class="nav-item" data-view="settings">
       <span class="nav-icon">⚙️</span>
@@ -398,6 +448,18 @@ select.form-input option{background:var(--card);color:var(--text)}
       <div class="floor-groups" id="room-grid-rooms"></div>
     </div>
 
+    <!-- VIEW: CALENDARIO -->
+    <div class="view" id="view-calendar">
+      <div class="cal-legend">
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--teal)"></div>Confirmada</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--warn)"></div>Pendiente</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#2563eb"></div>Check-in</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--text3)"></div>Check-out</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--alert);opacity:.5"></div>Cancelada</div>
+      </div>
+      <div id="fc-container"></div>
+    </div>
+
     <!-- VIEW: SETTINGS -->
     <div class="view" id="view-settings">
       <div class="settings-panel" style="max-width:480px">
@@ -444,6 +506,57 @@ select.form-input option{background:var(--card);color:var(--text)}
       <div class="modal-section" id="mr-activity-section">
         <div class="modal-section-title" data-i18n="activitySection">Actividad reciente</div>
         <div class="activity-log" id="activity-log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: RESERVA -->
+<div class="modal-overlay hidden" id="modal-reserva">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="rv-title">Reserva</div>
+        <div class="modal-subtitle" id="rv-subtitle"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-reserva')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="reserva-status-row" id="rv-status-row"></div>
+      <div class="form-grid" id="rv-form">
+        <div class="form-group">
+          <label class="form-label">Nombre huésped</label>
+          <input class="form-input" id="rv-guest" type="text" placeholder="Nombre completo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="rv-email" type="email" placeholder="correo@ejemplo.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono WhatsApp</label>
+          <input class="form-input" id="rv-phone" type="tel" placeholder="+56 9 1234 5678">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Habitación</label>
+          <select class="form-input" id="rv-room"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Check-in</label>
+          <input class="form-input" id="rv-checkin" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Check-out</label>
+          <input class="form-input" id="rv-checkout" type="date">
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Notas</label>
+          <input class="form-input" id="rv-notes" type="text" placeholder="Observaciones internas">
+        </div>
+      </div>
+      <div class="form-error" id="rv-error"></div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-primary" style="flex:1;padding:11px" id="rv-save">Guardar</button>
+        <button class="btn btn-danger-outline" id="rv-cancel-stay" style="padding:11px 14px">Cancelar reserva</button>
       </div>
     </div>
   </div>
