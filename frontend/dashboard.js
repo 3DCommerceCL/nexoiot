@@ -1540,6 +1540,7 @@ function initCalendar() {
       } catch (e) { fail(e); }
     },
     editable: true,
+    eventResourceEditable: false,
     eventResizableFromStart: true,
     expandRows: true,
     stickyHeaderDates: true,
