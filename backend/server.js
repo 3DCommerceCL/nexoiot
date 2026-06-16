@@ -17,6 +17,8 @@ const canales       = require('./canales');
 const cm            = require('./channel-manager');
 const tarifas       = require('./tarifas');
 const bookingConfig = require('./booking-config');
+const pagos         = require('./pagos');
+const transacciones = require('./transacciones');
 
 const app       = express();
 const PORT        = process.env.PORT      || 3000;
@@ -596,6 +598,130 @@ app.delete('/api/admin/reservas/:id', adminAuth, (req, res) => {
   cm.pushDisponibilidad(existing.hotel_id, existing.room_id, existing.checkin, existing.checkout)
     .catch(err => console.error('[cm] Push fallido tras cancelar reserva:', err.message));
   res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/reservas/:id/pago/webpay ───────────────────────────
+// Inicia un pago Webpay para una reserva desde el dashboard de recepción.
+app.post('/api/admin/reservas/:id/pago/webpay', adminAuth, async (req, res) => {
+  const reserva = reservas.getById(req.params.id);
+  if (!reserva) return res.status(404).json({ error: 'Reserva no encontrada' });
+  const { montoCLP } = req.body;
+  if (!montoCLP || montoCLP < 1) return res.status(400).json({ error: 'Monto inválido' });
+
+  const returnUrl = `${HOTEL_URL}/api/pagos/webpay-return`;
+  try {
+    const { token, url, buyOrder, sessionId } = await pagos.iniciarWebpay(montoCLP, returnUrl);
+    transacciones.createTransaccion({
+      reservaId: reserva.id, hotelId: reserva.hotel_id, tipo: 'webpay',
+      montoCLP, tokenWs: token, buyOrder, sessionId, guestName: reserva.guest_name,
+    });
+    res.json({ url, token });
+  } catch (err) {
+    res.status(500).json({ error: 'Error iniciando pago Webpay', detail: err.message });
+  }
+});
+
+// ── PAGOS: GET/POST /api/pagos/webpay-return ──────────────────────────────────
+// Transbank redirige aquí después del pago. En producción lo hace vía POST
+// (form submit con token_ws en el body); se acepta también GET por compatibilidad.
+// No requiere adminAuth — es el return URL público de Webpay.
+app.all('/api/pagos/webpay-return', express.urlencoded({ extended: true }), async (req, res) => {
+  const p = { ...req.query, ...req.body };
+  const { token_ws, TBK_TOKEN, TBK_ORDEN_COMPRA } = p;
+
+  if (TBK_TOKEN && !token_ws) {
+    const trans = transacciones.getByBuyOrder(TBK_ORDEN_COMPRA);
+    if (trans) transacciones.updateEstado(trans.id, 'rechazado', { motivo: 'cancelado_por_usuario' });
+    return res.redirect(`/dashboard.html?hotel=${trans?.hotel_id || ''}&pago=cancelado&reserva=${trans?.reserva_id || ''}`);
+  }
+  if (!token_ws) return res.redirect('/dashboard.html?pago=error');
+
+  try {
+    const response = await pagos.confirmarWebpay(token_ws);
+    const trans = transacciones.getByTokenWs(token_ws);
+    if (!trans) return res.redirect('/dashboard.html?pago=error');
+
+    const aprobado = response.response_code === 0;
+    transacciones.updateEstado(trans.id, aprobado ? 'aprobado' : 'rechazado', response);
+    res.redirect(`/dashboard.html?hotel=${trans.hotel_id}&pago=${aprobado ? 'aprobado' : 'rechazado'}&reserva=${trans.reserva_id || ''}`);
+  } catch (err) {
+    console.error('[webpay] Error en return:', err.message);
+    res.redirect('/dashboard.html?pago=error');
+  }
+});
+
+// ── ADMIN: POST /api/admin/reservas/:id/pago/link-mp ─────────────────────────
+// Genera un link de Mercado Pago para enviar al huésped por WhatsApp.
+app.post('/api/admin/reservas/:id/pago/link-mp', adminAuth, async (req, res) => {
+  const reserva = reservas.getById(req.params.id);
+  if (!reserva) return res.status(404).json({ error: 'Reserva no encontrada' });
+  const { montoCLP, descripcion } = req.body;
+  if (!montoCLP || montoCLP < 1) return res.status(400).json({ error: 'Monto inválido' });
+
+  try {
+    const { linkPago, preferenceId } = await pagos.crearLinkMP(
+      montoCLP, descripcion || `Alojamiento — ${reserva.guest_name}`, reserva.guest_email, reserva.id
+    );
+    transacciones.createTransaccion({
+      reservaId: reserva.id, hotelId: reserva.hotel_id, tipo: 'mercadopago',
+      montoCLP, mpPreferenceId: preferenceId, guestName: reserva.guest_name,
+    });
+    res.json({ linkPago });
+  } catch (err) {
+    res.status(500).json({ error: 'Error generando link de pago', detail: err.message });
+  }
+});
+
+// ── ADMIN: POST /api/admin/reservas/:id/pago/manual ───────────────────────────
+// Registrar pago en efectivo o transferencia bancaria (ya recibido).
+app.post('/api/admin/reservas/:id/pago/manual', adminAuth, (req, res) => {
+  const reserva = reservas.getById(req.params.id);
+  if (!reserva) return res.status(404).json({ error: 'Reserva no encontrada' });
+  const { montoCLP, tipo, referencia } = req.body;
+  if (!montoCLP || montoCLP < 1) return res.status(400).json({ error: 'Monto inválido' });
+  if (!['efectivo', 'transferencia'].includes(tipo)) {
+    return res.status(400).json({ error: 'tipo debe ser "efectivo" o "transferencia"' });
+  }
+  const t = transacciones.createTransaccion({
+    reservaId: reserva.id, hotelId: reserva.hotel_id, tipo, montoCLP,
+    estado: 'aprobado', detalle: { referencia }, guestName: reserva.guest_name,
+  });
+  res.status(201).json(t);
+});
+
+// ── WEBHOOK: POST /api/webhook/mercadopago ────────────────────────────────────
+// Mercado Pago notifica el resultado del pago. ACK inmediato, proceso async.
+app.post('/api/webhook/mercadopago', (req, res) => {
+  res.json({ received: true });
+  const { type, data } = req.body || {};
+  if (type !== 'payment' || !data?.id) return;
+
+  (async () => {
+    try {
+      const payment  = await pagos.consultarPagoMP(data.id);
+      const reservaId = payment.external_reference;
+      if (!reservaId) return;
+      const estado = payment.status === 'approved' ? 'aprobado' : payment.status === 'rejected' ? 'rechazado' : 'pendiente';
+      const trans = transacciones.getByReserva(reservaId).find(t => t.tipo === 'mercadopago' && t.estado === 'pendiente');
+      if (trans) transacciones.marcarPagoMP(trans.id, String(data.id), estado, payment);
+    } catch (err) {
+      console.error('[mp webhook] Error procesando pago:', err.message);
+    }
+  })();
+});
+
+// ── ADMIN: GET /api/admin/reservas/:id/transacciones ──────────────────────────
+app.get('/api/admin/reservas/:id/transacciones', adminAuth, (req, res) => {
+  if (!reservas.getById(req.params.id)) return res.status(404).json({ error: 'Reserva no encontrada' });
+  res.json(transacciones.getByReserva(req.params.id));
+});
+
+// ── ADMIN: GET /api/admin/transacciones ───────────────────────────────────────
+// ?hotel=<id>&desde=YYYY-MM-DD&hasta=YYYY-MM-DD
+app.get('/api/admin/transacciones', adminAuth, (req, res) => {
+  const { hotel, desde, hasta } = req.query;
+  if (!hotel) return res.status(400).json({ error: 'hotel requerido' });
+  res.json(transacciones.getByHotel(hotel, desde, hasta));
 });
 
 // ── BOOKING ENGINE: GET /reservar/:slug ──────────────────────────────────────
