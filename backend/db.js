@@ -39,6 +39,19 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_reservas_hotel ON reservas(hotel_id, checkin, checkout);
   CREATE INDEX IF NOT EXISTS idx_reservas_room  ON reservas(room_id,  checkin, checkout);
+
+  CREATE TABLE IF NOT EXISTS room_blocks (
+    id         TEXT PRIMARY KEY,
+    room_id    TEXT NOT NULL,
+    hotel_id   TEXT NOT NULL,
+    desde      DATE NOT NULL,
+    hasta      DATE NOT NULL,
+    motivo     TEXT,
+    notas      TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_blocks_room ON room_blocks(room_id, desde, hasta);
+  CREATE INDEX IF NOT EXISTS idx_blocks_hotel ON room_blocks(hotel_id, desde, hasta);
 `);
 
 console.log('[db] SQLite listo:', DB_PATH);
