@@ -1,5 +1,8 @@
 node_modules/
 .env
 *.log
+backend/data/nexo.db
+backend/data/nexo.db-shm
+backend/data/nexo.db-wal
 # tokens.json se incluye en git para el token de demo.
 # Los tokens de producción se crean vía API y viven en el filesystem de Railway.

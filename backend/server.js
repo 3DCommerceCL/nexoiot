@@ -11,6 +11,7 @@ const rateLimit = require('express-rate-limit');
 const path      = require('path');
 const tuya      = require('./tuya');
 const rooms     = require('./rooms');
+const reservas  = require('./reservas');
 
 const app       = express();
 const PORT        = process.env.PORT      || 3000;
@@ -478,6 +479,62 @@ app.get('/api/admin/requests', adminAuth, (req, res) => {
 app.post('/api/admin/requests/:id/resolve', adminAuth, (req, res) => {
   const ok = rooms.resolveRequest(req.params.id);
   if (!ok) return res.status(404).json({ error: 'Solicitud no encontrada' });
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/reservas ────────────────────────────────────────────
+// ?hotel=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD
+app.get('/api/admin/reservas', adminAuth, (req, res) => {
+  const { hotel, from, to } = req.query;
+  if (!hotel || !from || !to) {
+    return res.status(400).json({ error: 'Requeridos: hotel, from, to' });
+  }
+  res.json(reservas.getByHotel(hotel, from, to));
+});
+
+// ── ADMIN: POST /api/admin/reservas ──────────────────────────────────────────
+app.post('/api/admin/reservas', adminAuth, (req, res) => {
+  const { hotelId, roomId, guestName, checkin, checkout, guestEmail, guestPhone, notes, plan, source } = req.body;
+  if (!hotelId || !roomId || !guestName || !checkin || !checkout) {
+    return res.status(400).json({ error: 'Requeridos: hotelId, roomId, guestName, checkin, checkout' });
+  }
+  if (checkin >= checkout) {
+    return res.status(400).json({ error: 'checkin debe ser anterior a checkout' });
+  }
+  if (!reservas.checkDisponibilidad(roomId, checkin, checkout)) {
+    return res.status(409).json({ error: 'Habitación no disponible en esas fechas', code: 'ROOM_UNAVAILABLE' });
+  }
+  const r = reservas.createReserva(hotelId, roomId, guestName, checkin, checkout,
+    { guestEmail, guestPhone, notes, plan, source });
+  res.status(201).json(r);
+});
+
+// ── ADMIN: PATCH /api/admin/reservas/:id ─────────────────────────────────────
+app.patch('/api/admin/reservas/:id', adminAuth, (req, res) => {
+  const existing = reservas.getById(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Reserva no encontrada' });
+
+  const { checkin, checkout, room_id, status } = req.body;
+
+  // Si cambia fechas o habitación, verificar disponibilidad
+  const newCheckin  = checkin   || existing.checkin;
+  const newCheckout = checkout  || existing.checkout;
+  const newRoomId   = room_id   || existing.room_id;
+
+  if (checkin || checkout || room_id) {
+    if (!reservas.checkDisponibilidad(newRoomId, newCheckin, newCheckout, req.params.id)) {
+      return res.status(409).json({ error: 'Conflicto de disponibilidad', code: 'ROOM_UNAVAILABLE' });
+    }
+  }
+
+  const updated = reservas.updateReserva(req.params.id, req.body);
+  res.json(updated);
+});
+
+// ── ADMIN: DELETE /api/admin/reservas/:id ─────────────────────────────────────
+app.delete('/api/admin/reservas/:id', adminAuth, (req, res) => {
+  const ok = reservas.cancelReserva(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Reserva no encontrada' });
   res.json({ success: true });
 });
 
