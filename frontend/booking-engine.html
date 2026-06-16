@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reserva directa</title>
+<link rel="stylesheet" href="/theme.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+
+.be-header{padding:22px 24px 18px;background:var(--header-grad)}
+.be-header-inner{max-width:520px;margin:0 auto;display:flex;align-items:center;gap:14px}
+.be-logo{height:40px;width:auto;object-fit:contain;border-radius:6px}
+.be-hotel-name{font-size:18px;font-weight:700;color:#fff;line-height:1.2}
+.be-tagline{font-size:12px;color:rgba(255,255,255,.7);margin-top:3px}
+
+.be-wrap{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+
+.be-progress{display:flex;gap:5px;margin-bottom:22px}
+.be-dot{flex:1;height:4px;border-radius:2px;background:var(--border);transition:background .3s}
+.be-dot.active,.be-dot.done{background:var(--be-color,var(--teal))}
+
+.be-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:var(--shadow)}
+.be-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px}
+.be-sub{font-size:13px;color:var(--text2);margin-bottom:16px}
+
+.be-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.be-field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.be-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.be-input{padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:var(--font);width:100%;outline:none;transition:border-color .15s}
+.be-input:focus{border-color:var(--be-color,var(--teal))}
+
+.be-btn{display:block;width:100%;padding:13px;border-radius:9px;border:none;background:var(--be-color,var(--teal));color:#fff;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer;transition:opacity .15s;margin-top:6px}
+.be-btn:hover:not(:disabled){opacity:.88}
+.be-btn:disabled{opacity:.45;cursor:not-allowed}
+.be-btn-sec{background:transparent;border:2px solid var(--be-color,var(--teal));color:var(--be-color,var(--teal))}
+
+.be-err{font-size:13px;color:var(--alert);margin-top:6px;min-height:18px}
+
+/* Step 2: Room cards */
+.be-step2-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.be-step2-dates{font-size:13px;font-weight:600;color:var(--text)}
+.be-room{background:var(--card);border:1.5px solid var(--border);border-radius:12px;padding:15px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s,background .15s;box-shadow:var(--shadow)}
+.be-room:hover,.be-room.sel{border-color:var(--be-color,var(--teal))}
+.be-room.sel{background:rgba(0,157,113,.05)}
+.be-room-icon{width:46px;height:46px;border-radius:8px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.be-room-info{flex:1;min-width:0}
+.be-room-name{font-size:14px;font-weight:700;color:var(--text)}
+.be-room-plan{font-size:11px;color:var(--text2);margin-top:2px}
+.be-room-price{text-align:right;flex-shrink:0}
+.be-price-uf{font-size:16px;font-weight:700;color:var(--text)}
+.be-price-uf span{font-size:11px;font-weight:400;color:var(--text2)}
+.be-price-clp{font-size:11px;color:var(--text2)}
+.be-price-total{font-size:11px;color:var(--text2);margin-top:2px}
+.be-no-rooms{text-align:center;padding:28px 16px;color:var(--text2)}
+.be-no-rooms-icon{font-size:36px;margin-bottom:10px}
+
+/* Step 4: Pago */
+.be-pago{border:1.5px solid var(--border);border-radius:10px;padding:13px 15px;margin-bottom:10px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color .15s,background .15s}
+.be-pago:hover,.be-pago.sel{border-color:var(--be-color,var(--teal));background:rgba(0,157,113,.04)}
+.be-pago-icon{font-size:22px}
+.be-pago-title{font-size:14px;font-weight:600;color:var(--text)}
+.be-pago-desc{font-size:12px;color:var(--text2);margin-top:2px}
+.be-pago.disabled{opacity:.45;cursor:not-allowed}
+.be-cancel-policy{font-size:12px;color:var(--text2);background:var(--bg);border-radius:8px;padding:10px 13px;margin:10px 0;line-height:1.5}
+
+/* Step 5: Confirmación */
+.be-confirm-icon{font-size:44px;text-align:center;margin-bottom:14px}
+.be-confirm-id{font-family:monospace;font-size:13px;background:var(--bg);padding:8px 12px;border-radius:6px;text-align:center;color:var(--text2);margin:8px 0 14px}
+.be-summary{background:var(--bg);border-radius:8px;padding:10px 14px;margin-bottom:12px}
+.be-summary-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--border)}
+.be-summary-row:last-child{border-bottom:none}
+.be-summary-label{color:var(--text2)}
+.be-summary-value{font-weight:600;color:var(--text)}
+
+.be-loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:28px;color:var(--text2);font-size:14px}
+.be-spinner{width:22px;height:22px;border:3px solid var(--border);border-top-color:var(--be-color,var(--teal));border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hidden{display:none!important}
+@media(max-width:380px){.be-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header class="be-header" id="be-header">
+  <div class="be-header-inner">
+    <img class="be-logo hidden" id="be-logo" alt="Logo hotel">
+    <div>
+      <div class="be-hotel-name" id="be-hotel-name">Cargando…</div>
+      <div class="be-tagline">Reserva directa — mejor precio garantizado</div>
+    </div>
+  </div>
+</header>
+
+<div class="be-wrap">
+  <div class="be-progress">
+    <div class="be-dot active" id="d1"></div>
+    <div class="be-dot" id="d2"></div>
+    <div class="be-dot" id="d3"></div>
+    <div class="be-dot" id="d4"></div>
+    <div class="be-dot" id="d5"></div>
+  </div>
+
+  <!-- STEP 1: Fechas -->
+  <div id="s1">
+    <div class="be-card">
+      <div class="be-title">¿Cuándo te quedas?</div>
+      <div class="be-row">
+        <div class="be-field">
+          <span class="be-label">Check-in</span>
+          <input class="be-input" type="date" id="be-ci">
+        </div>
+        <div class="be-field">
+          <span class="be-label">Check-out</span>
+          <input class="be-input" type="date" id="be-co">
+        </div>
+      </div>
+      <div class="be-err" id="e1"></div>
+      <button class="be-btn" id="btn-buscar">Buscar habitaciones</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: Habitaciones -->
+  <div id="s2" class="hidden">
+    <div class="be-step2-header">
+      <span class="be-step2-dates" id="s2-dates"></span>
+      <button class="be-btn be-btn-sec" style="width:auto;padding:7px 14px;font-size:13px" id="btn-cambiar">Cambiar fechas</button>
+    </div>
+    <div id="rooms-list"></div>
+    <div class="be-err" id="e2"></div>
+  </div>
+
+  <!-- STEP 3: Datos huésped -->
+  <div id="s3" class="hidden">
+    <div class="be-card">
+      <div class="be-title">Tus datos</div>
+      <div class="be-field">
+        <span class="be-label">Nombre completo</span>
+        <input class="be-input" type="text" id="be-name" placeholder="Ej: María González" autocomplete="name">
+      </div>
+      <div class="be-field">
+        <span class="be-label">Email</span>
+        <input class="be-input" type="email" id="be-email" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="be-field">
+        <span class="be-label">Teléfono (opcional)</span>
+        <input class="be-input" type="tel" id="be-phone" placeholder="+56 9 XXXX XXXX" autocomplete="tel">
+      </div>
+      <div class="be-err" id="e3"></div>
+      <button class="be-btn" id="btn-continuar">Continuar al pago</button>
+      <button class="be-btn be-btn-sec" style="margin-top:8px" id="btn-volver-hab">Volver</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Pago -->
+  <div id="s4" class="hidden">
+    <div class="be-card">
+      <div class="be-title">¿Cómo quieres pagar?</div>
+      <div class="be-pago sel" id="pago-llegar">
+        <span class="be-pago-icon">🏨</span>
+        <div>
+          <div class="be-pago-title">Pagar al llegar</div>
+          <div class="be-pago-desc">Sin cargo ahora. Pagas en el hotel al hacer check-in.</div>
+        </div>
+      </div>
+      <div class="be-pago disabled" id="pago-webpay">
+        <span class="be-pago-icon">💳</span>
+        <div>
+          <div class="be-pago-title">Pagar con Transbank Webpay</div>
+          <div class="be-pago-desc">Próximamente disponible.</div>
+        </div>
+      </div>
+      <div class="be-cancel-policy" id="be-policy"></div>
+      <div class="be-err" id="e4"></div>
+      <button class="be-btn" id="btn-confirmar">Confirmar reserva</button>
+      <button class="be-btn be-btn-sec" style="margin-top:8px" id="btn-volver-datos">Volver</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: Confirmación -->
+  <div id="s5" class="hidden">
+    <div class="be-card" style="text-align:center">
+      <div class="be-confirm-icon">✅</div>
+      <div class="be-title">¡Reserva confirmada!</div>
+      <p class="be-sub">Guarda tu número de reserva:</p>
+      <div class="be-confirm-id" id="conf-id"></div>
+      <div class="be-summary" id="conf-summary"></div>
+      <p style="font-size:12px;color:var(--text2)">¿Dudas? Contacta directamente al hotel.</p>
+    </div>
+  </div>
+</div>
+
+<script src="/booking-engine.js"></script>
+</body>
+</html>
