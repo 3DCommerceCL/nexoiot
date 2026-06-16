@@ -85,6 +85,7 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .request-body{flex:1;min-width:0}
 .request-title{font-size:13px;font-weight:600;color:var(--text)}
 .request-sub{font-size:11px;color:var(--text2)}
+.request-note{font-size:12px;color:var(--text);background:var(--card2);border-radius:6px;padding:5px 8px;margin-top:5px;font-style:italic}
 .request-empty{font-size:12px;color:var(--text2);padding:10px 2px}
 .kpi-sub{font-size:11px;color:rgba(255,255,255,.65);margin-top:5px}
 
@@ -152,6 +153,40 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .modal-overlay.hidden{display:none}
 .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;width:100%;max-width:740px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(16,24,40,.18);animation:slideModal .2s ease}
 @keyframes slideModal{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.modal-field{display:flex;flex-direction:column;gap:5px;padding:0 24px;margin-bottom:14px}
+.modal-field:first-of-type{margin-top:20px}
+.modal-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;padding:0 24px 22px}
+.modal-error{font-size:12px;color:var(--alert);min-height:16px;padding:0 24px}
+.mapping-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;padding:0 24px}
+.mapping-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--card2);border-radius:7px;font-size:12px}
+.mapping-room{font-weight:600;color:var(--text);flex:1}
+.mapping-ota{color:var(--text2);flex:1}
+.mapping-del{background:none;border:none;color:var(--alert);cursor:pointer;font-size:14px;padding:2px 4px}
+.mapping-add-row{display:flex;gap:6px;margin-top:6px;padding:0 24px}
+.mapping-add-row input{flex:1;padding:6px 9px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-family:var(--font)}
+.modal-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin:20px 24px 4px;padding-top:0}
+.modal-tab{padding:7px 14px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font)}
+.modal-tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── CANALES / MOTOR RESERVAS / PAGOS (vistas owner) ── */
+.canal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.canal-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow)}
+.canal-card.canal-error{border-color:var(--alert)}
+.canal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.canal-name{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
+.badge-active{background:var(--teal-l);color:var(--teal)}
+.badge-error{background:rgba(192,57,43,.12);color:var(--alert)}
+.badge-inactive{background:var(--border);color:var(--text3)}
+.canal-sync{font-size:11px;color:var(--text2)}
+.canal-sync.has-error{color:var(--alert)}
+.canal-mappings{font-size:11px;color:var(--text2)}
+.canal-actions{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.canal-filter{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.analytics-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:20px;box-shadow:var(--shadow)}
+.analytics-empty{font-size:12px;color:var(--text2);padding:6px 0}
 .modal-header{display:flex;align-items:flex-start;justify-content:space-between;padding:22px 24px 0;gap:16px}
 .modal-title{font-size:16px;font-weight:700;color:var(--text)}
 .modal-subtitle{font-size:12px;color:var(--text2);margin-top:3px}
@@ -374,8 +409,9 @@ select.form-input option{background:var(--card);color:var(--text)}
 <div class="login-overlay" id="login-screen">
   <div class="login-card">
     <div class="sb-logo"><div class="sb-logo-dot"></div><span style="font-size:15px">Nexo IoT</span></div>
-    <p class="login-desc" data-i18n="loginDesc">Ingresa la clave de acceso entregada por Nexo IoT para administrar las habitaciones del hotel.</p>
-    <input class="form-input" type="password" id="login-key" placeholder="Clave de acceso" autocomplete="current-password">
+    <p class="login-desc" data-i18n="loginDesc">Ingresa tu email y contraseña para administrar las habitaciones del hotel.</p>
+    <input class="form-input" type="email" id="login-email" placeholder="Email" autocomplete="username">
+    <input class="form-input" type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password">
     <button class="btn btn-primary" style="width:100%;padding:11px" id="login-btn" data-i18n="loginBtn">Ingresar</button>
     <div class="form-error" id="login-error"></div>
   </div>
@@ -402,6 +438,18 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="nav-item" data-view="calendar">
       <span class="nav-icon">📅</span>
       <span class="nav-label">Calendario</span>
+    </div>
+    <div class="nav-item" data-view="channels" data-role="owner">
+      <span class="nav-icon">🔗</span>
+      <span class="nav-label">Canales OTA</span>
+    </div>
+    <div class="nav-item" data-view="booking" data-role="owner">
+      <span class="nav-icon">🛒</span>
+      <span class="nav-label">Motor Reservas</span>
+    </div>
+    <div class="nav-item" data-view="pagos" data-role="owner">
+      <span class="nav-icon">💳</span>
+      <span class="nav-label">Pagos</span>
     </div>
     <div class="nav-item" data-view="settings">
       <span class="nav-icon">⚙️</span>
@@ -472,6 +520,88 @@ select.form-input option{background:var(--card);color:var(--text)}
         <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--alert);opacity:.5"></div>Cancelada</div>
       </div>
       <div id="fc-container"></div>
+    </div>
+
+    <!-- VIEW: CANALES OTA (solo owner/superadmin) -->
+    <div class="view" id="view-channels">
+      <div class="sec-header">
+        <span class="sec-title">Canales de distribución</span>
+        <button class="btn btn-primary btn-sm" id="btn-add-canal">+ Agregar canal</button>
+      </div>
+      <div class="canal-grid" id="canal-grid"></div>
+    </div>
+
+    <!-- VIEW: MOTOR DE RESERVAS (solo owner/superadmin) -->
+    <div class="view" id="view-booking">
+      <div class="analytics-card" style="margin-bottom:14px">
+        <div class="sec-header" style="margin-bottom:10px">
+          <span class="sec-title">Configuración del motor de reservas</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="bk-activo"> Activo
+            </label>
+            <button class="btn btn-primary btn-sm" id="bk-save">Guardar</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group full">
+            <label class="form-label">Título en el widget</label>
+            <input class="form-input" id="bk-titulo" placeholder="Reserva directa — Hotel Pacífico Suites">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Color primario</label>
+            <input class="form-input" id="bk-color1" type="color" style="height:38px;padding:4px 8px">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Color secundario</label>
+            <input class="form-input" id="bk-color2" type="color" style="height:38px;padding:4px 8px">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">URL del logo</label>
+            <input class="form-input" id="bk-logo" placeholder="https://... (JPG o PNG)">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Política de cancelación</label>
+            <input class="form-input" id="bk-policy" placeholder="Cancelación gratuita hasta 24 horas antes…">
+          </div>
+        </div>
+        <div class="form-error" id="bk-save-err"></div>
+      </div>
+
+      <div class="analytics-card" style="margin-bottom:14px">
+        <div class="sec-header" style="margin-bottom:10px">
+          <span class="sec-title">Código de embed</span>
+          <button class="btn btn-outline btn-sm" id="bk-copy">Copiar código</button>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:6px">URL directa:</div>
+        <div id="bk-direct-url" style="font-family:monospace;font-size:12px;color:var(--purple);padding:8px;background:var(--card2);border-radius:6px;margin-bottom:10px;word-break:break-all"></div>
+        <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Widget embebible (pegar en el sitio del hotel):</div>
+        <pre id="bk-embed-code" style="font-size:11px;background:var(--card2);padding:10px;border-radius:6px;overflow-x:auto;color:var(--text2);line-height:1.6"></pre>
+      </div>
+
+      <div class="analytics-card">
+        <div class="sec-header" style="margin-bottom:10px">
+          <span class="sec-title">Tarifas</span>
+          <button class="btn btn-primary btn-sm" id="bk-add-tarifa">+ Agregar tarifa</button>
+        </div>
+        <div id="tarifas-list"></div>
+      </div>
+    </div>
+
+    <!-- VIEW: PAGOS (solo owner/superadmin) -->
+    <div class="view" id="view-pagos">
+      <div class="canal-filter">
+        <input class="form-input" id="pg-desde" type="date" style="max-width:160px">
+        <input class="form-input" id="pg-hasta" type="date" style="max-width:160px">
+        <button class="btn btn-outline btn-sm" id="pg-filtrar">Filtrar</button>
+      </div>
+      <div class="kpi-row" id="pg-kpi-row" style="margin-bottom:18px"></div>
+      <div class="analytics-card">
+        <div class="sec-header" style="margin-bottom:10px">
+          <span class="sec-title">Historial de transacciones</span>
+        </div>
+        <div id="pg-list"></div>
+      </div>
     </div>
 
     <!-- VIEW: SETTINGS -->
@@ -610,6 +740,110 @@ select.form-input option{background:var(--card);color:var(--text)}
     </div>
     <div class="modal-body" id="new-stay-body">
       <div id="new-stay-form-wrap"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Agregar canal OTA -->
+<div class="modal-overlay hidden" id="modal-add-canal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">Agregar canal OTA</div>
+      <button class="modal-close" onclick="closeModal('modal-add-canal')">✕</button>
+    </div>
+    <div class="modal-field" style="margin-top:0">
+      <span class="modal-label">Canal</span>
+      <select class="form-input" id="ac-nombre">
+        <option value="booking">Booking.com</option>
+        <option value="airbnb">Airbnb</option>
+        <option value="expedia">Expedia</option>
+        <option value="despegar">Despegar.com</option>
+        <option value="directo">Reserva directa (web propia)</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Property ID en SiteMinder</span>
+      <input class="form-input" id="ac-property-id" placeholder="ej: HOTEL123 (obtener en SiteMinder)">
+    </div>
+    <div class="modal-error" id="ac-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="ac-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="ac-save">Agregar canal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Configurar canal (mapeos + sync log) -->
+<div class="modal-overlay hidden" id="modal-canal-config">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <div class="modal-title" id="cc-title">Configurar canal</div>
+      <button class="modal-close" onclick="closeModal('modal-canal-config')">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-tab="mappings">Habitaciones</button>
+      <button class="modal-tab" data-tab="log">Log de sync</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-mappings">
+      <div class="modal-label" style="padding:0 24px;margin-bottom:8px">Mapeo habitación local → ID en OTA</div>
+      <div class="mapping-list" id="mapping-list"></div>
+      <div class="mapping-add-row" style="margin-top:10px">
+        <select id="map-room-id" class="form-input" style="flex:1;padding:6px 8px;font-size:12px"></select>
+        <input id="map-ota-room-id" placeholder="ID hab OTA" style="flex:1">
+        <input id="map-ota-rate-id" placeholder="ID tarifa (opcional)" style="flex:1">
+        <button class="btn btn-primary btn-sm" id="btn-add-mapping">+</button>
+      </div>
+      <div class="modal-error" id="map-error"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-log">
+      <div class="mapping-list" id="sync-log-list" style="max-height:280px"></div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:8px">
+      <button class="btn btn-outline" id="cc-close">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Agregar tarifa -->
+<div class="modal-overlay hidden" id="modal-tarifa">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">Agregar tarifa</div>
+      <button class="modal-close" onclick="closeModal('modal-tarifa')">✕</button>
+    </div>
+    <div class="modal-field" style="margin-top:0">
+      <span class="modal-label">Habitación (dejar vacío = todas)</span>
+      <select class="form-input" id="tf-room"><option value="">Todas las habitaciones</option></select>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Nombre de la tarifa</span>
+      <input class="form-input" id="tf-nombre" placeholder="Tarifa base / Temporada alta">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Precio por noche (UF)</span>
+      <input class="form-input" id="tf-precio" type="number" step="0.01" min="0.1" placeholder="Ej: 2.5">
+    </div>
+    <div class="modal-field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <span class="modal-label">Desde</span>
+        <input class="form-input" id="tf-desde" type="date">
+      </div>
+      <div>
+        <span class="modal-label">Hasta</span>
+        <input class="form-input" id="tf-hasta" type="date">
+      </div>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Mínimo de noches</span>
+      <input class="form-input" id="tf-min" type="number" min="1" value="1">
+    </div>
+    <div class="modal-error" id="tf-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="tf-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="tf-save">Agregar tarifa</button>
     </div>
   </div>
 </div>

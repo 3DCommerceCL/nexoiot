@@ -7,8 +7,8 @@
 
 const API_URL      = 'https://nexoiot-production.up.railway.app/api';
 const FRONTEND_URL = 'https://3dcommercecl.github.io/nexoiot';
-const KEY_STORAGE  = 'nexo_admin_key';
-const HOTEL_ID     = new URLSearchParams(location.search).get('hotel');
+const SESSION_STORAGE = 'nexo_session'; // { token, rol, hotelId, nombre, email }
+let HOTEL_ID = null; // se fija tras login: hotelId de la sesión (owner/recepcion) o ?hotel= de la URL (superadmin)
 
 const $ = id => document.getElementById(id);
 
@@ -65,6 +65,10 @@ const DT = {
     requestsTitle: 'Solicitudes de huéspedes',
     requestTowels: 'Toallas / amenities',
     requestRoomService: 'Room service',
+    requestCleaning: 'Limpieza',
+    requestLateCheckout: 'Late checkout',
+    requestMaintenance: 'Reporte de problema',
+    requestOther: 'Otra solicitud',
     requestSub: 'Hab {room} · {guest} · {time}',
     requestResolveBtn: 'Resuelto ✓',
     requestResolved: 'Solicitud marcada como resuelta',
@@ -185,6 +189,10 @@ const DT = {
     requestsTitle: 'Guest requests',
     requestTowels: 'Towels / amenities',
     requestRoomService: 'Room service',
+    requestCleaning: 'Housekeeping',
+    requestLateCheckout: 'Late checkout',
+    requestMaintenance: 'Issue report',
+    requestOther: 'Other request',
     requestSub: 'Room {room} · {guest} · {time}',
     requestResolveBtn: 'Resolved ✓',
     requestResolved: 'Request marked as resolved',
@@ -305,6 +313,10 @@ const DT = {
     requestsTitle: 'Solicitações dos hóspedes',
     requestTowels: 'Toalhas / amenities',
     requestRoomService: 'Room service',
+    requestCleaning: 'Limpeza',
+    requestLateCheckout: 'Late checkout',
+    requestMaintenance: 'Relato de problema',
+    requestOther: 'Outra solicitação',
     requestSub: 'Quarto {room} · {guest} · {time}',
     requestResolveBtn: 'Resolvido ✓',
     requestResolved: 'Solicitação marcada como resolvida',
@@ -437,9 +449,13 @@ const state = {
 let rooms = []; // [{ id, name, hotel, floor, guest: {...} | null }]
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
-function getAdminKey() { return sessionStorage.getItem(KEY_STORAGE) || ''; }
+function getSession() {
+  try { return JSON.parse(sessionStorage.getItem(SESSION_STORAGE) || 'null'); }
+  catch { return null; }
+}
+function getToken() { return getSession()?.token || ''; }
 
-const apiFetch = createApiFetch(API_URL, () => ({ 'X-Admin-Key': getAdminKey() }));
+const apiFetch = createApiFetch(API_URL, () => ({ 'Authorization': `Bearer ${getToken()}` }));
 
 function toLocalInputValue(date) {
   const pad = n => String(n).padStart(2, '0');
@@ -467,30 +483,55 @@ window.closeModal = function(id) {
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 async function login() {
-  const key   = $('login-key').value.trim();
-  const error = $('login-error');
+  const email    = $('login-email').value.trim();
+  const password = $('login-password').value;
+  const error    = $('login-error');
   error.textContent = '';
-  if (!key) { error.textContent = dt('loginErrEmpty'); return; }
+  if (!email || !password) { error.textContent = dt('loginErrEmpty'); return; }
 
-  sessionStorage.setItem(KEY_STORAGE, key);
   try {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || 'Error de autenticación');
+
+    sessionStorage.setItem(SESSION_STORAGE, JSON.stringify(body));
+    HOTEL_ID = body.rol === 'superadmin'
+      ? new URLSearchParams(location.search).get('hotel')
+      : body.hotelId;
+
+    applyRoleVisibility(body.rol);
     await loadRooms();
     $('login-screen').classList.add('hidden');
     $('sidebar').classList.remove('hidden');
     $('main').classList.remove('hidden');
     loadRequests();
   } catch (err) {
-    sessionStorage.removeItem(KEY_STORAGE);
-    error.textContent = dt('loginErrBad');
+    sessionStorage.removeItem(SESSION_STORAGE);
+    error.textContent = err.message || dt('loginErrBad');
   }
 }
 
+function applyRoleVisibility(rol) {
+  const fullAccess = rol === 'owner' || rol === 'superadmin';
+  document.querySelectorAll('.nav-item[data-role]').forEach(el => {
+    el.classList.toggle('hidden', !fullAccess);
+  });
+  const back = $('back-to-nexo');
+  if (back) back.classList.toggle('hidden', rol !== 'superadmin');
+}
+
 function logout() {
-  sessionStorage.removeItem(KEY_STORAGE);
+  apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+  sessionStorage.removeItem(SESSION_STORAGE);
   $('sidebar').classList.add('hidden');
   $('main').classList.add('hidden');
   $('login-screen').classList.remove('hidden');
-  $('login-key').value = '';
+  $('login-email').value = '';
+  $('login-password').value = '';
 }
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
@@ -505,8 +546,6 @@ async function loadRooms() {
     return numA - numB;
   });
   $('hotel-name').textContent = rooms[0]?.hotel || 'Panel del Hotel';
-  const back = $('back-to-nexo');
-  if (back) back.classList.toggle('hidden', !HOTEL_ID);
   renderKPIs();
   renderRooms('overview');
   if (state.view === 'rooms') renderRooms('rooms', state.filter);
@@ -525,7 +564,11 @@ async function loadRequests() {
   renderRequests();
 }
 
-const REQUEST_ICONS = { towels: '🧺', roomservice: '🍽' };
+const REQUEST_ICONS = { towels: '🧺', roomservice: '🍽', cleaning: '🧹', late_checkout: '🕐', maintenance: '🔧', other: '💬' };
+const REQUEST_TITLE_KEY = {
+  towels: 'requestTowels', roomservice: 'requestRoomService', cleaning: 'requestCleaning',
+  late_checkout: 'requestLateCheckout', maintenance: 'requestMaintenance', other: 'requestOther',
+};
 
 function timeAgo(iso) {
   const mins = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
@@ -545,8 +588,9 @@ function renderRequests() {
     <div class="request-item" id="req-${r.id}">
       <span class="request-ico">${REQUEST_ICONS[r.type] || '🔔'}</span>
       <div class="request-body">
-        <div class="request-title">${dt(r.type === 'roomservice' ? 'requestRoomService' : 'requestTowels')}</div>
+        <div class="request-title">${dt(REQUEST_TITLE_KEY[r.type] || 'requestOther')}</div>
         <div class="request-sub">${dt('requestSub', { room: r.roomName, guest: r.guestName, time: timeAgo(r.createdAt) })}</div>
+        ${r.note ? `<div class="request-note">${r.note}</div>` : ''}
       </div>
       <button class="btn btn-sm btn-outline-teal" onclick="resolveRequest('${r.id}')">${dt('requestResolveBtn')}</button>
     </div>`).join('');
@@ -706,7 +750,10 @@ function renderRooms(target = 'overview', filter = 'all') {
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
 const viewTitle = view =>
-  ({ overview: dt('navOverview'), rooms: dt('navRooms'), settings: dt('navSettings'), calendar: 'Calendario' }[view] || view);
+  ({
+    overview: dt('navOverview'), rooms: dt('navRooms'), settings: dt('navSettings'), calendar: 'Calendario',
+    channels: 'Canales OTA', booking: 'Motor de Reservas', pagos: 'Pagos',
+  }[view] || view);
 
 // ── SIDEBAR MÓVIL (off-canvas) ───────────────────────────────────────────────
 function toggleMobileSidebar() {
@@ -727,6 +774,9 @@ function navigate(view) {
   $('content').classList.toggle('cal-active', view === 'calendar');
   if (view === 'rooms') renderRooms('rooms', state.filter);
   if (view === 'calendar') initCalendar();
+  if (view === 'channels') loadCanales();
+  if (view === 'booking') loadBookingConfig();
+  if (view === 'pagos') loadTransacciones();
 }
 
 // ── IDIOMA DEL PANEL ──────────────────────────────────────────────────────────
@@ -741,8 +791,6 @@ function applyDashLang() {
   document.documentElement.lang = dashLang;
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = dt(el.dataset.i18n); });
   document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = dt(el.dataset.i18nPlaceholder); });
-  const loginKey = $('login-key');
-  if (loginKey) loginKey.placeholder = dt('loginPh');
   $('page-title').textContent = viewTitle(state.view);
   const sel = $('panel-lang-select');
   if (sel) sel.value = dashLang;
@@ -1867,6 +1915,397 @@ function checkPagoReturn() {
 }
 
 // ── CLOCK ─────────────────────────────────────────────────────────────────────
+// ── CANALES OTA (vista owner — hotel fijo = HOTEL_ID) ────────────────────────
+const CANAL_ICONS = { booking: '🏨', airbnb: '🏡', expedia: '✈️', despegar: '🌎', directo: '🔗' };
+const CANAL_NAMES = { booking: 'Booking.com', airbnb: 'Airbnb', expedia: 'Expedia', despegar: 'Despegar.com', directo: 'Reserva directa' };
+let currentCanalId = null;
+
+function syncAge(iso) {
+  if (!iso) return 'Nunca sincronizado';
+  const diff = Date.now() - new Date(iso).getTime();
+  if (diff < 60000) return 'hace menos de 1 min';
+  if (diff < 3600000) return `hace ${Math.round(diff / 60000)} min`;
+  if (diff < 86400000) return `hace ${Math.round(diff / 3600000)} h`;
+  return `hace ${Math.round(diff / 86400000)} d`;
+}
+
+async function loadCanales() {
+  if (!HOTEL_ID) return;
+  try {
+    const lista = await apiFetch(`/admin/canales?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    renderCanales(lista);
+  } catch (err) {
+    showToast('Error cargando canales: ' + err.message, 'error');
+  }
+}
+
+function renderCanales(lista) {
+  if (!lista.length) {
+    $('canal-grid').innerHTML = '<div class="form-note">Sin canales configurados. Haz clic en "Agregar canal" para conectar una OTA.</div>';
+    return;
+  }
+  $('canal-grid').innerHTML = lista.map(c => {
+    const lastSync = c.syncStatus;
+    const hasError = lastSync?.status === 'error';
+    const statusBadge = !c.activo
+      ? '<span class="badge badge-inactive">Inactivo</span>'
+      : hasError
+        ? '<span class="badge badge-error">Error sync</span>'
+        : '<span class="badge badge-active">Activo</span>';
+    return `
+    <div class="canal-card${hasError ? ' canal-error' : ''}">
+      <div class="canal-top">
+        <div class="canal-name">${CANAL_ICONS[c.nombre] || '🔗'} ${CANAL_NAMES[c.nombre] || c.nombre}</div>
+        ${statusBadge}
+      </div>
+      <div class="canal-sync${hasError ? ' has-error' : ''}">
+        Última sync: ${syncAge(lastSync?.created_at)}
+        ${hasError ? `<br><span style="color:var(--alert)">${lastSync.error || 'Error desconocido'}</span>` : ''}
+      </div>
+      <div class="canal-mappings">${c.mappings} habitación${c.mappings !== 1 ? 'es' : ''} mapeada${c.mappings !== 1 ? 's' : ''}</div>
+      <div class="canal-actions">
+        <button class="btn btn-outline btn-sm" onclick="syncNow('${c.id}', this)">↻ Sync</button>
+        <button class="btn btn-outline btn-sm" onclick="openCanalConfig('${c.id}', '${c.nombre}')">Configurar</button>
+        <button class="btn btn-outline btn-sm" onclick="toggleCanal('${c.id}', ${c.activo})">${c.activo ? 'Desactivar' : 'Activar'}</button>
+        <button class="btn btn-outline btn-sm" style="color:var(--alert)" onclick="deleteCanal('${c.id}', '${CANAL_NAMES[c.nombre] || c.nombre}')">Eliminar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.syncNow = async function(canalId, btn) {
+  const prev = btn.textContent;
+  btn.textContent = '…';
+  btn.disabled = true;
+  try {
+    const r = await apiFetch(`/admin/canales/${canalId}/sync-now`, { method: 'POST' });
+    showToast(`Sync completado: ${r.mapeadas} hab. actualizadas (${r.desde} → ${r.hasta})`, 'success');
+    await loadCanales();
+  } catch (err) {
+    showToast('Error en sync: ' + err.message, 'error');
+  } finally {
+    btn.textContent = prev;
+    btn.disabled = false;
+  }
+};
+
+window.toggleCanal = async function(canalId, activo) {
+  try {
+    await apiFetch(`/admin/canales/${canalId}`, { method: 'PATCH', body: JSON.stringify({ activo: activo ? 0 : 1 }) });
+    await loadCanales();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.deleteCanal = async function(canalId, nombre) {
+  if (!confirm(`¿Eliminar canal "${nombre}"? También se borrarán todos sus mapeos de habitaciones.`)) return;
+  try {
+    await apiFetch(`/admin/canales/${canalId}`, { method: 'DELETE' });
+    showToast('Canal eliminado', 'success');
+    await loadCanales();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+function openAddCanalModal() {
+  $('ac-property-id').value = '';
+  $('ac-error').textContent = '';
+  $('modal-add-canal').classList.remove('hidden');
+}
+
+async function submitAddCanal() {
+  const nombre     = $('ac-nombre').value;
+  const propertyId = $('ac-property-id').value.trim();
+  $('ac-error').textContent = '';
+  try {
+    await apiFetch('/admin/canales', {
+      method: 'POST',
+      body: JSON.stringify({ hotelId: HOTEL_ID, nombre, config: { siteminder_property_id: propertyId || null } }),
+    });
+    closeModal('modal-add-canal');
+    showToast('Canal agregado correctamente', 'success');
+    await loadCanales();
+  } catch (err) {
+    $('ac-error').textContent = err.message;
+  }
+}
+
+window.openCanalConfig = async function(canalId, nombre) {
+  currentCanalId = canalId;
+  $('cc-title').textContent = `Configurar — ${CANAL_NAMES[nombre] || nombre}`;
+  $('modal-canal-config').classList.remove('hidden');
+
+  document.querySelectorAll('.modal-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'mappings'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-mappings'));
+
+  try {
+    const roomsList = await apiFetch(`/admin/rooms?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    $('map-room-id').innerHTML = roomsList.length
+      ? roomsList.map(r => `<option value="${r.id}">${r.name} (${r.id})</option>`).join('')
+      : '<option value="">Sin habitaciones</option>';
+  } catch { $('map-room-id').innerHTML = '<option value="">Error cargando habitaciones</option>'; }
+
+  await reloadMappings();
+};
+
+async function reloadMappings() {
+  if (!currentCanalId) return;
+  try {
+    const mappings = await apiFetch(`/admin/canales/${currentCanalId}/mappings`);
+    $('mapping-list').innerHTML = mappings.length
+      ? mappings.map(m => `
+          <div class="mapping-row">
+            <span class="mapping-room">${m.room_id}</span>
+            <span class="mapping-ota">→ OTA: ${m.ota_room_id}${m.ota_rate_id ? ` / ${m.ota_rate_id}` : ''}</span>
+            <button class="mapping-del" onclick="deleteMapping('${m.id}')" title="Eliminar">✕</button>
+          </div>`)
+        .join('')
+      : '<div class="form-note">Sin habitaciones mapeadas todavía.</div>';
+  } catch { $('mapping-list').innerHTML = '<div class="form-note">Error cargando mapeos.</div>'; }
+}
+
+window.deleteMapping = async function(mappingId) {
+  try {
+    await apiFetch(`/admin/canales/mappings/${mappingId}`, { method: 'DELETE' });
+    await reloadMappings();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+async function addMapping() {
+  const roomId    = $('map-room-id').value;
+  const otaRoomId = $('map-ota-room-id').value.trim();
+  const otaRateId = $('map-ota-rate-id').value.trim();
+  $('map-error').textContent = '';
+  if (!roomId || !otaRoomId) { $('map-error').textContent = 'Selecciona la habitación e ingresa el ID OTA.'; return; }
+  try {
+    await apiFetch(`/admin/canales/${currentCanalId}/mappings`, {
+      method: 'POST',
+      body: JSON.stringify({ roomId, otaRoomId, otaRateId: otaRateId || undefined }),
+    });
+    $('map-ota-room-id').value = '';
+    $('map-ota-rate-id').value = '';
+    await reloadMappings();
+    await loadCanales();
+  } catch (err) {
+    $('map-error').textContent = err.message;
+  }
+}
+
+async function loadSyncLog() {
+  if (!currentCanalId) return;
+  try {
+    const logs = await apiFetch(`/admin/canales/${currentCanalId}/sync-status`);
+    $('sync-log-list').innerHTML = logs.length
+      ? logs.map(l => `
+          <div class="mapping-row" style="${l.status === 'error' ? 'border-left:3px solid var(--alert)' : ''}">
+            <span class="mapping-room" style="flex:none;width:100px">${l.tipo.replace('_', ' ')}</span>
+            <span class="mapping-ota" style="flex:1">${l.status === 'error' ? (l.error || 'Error') : 'OK'}</span>
+            <span style="font-size:10px;color:var(--text3);white-space:nowrap">${new Date(l.created_at).toLocaleString('es-CL')}</span>
+          </div>`)
+        .join('')
+      : '<div class="form-note">Sin registros de sincronización.</div>';
+  } catch { $('sync-log-list').innerHTML = '<div class="form-note">Error cargando log.</div>'; }
+}
+
+// ── MOTOR DE RESERVAS (vista owner — hotel fijo = HOTEL_ID) ──────────────────
+const PUBLIC_BOOKING_URL = 'https://nexoiot-production.up.railway.app';
+
+async function loadBookingConfig() {
+  if (!HOTEL_ID) return;
+  $('bk-save-err').textContent = '';
+  try {
+    const cfg = await apiFetch(`/admin/booking-config/${HOTEL_ID}`);
+    $('bk-activo').checked = !!cfg.activo;
+    $('bk-titulo').value   = cfg.titulo || '';
+    $('bk-color1').value   = cfg.color_primario || '#009D71';
+    $('bk-color2').value   = cfg.color_secundario || '#102943';
+    $('bk-logo').value     = cfg.logo_url || '';
+    $('bk-policy').value   = cfg.politica_cancel || '';
+  } catch (err) {
+    showToast('Error cargando configuración: ' + err.message, 'error');
+  }
+
+  $('bk-direct-url').textContent = `${PUBLIC_BOOKING_URL}/reservar/${HOTEL_ID}`;
+  $('bk-embed-code').textContent =
+`<div id="smartrooms-widget" data-hotel="${HOTEL_ID}"></div>
+<script src="${PUBLIC_BOOKING_URL}/widget.js" async><\/script>`;
+
+  await loadTarifas();
+}
+
+async function saveBookingConfig() {
+  if (!HOTEL_ID) return;
+  $('bk-save-err').textContent = '';
+  try {
+    await apiFetch(`/admin/booking-config/${HOTEL_ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        activo:           $('bk-activo').checked ? 1 : 0,
+        titulo:           $('bk-titulo').value.trim() || null,
+        color_primario:   $('bk-color1').value,
+        color_secundario: $('bk-color2').value,
+        logo_url:         $('bk-logo').value.trim() || null,
+        politica_cancel:  $('bk-policy').value.trim() || null,
+      }),
+    });
+    showToast('Configuración guardada', 'success');
+  } catch (err) {
+    $('bk-save-err').textContent = err.message;
+  }
+}
+
+function copyEmbedCode() {
+  const text = $('bk-embed-code').textContent;
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('Código copiado al portapapeles', 'success'))
+    .catch(() => showToast('No se pudo copiar. Selecciona el texto manualmente.', 'error'));
+}
+
+async function loadTarifas() {
+  try {
+    const lista = await apiFetch(`/admin/tarifas?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    renderTarifas(lista);
+  } catch {
+    $('tarifas-list').innerHTML = '<div class="form-note">Error cargando tarifas.</div>';
+  }
+}
+
+function renderTarifas(lista) {
+  if (!lista.length) {
+    $('tarifas-list').innerHTML = '<div class="form-note">Sin tarifas configuradas. Sin tarifas, el motor de reservas no muestra precios.</div>';
+    return;
+  }
+  $('tarifas-list').innerHTML = lista.map(t => `
+    <div class="mapping-row" style="margin-bottom:6px">
+      <span class="mapping-room">${t.nombre}</span>
+      <span class="mapping-ota">${t.room_id ? `Hab. ${t.room_id}` : 'Todas'} · ${t.precio_uf} UF/noche · ${t.desde} → ${t.hasta} · min ${t.min_noches} noche${t.min_noches !== 1 ? 's' : ''}</span>
+      <span class="badge ${t.activa ? 'badge-active' : 'badge-inactive'}" style="margin-right:6px">${t.activa ? 'Activa' : 'Inactiva'}</span>
+      <button class="mapping-del" onclick="deleteTarifa('${t.id}')" title="Eliminar">✕</button>
+    </div>`).join('');
+}
+
+window.deleteTarifa = async function(id) {
+  if (!confirm('¿Eliminar esta tarifa?')) return;
+  try {
+    await apiFetch(`/admin/tarifas/${id}`, { method: 'DELETE' });
+    await loadTarifas();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+async function openAddTarifaModal() {
+  $('tf-error').textContent = '';
+  $('tf-nombre').value = '';
+  $('tf-precio').value = '';
+  $('tf-desde').value  = new Date().toISOString().slice(0, 10);
+  $('tf-hasta').value  = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
+  $('tf-min').value    = 1;
+
+  try {
+    const roomsList = await apiFetch(`/admin/rooms?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    $('tf-room').innerHTML = '<option value="">Todas las habitaciones</option>' +
+      roomsList.map(r => `<option value="${r.id}">${r.name} (${r.id})</option>`).join('');
+  } catch { $('tf-room').innerHTML = '<option value="">Todas las habitaciones</option>'; }
+
+  $('modal-tarifa').classList.remove('hidden');
+}
+
+async function submitTarifa() {
+  $('tf-error').textContent = '';
+  const nombre    = $('tf-nombre').value.trim();
+  const precioUF  = parseFloat($('tf-precio').value);
+  const desde     = $('tf-desde').value;
+  const hasta     = $('tf-hasta').value;
+  const minNoches = parseInt($('tf-min').value) || 1;
+  const roomId    = $('tf-room').value || undefined;
+
+  if (!nombre) { $('tf-error').textContent = 'Ingresa un nombre para la tarifa.'; return; }
+  if (!precioUF || precioUF <= 0) { $('tf-error').textContent = 'Ingresa un precio válido en UF.'; return; }
+  if (!desde || !hasta || desde >= hasta) { $('tf-error').textContent = 'Rango de fechas inválido.'; return; }
+
+  try {
+    await apiFetch('/admin/tarifas', {
+      method: 'POST',
+      body: JSON.stringify({ hotelId: HOTEL_ID, roomId, nombre, precioUF, desde, hasta, minNoches }),
+    });
+    closeModal('modal-tarifa');
+    showToast('Tarifa agregada', 'success');
+    await loadTarifas();
+  } catch (err) {
+    $('tf-error').textContent = err.message;
+  }
+}
+
+// ── PAGOS (reporte hotel-wide — vista owner) ─────────────────────────────────
+const TRANS_TIPO_LABEL_PG   = { webpay: 'Tarjeta (Webpay)', mercadopago: 'Mercado Pago', efectivo: 'Efectivo', transferencia: 'Transferencia' };
+const TRANS_ESTADO_LABEL_PG = { pendiente: 'Pendiente', aprobado: 'Aprobado', rechazado: 'Rechazado', anulado: 'Anulado' };
+
+async function loadTransacciones() {
+  if (!HOTEL_ID) return;
+  const desde = $('pg-desde').value;
+  const hasta = $('pg-hasta').value;
+  let qs = `?hotel=${encodeURIComponent(HOTEL_ID)}`;
+  if (desde) qs += `&desde=${desde}`;
+  if (hasta) qs += `&hasta=${hasta}`;
+
+  try {
+    const lista = await apiFetch(`/admin/transacciones${qs}`);
+    renderPagosKPI(lista);
+    renderPagosList(lista);
+  } catch (err) {
+    $('pg-list').innerHTML = `<div class="form-note">Error: ${err.message}</div>`;
+  }
+}
+
+function renderPagosKPI(lista) {
+  const aprobadas = lista.filter(t => t.estado === 'aprobado');
+  const totalCLP   = aprobadas.reduce((s, t) => s + t.monto_clp, 0);
+  const pendientes = lista.filter(t => t.estado === 'pendiente').length;
+  const porTipo    = aprobadas.reduce((acc, t) => { acc[t.tipo] = (acc[t.tipo] || 0) + 1; return acc; }, {});
+  const tipoTop    = Object.entries(porTipo).sort((a, b) => b[1] - a[1])[0];
+
+  $('pg-kpi-row').innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-label">Total cobrado</div>
+      <div class="kpi-value">$${totalCLP.toLocaleString('es-CL')}</div>
+      <div class="kpi-sub">${aprobadas.length} transacciones aprobadas</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Pendientes</div>
+      <div class="kpi-value">${pendientes}</div>
+      <div class="kpi-sub">Esperando confirmación</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Medio más usado</div>
+      <div class="kpi-value" style="font-size:18px">${tipoTop ? (TRANS_TIPO_LABEL_PG[tipoTop[0]] || tipoTop[0]) : '—'}</div>
+      <div class="kpi-sub">${tipoTop ? `${tipoTop[1]} cobros` : 'Sin datos'}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total transacciones</div>
+      <div class="kpi-value">${lista.length}</div>
+      <div class="kpi-sub">En el rango seleccionado</div>
+    </div>`;
+}
+
+function renderPagosList(lista) {
+  if (!lista.length) {
+    $('pg-list').innerHTML = '<div class="form-note">Sin transacciones en este rango.</div>';
+    return;
+  }
+  $('pg-list').innerHTML = lista.map(t => `
+    <div class="mapping-row" style="margin-bottom:6px">
+      <span class="mapping-room" style="width:130px;flex:none">${TRANS_TIPO_LABEL_PG[t.tipo] || t.tipo}</span>
+      <span class="mapping-ota" style="flex:1">${t.guest_name || 'Sin nombre'} · $${t.monto_clp.toLocaleString('es-CL')} CLP</span>
+      <span class="badge ${t.estado === 'aprobado' ? 'badge-active' : t.estado === 'pendiente' ? '' : 'badge-error'}" style="margin-right:8px">${TRANS_ESTADO_LABEL_PG[t.estado] || t.estado}</span>
+      <span style="font-size:10px;color:var(--text3);white-space:nowrap">${new Date(t.created_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}</span>
+    </div>`).join('');
+}
+
 function startClock() {
   const update = () => {
     const n = new Date();
@@ -1882,7 +2321,8 @@ function startClock() {
 // ── INIT ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   $('login-btn').addEventListener('click', login);
-  $('login-key').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  $('login-email').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  $('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
   $('logout-btn').addEventListener('click', logout);
   $('btn-new-stay').addEventListener('click', () => openNewStayModal());
 
@@ -1921,7 +2361,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRooms('rooms', state.filter);
   });
 
-  ['modal-room', 'modal-new-stay', 'modal-reserva'].forEach(id => {
+  ['modal-room', 'modal-new-stay', 'modal-reserva', 'modal-add-canal', 'modal-canal-config', 'modal-tarifa'].forEach(id => {
     $(id).addEventListener('click', e => { if (e.target === $(id)) closeModal(id); });
   });
   document.addEventListener('keydown', e => {
@@ -1931,10 +2371,41 @@ document.addEventListener('DOMContentLoaded', () => {
   const panelLangSelect = $('panel-lang-select');
   if (panelLangSelect) panelLangSelect.addEventListener('change', e => setDashLang(e.target.value));
 
+  // Canales OTA
+  $('btn-add-canal').addEventListener('click', openAddCanalModal);
+  $('ac-cancel').addEventListener('click', () => closeModal('modal-add-canal'));
+  $('ac-save').addEventListener('click', submitAddCanal);
+  $('cc-close').addEventListener('click', () => closeModal('modal-canal-config'));
+  $('btn-add-mapping').addEventListener('click', addMapping);
+  document.querySelectorAll('.modal-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      $('tab-' + tab.dataset.tab).classList.add('active');
+      if (tab.dataset.tab === 'log') loadSyncLog();
+    });
+  });
+
+  // Motor de reservas
+  $('bk-save').addEventListener('click', saveBookingConfig);
+  $('bk-copy').addEventListener('click', copyEmbedCode);
+  $('bk-add-tarifa').addEventListener('click', openAddTarifaModal);
+  $('tf-cancel').addEventListener('click', () => closeModal('modal-tarifa'));
+  $('tf-save').addEventListener('click', submitTarifa);
+
+  // Pagos
+  $('pg-filtrar').addEventListener('click', loadTransacciones);
+
   applyDashLang();
   startClock();
 
-  if (getAdminKey()) {
+  const session = getSession();
+  if (session) {
+    HOTEL_ID = session.rol === 'superadmin'
+      ? new URLSearchParams(location.search).get('hotel')
+      : session.hotelId;
+    applyRoleVisibility(session.rol);
     loadRooms()
       .then(() => {
         $('login-screen').classList.add('hidden');
@@ -1943,9 +2414,9 @@ document.addEventListener('DOMContentLoaded', () => {
         loadRequests();
         checkPagoReturn();
       })
-      .catch(() => sessionStorage.removeItem(KEY_STORAGE));
+      .catch(() => sessionStorage.removeItem(SESSION_STORAGE));
   }
 
   // Solicitudes de huéspedes: refrescar periódicamente
-  setInterval(() => { if (getAdminKey()) loadRequests(); }, 20_000);
+  setInterval(() => { if (getSession()) loadRequests(); }, 20_000);
 });
