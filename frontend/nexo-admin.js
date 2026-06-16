@@ -43,8 +43,8 @@ window.openHotel = function(id) {
 };
 
 // ── NAVEGACIÓN ENTRE VISTAS ───────────────────────────────────────────────────
-const VIEW_TITLES = { hotels: 'Hoteles', analytics: 'Analíticas', channels: 'Canales OTA' };
-const ALL_VIEWS   = ['hotels', 'analytics', 'channels'];
+const VIEW_TITLES = { hotels: 'Hoteles', analytics: 'Analíticas', channels: 'Canales OTA', booking: 'Motor de Reservas' };
+const ALL_VIEWS   = ['hotels', 'analytics', 'channels', 'booking'];
 
 function setView(view) {
   document.querySelectorAll('.nav-item[data-view]').forEach(el =>
@@ -53,6 +53,7 @@ function setView(view) {
   $('tb-title').textContent = VIEW_TITLES[view] || '';
   if (view === 'analytics') renderAnalytics();
   if (view === 'channels')  initCanalView();
+  if (view === 'booking')   initBookingView();
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
@@ -473,6 +474,151 @@ async function loadSyncLog() {
   } catch { $('sync-log-list').innerHTML = '<div class="analytics-empty">Error cargando log.</div>'; }
 }
 
+// ── MOTOR DE RESERVAS (booking engine) ───────────────────────────────────────
+const PUBLIC_BOOKING_URL = 'https://nexoiot-production.up.railway.app';
+let currentBookingHotel = null;
+
+function initBookingView() {
+  const sel = $('bk-hotel-filter');
+  const prevVal = sel.value;
+  sel.innerHTML = '<option value="">— Seleccionar hotel —</option>' +
+    hotels.map(h => `<option value="${h.id}">${h.name}</option>`).join('');
+  if (prevVal) sel.value = prevVal;
+  if (sel.value) loadBookingConfig(sel.value);
+}
+
+async function loadBookingConfig(hotelId) {
+  if (!hotelId) { $('bk-panel').style.display = 'none'; return; }
+  currentBookingHotel = hotelId;
+  $('bk-panel').style.display = '';
+  $('bk-save-err').textContent = '';
+
+  try {
+    const cfg = await apiFetch(`/admin/booking-config/${hotelId}`);
+    $('bk-activo').checked = !!cfg.activo;
+    $('bk-titulo').value   = cfg.titulo || '';
+    $('bk-color1').value   = cfg.color_primario || '#009D71';
+    $('bk-color2').value   = cfg.color_secundario || '#102943';
+    $('bk-logo').value     = cfg.logo_url || '';
+    $('bk-policy').value   = cfg.politica_cancel || '';
+  } catch (err) {
+    showToast('Error cargando configuración: ' + err.message);
+  }
+
+  $('bk-direct-url').textContent = `${PUBLIC_BOOKING_URL}/reservar/${hotelId}`;
+  $('bk-embed-code').textContent =
+`<div id="smartrooms-widget" data-hotel="${hotelId}"></div>
+<script src="${PUBLIC_BOOKING_URL}/widget.js" async><\/script>`;
+
+  await loadTarifas(hotelId);
+}
+
+async function saveBookingConfig() {
+  if (!currentBookingHotel) return;
+  $('bk-save-err').textContent = '';
+  try {
+    await apiFetch(`/admin/booking-config/${currentBookingHotel}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        activo:           $('bk-activo').checked ? 1 : 0,
+        titulo:           $('bk-titulo').value.trim() || null,
+        color_primario:   $('bk-color1').value,
+        color_secundario: $('bk-color2').value,
+        logo_url:         $('bk-logo').value.trim() || null,
+        politica_cancel:  $('bk-policy').value.trim() || null,
+      }),
+    });
+    showToast('Configuración guardada');
+  } catch (err) {
+    $('bk-save-err').textContent = err.message;
+  }
+}
+
+function copyEmbedCode() {
+  const text = $('bk-embed-code').textContent;
+  navigator.clipboard.writeText(text)
+    .then(() => showToast('Código copiado al portapapeles'))
+    .catch(() => showToast('No se pudo copiar. Selecciona el texto manualmente.'));
+}
+
+// ── TARIFAS ───────────────────────────────────────────────────────────────────
+async function loadTarifas(hotelId) {
+  try {
+    const lista = await apiFetch(`/admin/tarifas?hotel=${encodeURIComponent(hotelId)}`);
+    renderTarifas(lista);
+  } catch (err) {
+    $('tarifas-list').innerHTML = '<div class="analytics-empty">Error cargando tarifas.</div>';
+  }
+}
+
+function renderTarifas(lista) {
+  if (!lista.length) {
+    $('tarifas-list').innerHTML = '<div class="analytics-empty">Sin tarifas configuradas. Sin tarifas, el motor de reservas no muestra precios.</div>';
+    return;
+  }
+  $('tarifas-list').innerHTML = lista.map(t => `
+    <div class="mapping-row" style="margin-bottom:6px">
+      <span class="mapping-room">${t.nombre}</span>
+      <span class="mapping-ota">${t.room_id ? `Hab. ${t.room_id}` : 'Todas'} · ${t.precio_uf} UF/noche · ${t.desde} → ${t.hasta} · min ${t.min_noches} noche${t.min_noches !== 1 ? 's' : ''}</span>
+      <span class="badge ${t.activa ? 'badge-active' : 'badge-inactive'}" style="margin-right:6px">${t.activa ? 'Activa' : 'Inactiva'}</span>
+      <button class="mapping-del" onclick="deleteTarifa('${t.id}')" title="Eliminar">✕</button>
+    </div>`).join('');
+}
+
+window.deleteTarifa = async function(id) {
+  if (!confirm('¿Eliminar esta tarifa?')) return;
+  try {
+    await apiFetch(`/admin/tarifas/${id}`, { method: 'DELETE' });
+    await loadTarifas(currentBookingHotel);
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  }
+};
+
+async function openAddTarifaModal() {
+  if (!currentBookingHotel) { showToast('Selecciona un hotel primero.'); return; }
+  $('tf-error').textContent = '';
+  $('tf-nombre').value = '';
+  $('tf-precio').value = '';
+  $('tf-desde').value  = new Date().toISOString().slice(0, 10);
+  $('tf-hasta').value  = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
+  $('tf-min').value    = 1;
+
+  try {
+    const roomsList = await apiFetch(`/admin/rooms?hotel=${encodeURIComponent(currentBookingHotel)}`);
+    $('tf-room').innerHTML = '<option value="">Todas las habitaciones</option>' +
+      roomsList.map(r => `<option value="${r.id}">${r.name} (${r.id})</option>`).join('');
+  } catch { $('tf-room').innerHTML = '<option value="">Todas las habitaciones</option>'; }
+
+  $('modal-tarifa').classList.add('open');
+}
+
+async function submitTarifa() {
+  $('tf-error').textContent = '';
+  const nombre    = $('tf-nombre').value.trim();
+  const precioUF  = parseFloat($('tf-precio').value);
+  const desde     = $('tf-desde').value;
+  const hasta     = $('tf-hasta').value;
+  const minNoches = parseInt($('tf-min').value) || 1;
+  const roomId    = $('tf-room').value || undefined;
+
+  if (!nombre)             { $('tf-error').textContent = 'Ingresa un nombre para la tarifa.'; return; }
+  if (!precioUF || precioUF <= 0) { $('tf-error').textContent = 'Ingresa un precio válido en UF.'; return; }
+  if (!desde || !hasta || desde >= hasta) { $('tf-error').textContent = 'Rango de fechas inválido.'; return; }
+
+  try {
+    await apiFetch('/admin/tarifas', {
+      method: 'POST',
+      body: JSON.stringify({ hotelId: currentBookingHotel, roomId, nombre, precioUF, desde, hasta, minNoches }),
+    });
+    $('modal-tarifa').classList.remove('open');
+    showToast('Tarifa agregada');
+    await loadTarifas(currentBookingHotel);
+  } catch (err) {
+    $('tf-error').textContent = err.message;
+  }
+}
+
 function startClock() {
   const DAYS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const MONTH = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -522,6 +668,15 @@ document.addEventListener('DOMContentLoaded', () => {
       if (tab.dataset.tab === 'log') loadSyncLog();
     });
   });
+
+  // Motor de reservas
+  $('bk-hotel-filter').addEventListener('change', e => loadBookingConfig(e.target.value));
+  $('bk-save').addEventListener('click', saveBookingConfig);
+  $('bk-copy').addEventListener('click', copyEmbedCode);
+  $('bk-add-tarifa').addEventListener('click', openAddTarifaModal);
+  $('tf-cancel').addEventListener('click', () => $('modal-tarifa').classList.remove('open'));
+  $('tf-save').addEventListener('click', submitTarifa);
+  $('modal-tarifa').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
 
   if (getAdminKey()) {
     loadHotels()

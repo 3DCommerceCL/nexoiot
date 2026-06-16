@@ -200,6 +200,10 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
       <span class="nav-icon">🔗</span>
       <span class="nav-label">Canales OTA</span>
     </div>
+    <div class="nav-item" data-view="booking">
+      <span class="nav-icon">🛒</span>
+      <span class="nav-label">Motor Reservas</span>
+    </div>
     <div class="nav-item">
       <span class="nav-icon">⚙️</span>
       <span class="nav-label">Configuración</span>
@@ -231,6 +235,72 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
         <span class="sec-title">Hoteles — vista general</span>
       </div>
       <div class="hotel-grid" id="hotel-grid"></div>
+    </div>
+
+    <div id="view-booking" class="hidden">
+      <div class="canal-filter">
+        <select id="bk-hotel-filter">
+          <option value="">— Seleccionar hotel —</option>
+        </select>
+      </div>
+      <div id="bk-panel" style="display:none">
+        <!-- Config básica -->
+        <div class="analytics-card" style="margin-bottom:14px">
+          <div class="sec-header" style="margin-bottom:10px">
+            <span class="sec-title">Configuración del motor de reservas</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="checkbox" id="bk-activo"> Activo
+              </label>
+              <button class="btn btn-primary btn-sm" id="bk-save">Guardar</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="modal-field" style="grid-column:1/-1">
+              <span class="modal-label">Título en el widget</span>
+              <input class="form-input" id="bk-titulo" placeholder="Reserva directa — Hotel Pacífico Suites">
+            </div>
+            <div class="modal-field">
+              <span class="modal-label">Color primario</span>
+              <input class="form-input" id="bk-color1" type="color" style="height:38px;padding:4px 8px">
+            </div>
+            <div class="modal-field">
+              <span class="modal-label">Color secundario</span>
+              <input class="form-input" id="bk-color2" type="color" style="height:38px;padding:4px 8px">
+            </div>
+            <div class="modal-field" style="grid-column:1/-1">
+              <span class="modal-label">URL del logo</span>
+              <input class="form-input" id="bk-logo" placeholder="https://... (JPG o PNG)">
+            </div>
+            <div class="modal-field" style="grid-column:1/-1">
+              <span class="modal-label">Política de cancelación</span>
+              <input class="form-input" id="bk-policy" placeholder="Cancelación gratuita hasta 24 horas antes…">
+            </div>
+          </div>
+          <div class="modal-error" id="bk-save-err"></div>
+        </div>
+
+        <!-- Embed code -->
+        <div class="analytics-card" style="margin-bottom:14px">
+          <div class="sec-header" style="margin-bottom:10px">
+            <span class="sec-title">Código de embed</span>
+            <button class="btn btn-outline btn-sm" id="bk-copy">Copiar código</button>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">URL directa:</div>
+          <div id="bk-direct-url" style="font-family:monospace;font-size:12px;color:var(--purple);padding:8px;background:var(--bg);border-radius:6px;margin-bottom:10px;word-break:break-all"></div>
+          <div style="font-size:11px;color:var(--text2);margin-bottom:6px">Widget embebible (pegar en el sitio del hotel):</div>
+          <pre id="bk-embed-code" style="font-size:11px;background:var(--bg);padding:10px;border-radius:6px;overflow-x:auto;color:var(--text2);line-height:1.6"></pre>
+        </div>
+
+        <!-- Tarifas -->
+        <div class="analytics-card">
+          <div class="sec-header" style="margin-bottom:10px">
+            <span class="sec-title">Tarifas</span>
+            <button class="btn btn-primary btn-sm" id="bk-add-tarifa">+ Agregar tarifa</button>
+          </div>
+          <div id="tarifas-list"></div>
+        </div>
+      </div>
     </div>
 
     <div id="view-channels" class="hidden">
@@ -266,6 +336,44 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
     </div>
   </div>
 </main>
+
+<!-- MODAL: Agregar tarifa -->
+<div class="modal-overlay" id="modal-tarifa">
+  <div class="modal-box">
+    <div class="modal-title">Agregar tarifa</div>
+    <div class="modal-field">
+      <span class="modal-label">Habitación (dejar vacío = todas)</span>
+      <select class="form-input" id="tf-room"><option value="">Todas las habitaciones</option></select>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Nombre de la tarifa</span>
+      <input class="form-input" id="tf-nombre" placeholder="Tarifa base / Temporada alta">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Precio por noche (UF)</span>
+      <input class="form-input" id="tf-precio" type="number" step="0.01" min="0.1" placeholder="Ej: 2.5">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div class="modal-field">
+        <span class="modal-label">Desde</span>
+        <input class="form-input" id="tf-desde" type="date">
+      </div>
+      <div class="modal-field">
+        <span class="modal-label">Hasta</span>
+        <input class="form-input" id="tf-hasta" type="date">
+      </div>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Mínimo de noches</span>
+      <input class="form-input" id="tf-min" type="number" min="1" value="1">
+    </div>
+    <div class="modal-error" id="tf-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="tf-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="tf-save">Agregar tarifa</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL: Agregar canal -->
 <div class="modal-overlay" id="modal-add-canal">
