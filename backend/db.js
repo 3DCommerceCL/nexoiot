@@ -85,6 +85,34 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_synclog_hotel ON sync_log(hotel_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_synclog_canal ON sync_log(canal_id, created_at);
+
+  CREATE TABLE IF NOT EXISTS tarifas (
+    id         TEXT PRIMARY KEY,
+    hotel_id   TEXT NOT NULL,
+    room_id    TEXT,
+    nombre     TEXT NOT NULL,
+    precio_uf  REAL NOT NULL,
+    desde      DATE NOT NULL,
+    hasta      DATE NOT NULL,
+    min_noches INTEGER NOT NULL DEFAULT 1,
+    activa     INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_tarifas_hotel ON tarifas(hotel_id, desde, hasta);
+
+  CREATE TABLE IF NOT EXISTS booking_config (
+    hotel_id          TEXT PRIMARY KEY,
+    titulo            TEXT,
+    color_primario    TEXT NOT NULL DEFAULT '#009D71',
+    color_secundario  TEXT NOT NULL DEFAULT '#102943',
+    logo_url          TEXT,
+    politica_cancel   TEXT,
+    idiomas           TEXT NOT NULL DEFAULT '["es"]',
+    rooms_visibles    TEXT,
+    activo            INTEGER NOT NULL DEFAULT 1,
+    created_at        TEXT NOT NULL,
+    updated_at        TEXT NOT NULL
+  );
 `);
 
 console.log('[db] SQLite listo:', DB_PATH);
