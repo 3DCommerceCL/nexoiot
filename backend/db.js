@@ -136,6 +136,27 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_transacciones_reserva ON transacciones(reserva_id);
   CREATE INDEX IF NOT EXISTS idx_transacciones_hotel ON transacciones(hotel_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_transacciones_buy_order ON transacciones(buy_order);
+
+  CREATE TABLE IF NOT EXISTS usuarios (
+    id            TEXT PRIMARY KEY,
+    hotel_id      TEXT,
+    email         TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    nombre        TEXT NOT NULL,
+    rol           TEXT NOT NULL,
+    activo        INTEGER NOT NULL DEFAULT 1,
+    created_at    TEXT NOT NULL,
+    last_login_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_usuarios_hotel ON usuarios(hotel_id);
+
+  CREATE TABLE IF NOT EXISTS sesiones (
+    token       TEXT PRIMARY KEY,
+    usuario_id  TEXT NOT NULL,
+    expires_at  TEXT NOT NULL,
+    created_at  TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_sesiones_usuario ON sesiones(usuario_id);
 `);
 
 console.log('[db] SQLite listo:', DB_PATH);
