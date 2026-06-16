@@ -52,6 +52,39 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_blocks_room ON room_blocks(room_id, desde, hasta);
   CREATE INDEX IF NOT EXISTS idx_blocks_hotel ON room_blocks(hotel_id, desde, hasta);
+
+  CREATE TABLE IF NOT EXISTS canales (
+    id         TEXT PRIMARY KEY,
+    hotel_id   TEXT NOT NULL,
+    nombre     TEXT NOT NULL,
+    activo     INTEGER NOT NULL DEFAULT 1,
+    config     TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_canales_hotel ON canales(hotel_id);
+
+  CREATE TABLE IF NOT EXISTS canal_room_mapping (
+    id          TEXT PRIMARY KEY,
+    canal_id    TEXT NOT NULL,
+    room_id     TEXT NOT NULL,
+    ota_room_id TEXT NOT NULL,
+    ota_rate_id TEXT,
+    created_at  TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_mapping_canal ON canal_room_mapping(canal_id);
+
+  CREATE TABLE IF NOT EXISTS sync_log (
+    id         TEXT PRIMARY KEY,
+    hotel_id   TEXT NOT NULL,
+    canal_id   TEXT,
+    tipo       TEXT NOT NULL,
+    status     TEXT NOT NULL,
+    payload    TEXT,
+    error      TEXT,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_synclog_hotel ON sync_log(hotel_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_synclog_canal ON sync_log(canal_id, created_at);
 `);
 
 console.log('[db] SQLite listo:', DB_PATH);
