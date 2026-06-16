@@ -65,6 +65,10 @@ function getMappings(canalId) {
   return db.prepare('SELECT * FROM canal_room_mapping WHERE canal_id = ?').all(canalId);
 }
 
+function getMappingById(id) {
+  return db.prepare('SELECT * FROM canal_room_mapping WHERE id = ?').get(id) || null;
+}
+
 function deleteMapping(id) {
   return db.prepare('DELETE FROM canal_room_mapping WHERE id = ?').run(id).changes > 0;
 }
@@ -76,4 +80,4 @@ function getSyncStatus(canalId, limit = 10) {
   ).all(canalId, limit);
 }
 
-module.exports = { createCanal, getById, getByHotel, updateCanal, deleteCanal, addMapping, getMappings, deleteMapping, getSyncStatus };
+module.exports = { createCanal, getById, getByHotel, updateCanal, deleteCanal, addMapping, getMappings, getMappingById, deleteMapping, getSyncStatus };

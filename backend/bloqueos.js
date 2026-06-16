@@ -35,4 +35,8 @@ function deleteBloqueo(id) {
   return r.changes > 0;
 }
 
-module.exports = { createBloqueo, getBloqueosByRoom, getBloqueosByHotelEnRango, deleteBloqueo };
+function getById(id) {
+  return db.prepare('SELECT * FROM room_blocks WHERE id = ?').get(id) || null;
+}
+
+module.exports = { createBloqueo, getBloqueosByRoom, getBloqueosByHotelEnRango, deleteBloqueo, getById };
