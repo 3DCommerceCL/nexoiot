@@ -1668,6 +1668,10 @@ function openReservaModal(reserva = null, prefill = {}) {
     cancelBtn.classList.add('hidden');
   }
 
+  // Cobros (solo en edición, reserva ya existe en SQLite)
+  $('rv-cobros-section').classList.toggle('hidden', isNew);
+  if (!isNew) renderCobrosSection(reserva);
+
   $('modal-reserva').classList.remove('hidden');
 }
 
@@ -1723,6 +1727,143 @@ async function cancelReservaModal(id) {
   } catch (err) {
     showToast(err.message, 'error');
   }
+}
+
+// ── COBROS (Webpay / Mercado Pago / manual) ──────────────────────────────────
+const TRANS_TIPO_LABEL = { webpay: 'Tarjeta', mercadopago: 'Mercado Pago', efectivo: 'Efectivo', transferencia: 'Transferencia' };
+const TRANS_ESTADO_LABEL = { pendiente: 'Pendiente', aprobado: 'Aprobado', rechazado: 'Rechazado', anulado: 'Anulado' };
+
+function renderCobrosSection(reserva) {
+  $('rv-monto-clp').value = '';
+  $('rv-cobro-error').textContent = '';
+  $('rv-manual-form').classList.add('hidden');
+  $('rv-manual-ref').value = '';
+
+  $('rv-pagar-webpay').onclick = () => pagarWebpay(reserva.id);
+  $('rv-link-mp').onclick      = () => enviarLinkMP(reserva.id);
+  $('rv-toggle-manual').onclick = () => $('rv-manual-form').classList.toggle('hidden');
+  $('rv-manual-confirm').onclick = () => registrarPagoManual(reserva.id);
+
+  loadTransacciones(reserva.id);
+}
+
+async function loadTransacciones(reservaId) {
+  try {
+    const lista = await apiFetch(`/admin/reservas/${reservaId}/transacciones`);
+    renderTransaccionesList(lista);
+  } catch {
+    $('rv-transacciones-list').innerHTML = '';
+  }
+}
+
+function renderTransaccionesList(lista) {
+  if (!lista.length) {
+    $('rv-transacciones-list').innerHTML = '<div class="form-note">Sin cobros registrados todavía.</div>';
+    return;
+  }
+  $('rv-transacciones-list').innerHTML = lista.map(t => `
+    <div class="trans-row">
+      <span class="trans-tipo">${TRANS_TIPO_LABEL[t.tipo] || t.tipo}</span>
+      <span class="trans-monto">$${t.monto_clp.toLocaleString('es-CL')} CLP</span>
+      <span class="trans-badge ${t.estado}">${TRANS_ESTADO_LABEL[t.estado] || t.estado}</span>
+      <span class="trans-date">${new Date(t.created_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}</span>
+    </div>`).join('');
+}
+
+function getMonto() {
+  const v = parseInt($('rv-monto-clp').value, 10);
+  if (!v || v < 1) { $('rv-cobro-error').textContent = 'Ingresa un monto válido en CLP.'; return null; }
+  $('rv-cobro-error').textContent = '';
+  return v;
+}
+
+async function pagarWebpay(reservaId) {
+  const montoCLP = getMonto();
+  if (!montoCLP) return;
+  const btn = $('rv-pagar-webpay');
+  btn.disabled = true;
+  try {
+    const { url, token } = await apiFetch(`/admin/reservas/${reservaId}/pago/webpay`, {
+      method: 'POST', body: JSON.stringify({ montoCLP }),
+    });
+    // Webpay Plus exige un form POST con token_ws — no un GET con query string
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = url;
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'token_ws';
+    input.value = token;
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+  } catch (err) {
+    $('rv-cobro-error').textContent = err.message;
+    btn.disabled = false;
+  }
+}
+
+async function enviarLinkMP(reservaId) {
+  const montoCLP = getMonto();
+  if (!montoCLP) return;
+  const btn = $('rv-link-mp');
+  btn.disabled = true;
+  try {
+    const { linkPago } = await apiFetch(`/admin/reservas/${reservaId}/pago/link-mp`, {
+      method: 'POST', body: JSON.stringify({ montoCLP }),
+    });
+    const phoneDigits = ($('rv-phone').value || '').replace(/\D/g, '');
+    const waPhone = phoneDigits ? (phoneDigits.startsWith('56') ? phoneDigits : '56' + phoneDigits.replace(/^0/, '')) : '';
+    const msg = `Hola ${$('rv-guest').value.trim()}, puedes completar el pago de tu reserva aquí: ${linkPago}`;
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    await loadTransacciones(reservaId);
+  } catch (err) {
+    $('rv-cobro-error').textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function registrarPagoManual(reservaId) {
+  const montoCLP = getMonto();
+  if (!montoCLP) return;
+  const tipo = $('rv-manual-tipo').value;
+  const referencia = $('rv-manual-ref').value.trim() || undefined;
+  const btn = $('rv-manual-confirm');
+  btn.disabled = true;
+  try {
+    await apiFetch(`/admin/reservas/${reservaId}/pago/manual`, {
+      method: 'POST', body: JSON.stringify({ montoCLP, tipo, referencia }),
+    });
+    $('rv-manual-form').classList.add('hidden');
+    $('rv-monto-clp').value = '';
+    showToast('Pago registrado', 'success');
+    await loadTransacciones(reservaId);
+  } catch (err) {
+    $('rv-cobro-error').textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── RETORNO DE PAGO (Webpay redirige aquí con ?pago=...&reserva=...) ────────
+function checkPagoReturn() {
+  const qs = new URLSearchParams(location.search);
+  const pago = qs.get('pago');
+  if (!pago) return;
+  const MSG = {
+    aprobado:  ['Pago aprobado correctamente', 'success'],
+    rechazado: ['Pago rechazado por el banco', 'error'],
+    cancelado: ['Pago cancelado por el usuario', 'error'],
+    error:     ['Ocurrió un error al procesar el pago', 'error'],
+  };
+  const [msg, kind] = MSG[pago] || ['Resultado de pago desconocido', 'error'];
+  showToast(msg, kind);
+  // Limpiar query string para no repetir el toast al refrescar
+  const url = new URL(location.href);
+  url.searchParams.delete('pago');
+  url.searchParams.delete('reserva');
+  history.replaceState({}, '', url);
 }
 
 // ── CLOCK ─────────────────────────────────────────────────────────────────────
@@ -1800,6 +1941,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $('sidebar').classList.remove('hidden');
         $('main').classList.remove('hidden');
         loadRequests();
+        checkPagoReturn();
       })
       .catch(() => sessionStorage.removeItem(KEY_STORAGE));
   }

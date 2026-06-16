@@ -162,6 +162,21 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .climate-alert{background:var(--alert-l);color:var(--alert);border:1px solid var(--alert);border-radius:8px;padding:10px 14px;font-size:12px;font-weight:600;margin-bottom:16px}
 .modal-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:10px}
 
+/* ── COBROS ── */
+.cobro-monto-row{display:flex;gap:8px;margin-bottom:10px}
+.cobro-monto-row .form-input{flex:1}
+.cobros-acciones{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.cobro-manual-form{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
+.cobro-manual-form .form-input{min-width:120px}
+.trans-row{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card2);border-radius:8px;font-size:12px;margin-bottom:6px}
+.trans-tipo{font-weight:600;color:var(--text);width:90px;flex-shrink:0;text-transform:capitalize}
+.trans-monto{flex:1;color:var(--text2)}
+.trans-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.trans-badge.aprobado{background:var(--teal-l);color:var(--teal)}
+.trans-badge.pendiente{background:var(--warn-l);color:var(--warn)}
+.trans-badge.rechazado,.trans-badge.anulado{background:var(--alert-l);color:var(--alert)}
+.trans-date{font-size:10px;color:var(--text3);white-space:nowrap}
+
 /* ── DEVICE CONTROLS ── */
 .dev-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .dev-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px}
@@ -556,6 +571,28 @@ select.form-input option{background:var(--card);color:var(--text)}
       <div style="display:flex;gap:10px;margin-top:4px">
         <button class="btn btn-primary" style="flex:1;padding:11px" id="rv-save">Guardar</button>
         <button class="btn btn-danger-outline" id="rv-cancel-stay" style="padding:11px 14px">Cancelar reserva</button>
+      </div>
+
+      <div class="modal-section hidden" id="rv-cobros-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <div class="modal-section-title">Cobros</div>
+        <div class="cobro-monto-row">
+          <input class="form-input" id="rv-monto-clp" type="number" min="1" placeholder="Monto a cobrar (CLP)">
+        </div>
+        <div class="cobros-acciones">
+          <button class="btn btn-primary btn-sm" id="rv-pagar-webpay">💳 Pagar con tarjeta</button>
+          <button class="btn btn-outline-teal btn-sm" id="rv-link-mp">📱 Enviar link WhatsApp</button>
+          <button class="btn btn-outline btn-sm" id="rv-toggle-manual">✓ Registrar efectivo/transferencia</button>
+        </div>
+        <div class="cobro-manual-form hidden" id="rv-manual-form">
+          <select class="form-input" id="rv-manual-tipo" style="max-width:140px">
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+          </select>
+          <input class="form-input" id="rv-manual-ref" type="text" placeholder="Referencia (opcional)">
+          <button class="btn btn-primary btn-sm" id="rv-manual-confirm">Registrar</button>
+        </div>
+        <div class="form-error" id="rv-cobro-error"></div>
+        <div id="rv-transacciones-list"></div>
       </div>
     </div>
   </div>
