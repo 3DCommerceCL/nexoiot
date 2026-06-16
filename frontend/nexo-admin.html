@@ -171,8 +171,9 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 <div class="login-overlay" id="login-screen">
   <div class="login-card">
     <div class="sb-logo"><div class="sb-logo-dot"></div><span style="font-size:15px">Nexo IoT</span></div>
-    <p class="login-desc">Ingresa la clave de acceso de Nexo IoT para ver el panel general de hoteles.</p>
-    <input class="form-input" type="password" id="login-key" placeholder="Clave de acceso" autocomplete="current-password">
+    <p class="login-desc">Ingresa tu email y contraseña de superadmin para ver el panel general de hoteles.</p>
+    <input class="form-input" type="email" id="login-email" placeholder="Email" autocomplete="username">
+    <input class="form-input" type="password" id="login-password" placeholder="Contraseña" autocomplete="current-password">
     <button class="btn btn-primary" style="width:100%;padding:11px" id="login-btn">Ingresar</button>
     <div class="form-error" id="login-error"></div>
   </div>
@@ -207,6 +208,10 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
     <div class="nav-item" data-view="pagos">
       <span class="nav-icon">💳</span>
       <span class="nav-label">Pagos</span>
+    </div>
+    <div class="nav-item" data-view="usuarios">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Usuarios</span>
     </div>
     <div class="nav-item">
       <span class="nav-icon">⚙️</span>
@@ -322,6 +327,16 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
           <span class="sec-title">Historial de transacciones</span>
         </div>
         <div id="pg-list"></div>
+      </div>
+    </div>
+
+    <div id="view-usuarios" class="hidden">
+      <div class="sec-header">
+        <span class="sec-title">Usuarios</span>
+        <button class="btn btn-primary btn-sm" id="btn-add-usuario">+ Crear usuario</button>
+      </div>
+      <div class="analytics-card">
+        <div id="usuarios-list"></div>
       </div>
     </div>
 
@@ -456,6 +471,42 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 
     <div class="modal-actions" style="margin-top:8px">
       <button class="btn btn-outline" id="cc-close">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Crear usuario -->
+<div class="modal-overlay" id="modal-add-usuario">
+  <div class="modal-box">
+    <div class="modal-title">Crear usuario</div>
+    <div class="modal-field">
+      <span class="modal-label">Nombre</span>
+      <input class="form-input" id="us-nombre" placeholder="Nombre completo">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Email</span>
+      <input class="form-input" id="us-email" type="email" placeholder="correo@ejemplo.com">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Contraseña</span>
+      <input class="form-input" id="us-password" type="password" placeholder="Mínimo 8 caracteres">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Rol</span>
+      <select class="form-input" id="us-rol">
+        <option value="owner">Dueño de hotel</option>
+        <option value="recepcion">Recepción</option>
+        <option value="superadmin">Superadmin (Nexo IoT)</option>
+      </select>
+    </div>
+    <div class="modal-field" id="us-hotel-field">
+      <span class="modal-label">Hotel</span>
+      <select class="form-input" id="us-hotel"></select>
+    </div>
+    <div class="modal-error" id="us-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="us-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="us-save">Crear usuario</button>
     </div>
   </div>
 </div>

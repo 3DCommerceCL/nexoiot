@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 const API_URL    = 'https://nexoiot-production.up.railway.app/api';
-const KEY_STORAGE = 'nexo_admin_key';
+const SESSION_STORAGE = 'nexo_session'; // { token, rol, hotelId, nombre, email }
 
 const $ = id => document.getElementById(id);
 
@@ -13,7 +13,11 @@ const $ = id => document.getElementById(id);
 
 let hotels = [];
 
-function getAdminKey() { return sessionStorage.getItem(KEY_STORAGE) || ''; }
+function getSession() {
+  try { return JSON.parse(sessionStorage.getItem(SESSION_STORAGE) || 'null'); }
+  catch { return null; }
+}
+function getToken() { return getSession()?.token || ''; }
 
 // ── TEMA DEL PANEL (claro / oscuro) ───────────────────────────────────────────
 const DASH_THEME_KEY = 'nexo_dash_theme';
@@ -32,7 +36,7 @@ function toggleDashTheme() {
   if (btn) btn.textContent = dark ? '☀️' : '🌙';
 }
 
-const apiFetch = createApiFetch(API_URL, () => ({ 'X-Admin-Key': getAdminKey() }));
+const apiFetch = createApiFetch(API_URL, () => ({ 'Authorization': `Bearer ${getToken()}` }));
 
 function showToast(msg) {
   renderToast(msg, { axis: 'x' });
@@ -43,8 +47,8 @@ window.openHotel = function(id) {
 };
 
 // ── NAVEGACIÓN ENTRE VISTAS ───────────────────────────────────────────────────
-const VIEW_TITLES = { hotels: 'Hoteles', analytics: 'Analíticas', channels: 'Canales OTA', booking: 'Motor de Reservas', pagos: 'Pagos' };
-const ALL_VIEWS   = ['hotels', 'analytics', 'channels', 'booking', 'pagos'];
+const VIEW_TITLES = { hotels: 'Hoteles', analytics: 'Analíticas', channels: 'Canales OTA', booking: 'Motor de Reservas', pagos: 'Pagos', usuarios: 'Usuarios' };
+const ALL_VIEWS   = ['hotels', 'analytics', 'channels', 'booking', 'pagos', 'usuarios'];
 
 function setView(view) {
   document.querySelectorAll('.nav-item[data-view]').forEach(el =>
@@ -55,33 +59,48 @@ function setView(view) {
   if (view === 'channels')  initCanalView();
   if (view === 'booking')   initBookingView();
   if (view === 'pagos')     initPagosView();
+  if (view === 'usuarios')  loadUsuarios();
 }
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 async function login() {
-  const key   = $('login-key').value.trim();
-  const error = $('login-error');
+  const email    = $('login-email').value.trim();
+  const password = $('login-password').value;
+  const error    = $('login-error');
   error.textContent = '';
-  if (!key) { error.textContent = 'Ingresa la clave de acceso.'; return; }
+  if (!email || !password) { error.textContent = 'Ingresa email y contraseña.'; return; }
 
-  sessionStorage.setItem(KEY_STORAGE, key);
   try {
+    const res = await fetch(`${API_URL}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || 'Error de autenticación');
+    if (body.rol !== 'superadmin') {
+      throw new Error('Esta cuenta no tiene acceso al panel general — usa el panel de tu hotel.');
+    }
+
+    sessionStorage.setItem(SESSION_STORAGE, JSON.stringify(body));
     await loadHotels();
     $('login-screen').classList.add('hidden');
     $('sidebar').classList.remove('hidden');
     $('main').classList.remove('hidden');
   } catch (err) {
-    sessionStorage.removeItem(KEY_STORAGE);
-    error.textContent = 'Clave incorrecta o sin conexión.';
+    sessionStorage.removeItem(SESSION_STORAGE);
+    error.textContent = err.message || 'Error de conexión.';
   }
 }
 
 function logout() {
-  sessionStorage.removeItem(KEY_STORAGE);
+  apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+  sessionStorage.removeItem(SESSION_STORAGE);
   $('sidebar').classList.add('hidden');
   $('main').classList.add('hidden');
   $('login-screen').classList.remove('hidden');
-  $('login-key').value = '';
+  $('login-email').value = '';
+  $('login-password').value = '';
 }
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
@@ -696,6 +715,92 @@ function renderPagosList(lista) {
     </div>`).join('');
 }
 
+// ── USUARIOS (gestión de cuentas owner/recepcion/superadmin) ────────────────
+const ROL_LABEL = { superadmin: 'Superadmin', owner: 'Dueño', recepcion: 'Recepción' };
+
+async function loadUsuarios() {
+  try {
+    const lista = await apiFetch('/admin/usuarios');
+    renderUsuarios(lista);
+  } catch (err) {
+    $('usuarios-list').innerHTML = `<div class="analytics-empty">Error: ${err.message}</div>`;
+  }
+}
+
+function renderUsuarios(lista) {
+  if (!lista.length) {
+    $('usuarios-list').innerHTML = '<div class="analytics-empty">Sin usuarios creados todavía.</div>';
+    return;
+  }
+  $('usuarios-list').innerHTML = lista.map(u => {
+    const hotelNombre = u.hotel_id ? (hotels.find(h => h.id === u.hotel_id)?.name || u.hotel_id) : '— (todos)';
+    return `
+    <div class="mapping-row" style="margin-bottom:6px">
+      <span class="mapping-room" style="width:160px;flex:none">${u.nombre}</span>
+      <span class="mapping-ota" style="flex:1">${u.email} · ${ROL_LABEL[u.rol] || u.rol} · ${hotelNombre}</span>
+      <span class="badge ${u.activo ? 'badge-active' : 'badge-inactive'}" style="margin-right:8px">${u.activo ? 'Activo' : 'Inactivo'}</span>
+      <button class="btn btn-outline btn-sm" style="margin-right:6px" onclick="toggleUsuario('${u.id}', ${u.activo})">${u.activo ? 'Desactivar' : 'Activar'}</button>
+      <button class="mapping-del" onclick="deleteUsuario('${u.id}', '${u.email}')" title="Eliminar">✕</button>
+    </div>`;
+  }).join('');
+}
+
+window.toggleUsuario = async function(id, activo) {
+  try {
+    await apiFetch(`/admin/usuarios/${id}`, { method: 'PATCH', body: JSON.stringify({ activo: activo ? 0 : 1 }) });
+    await loadUsuarios();
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  }
+};
+
+window.deleteUsuario = async function(id, email) {
+  if (!confirm(`¿Eliminar usuario "${email}"? Esto cierra todas sus sesiones activas.`)) return;
+  try {
+    await apiFetch(`/admin/usuarios/${id}`, { method: 'DELETE' });
+    showToast('Usuario eliminado');
+    await loadUsuarios();
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  }
+};
+
+function openAddUsuarioModal() {
+  $('us-nombre').value = '';
+  $('us-email').value = '';
+  $('us-password').value = '';
+  $('us-rol').value = 'owner';
+  $('us-hotel-field').classList.remove('hidden');
+  $('us-hotel').innerHTML = hotels.map(h => `<option value="${h.id}">${h.name}</option>`).join('');
+  $('us-error').textContent = '';
+  $('modal-add-usuario').classList.add('open');
+}
+
+async function submitAddUsuario() {
+  $('us-error').textContent = '';
+  const nombre   = $('us-nombre').value.trim();
+  const email    = $('us-email').value.trim();
+  const password = $('us-password').value;
+  const rol      = $('us-rol').value;
+  const hotelId  = rol === 'superadmin' ? undefined : $('us-hotel').value;
+
+  if (!nombre || !email || !password) { $('us-error').textContent = 'Completa nombre, email y contraseña.'; return; }
+  if (password.length < 8) { $('us-error').textContent = 'La contraseña debe tener al menos 8 caracteres.'; return; }
+  if (rol !== 'superadmin' && !hotelId) { $('us-error').textContent = 'Selecciona un hotel.'; return; }
+
+  try {
+    await apiFetch('/admin/usuarios', {
+      method: 'POST',
+      body: JSON.stringify({ nombre, email, password, rol, hotelId }),
+    });
+    $('modal-add-usuario').classList.remove('open');
+    showToast('Usuario creado');
+    await loadUsuarios();
+  } catch (err) {
+    $('us-error').textContent = err.message;
+  }
+}
+
 function startClock() {
   const DAYS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   const MONTH = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -710,7 +815,8 @@ function startClock() {
 
 document.addEventListener('DOMContentLoaded', () => {
   $('login-btn').addEventListener('click', login);
-  $('login-key').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  $('login-email').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  $('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
   $('logout-btn').addEventListener('click', logout);
 
   document.querySelectorAll('.nav-item[data-view]').forEach(el =>
@@ -759,13 +865,25 @@ document.addEventListener('DOMContentLoaded', () => {
   $('pg-hotel-filter').addEventListener('change', loadTransacciones);
   $('pg-filtrar').addEventListener('click', loadTransacciones);
 
-  if (getAdminKey()) {
+  // Usuarios
+  $('btn-add-usuario').addEventListener('click', openAddUsuarioModal);
+  $('us-rol').addEventListener('change', () => {
+    $('us-hotel-field').classList.toggle('hidden', $('us-rol').value === 'superadmin');
+  });
+  $('us-cancel').addEventListener('click', () => $('modal-add-usuario').classList.remove('open'));
+  $('us-save').addEventListener('click', submitAddUsuario);
+  $('modal-add-usuario').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+
+  const session = getSession();
+  if (session && session.rol === 'superadmin') {
     loadHotels()
       .then(() => {
         $('login-screen').classList.add('hidden');
         $('sidebar').classList.remove('hidden');
         $('main').classList.remove('hidden');
       })
-      .catch(() => sessionStorage.removeItem(KEY_STORAGE));
+      .catch(() => sessionStorage.removeItem(SESSION_STORAGE));
+  } else if (session) {
+    sessionStorage.removeItem(SESSION_STORAGE);
   }
 });
