@@ -88,6 +88,45 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 /* ── PLACEHOLDER NOTE ── */
 .preview-note{background:var(--purple-l);border:1px solid rgba(83,74,183,.25);border-radius:10px;padding:12px 16px;font-size:12px;color:var(--purple);margin-bottom:20px;line-height:1.5}
 
+/* ── CANALES ── */
+.canal-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.canal-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow)}
+.canal-card.canal-error{border-color:var(--alert)}
+.canal-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.canal-name{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:6px}
+.canal-hotel{font-size:11px;color:var(--text2);margin-top:2px}
+.badge-error{background:rgba(192,57,43,.12);color:var(--alert)}
+.badge-inactive{background:var(--border);color:var(--text3)}
+.canal-sync{font-size:11px;color:var(--text2)}
+.canal-sync.has-error{color:var(--alert)}
+.canal-mappings{font-size:11px;color:var(--text2)}
+.canal-actions{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.btn-sm{padding:5px 10px;font-size:11px}
+.canal-filter{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.canal-filter select{padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-family:var(--font);cursor:pointer}
+
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;width:100%;max-width:420px;display:flex;flex-direction:column;gap:14px;box-shadow:0 12px 40px rgba(0,0,0,.2)}
+.modal-title{font-size:15px;font-weight:700;color:var(--text)}
+.modal-field{display:flex;flex-direction:column;gap:5px}
+.modal-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.modal-error{font-size:12px;color:var(--alert);min-height:16px}
+.mapping-list{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto}
+.mapping-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg);border-radius:7px;font-size:12px}
+.mapping-room{font-weight:600;color:var(--text);flex:1}
+.mapping-ota{color:var(--text2);flex:1}
+.mapping-del{background:none;border:none;color:var(--alert);cursor:pointer;font-size:14px;padding:2px 4px}
+.mapping-add-row{display:flex;gap:6px;margin-top:6px}
+.mapping-add-row input{flex:1;padding:6px 9px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-family:var(--font)}
+.modal-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.modal-tab{padding:7px 14px;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font)}
+.modal-tab.active{color:var(--purple);border-bottom-color:var(--purple)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
 /* ── TOAST ── */
 #toast-container{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none}
 .toast{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-size:13px;color:var(--text);animation:toastIn .3s ease;pointer-events:all;box-shadow:0 8px 24px rgba(16,24,40,.12);max-width:320px}
@@ -157,6 +196,10 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
       <span class="nav-icon">📊</span>
       <span class="nav-label">Analíticas</span>
     </div>
+    <div class="nav-item" data-view="channels">
+      <span class="nav-icon">🔗</span>
+      <span class="nav-label">Canales OTA</span>
+    </div>
     <div class="nav-item">
       <span class="nav-icon">⚙️</span>
       <span class="nav-label">Configuración</span>
@@ -190,6 +233,19 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
       <div class="hotel-grid" id="hotel-grid"></div>
     </div>
 
+    <div id="view-channels" class="hidden">
+      <div class="canal-filter">
+        <select id="canal-hotel-filter">
+          <option value="">— Seleccionar hotel —</option>
+        </select>
+        <button class="btn btn-primary btn-sm" id="btn-add-canal">+ Agregar canal</button>
+      </div>
+      <div class="sec-header" id="canal-sec-header" style="display:none">
+        <span class="sec-title" id="canal-sec-title">Canales de distribución</span>
+      </div>
+      <div class="canal-grid" id="canal-grid"></div>
+    </div>
+
     <div id="view-analytics" class="hidden">
       <div class="kpi-row" id="analytics-kpi-row"></div>
 
@@ -210,6 +266,69 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
     </div>
   </div>
 </main>
+
+<!-- MODAL: Agregar canal -->
+<div class="modal-overlay" id="modal-add-canal">
+  <div class="modal-box">
+    <div class="modal-title">Agregar canal OTA</div>
+    <div class="modal-field">
+      <span class="modal-label">Hotel</span>
+      <select class="form-input" id="ac-hotel"></select>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Canal</span>
+      <select class="form-input" id="ac-nombre">
+        <option value="booking">Booking.com</option>
+        <option value="airbnb">Airbnb</option>
+        <option value="expedia">Expedia</option>
+        <option value="despegar">Despegar.com</option>
+        <option value="directo">Reserva directa (web propia)</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Property ID en SiteMinder</span>
+      <input class="form-input" id="ac-property-id" placeholder="ej: HOTEL123 (obtener en SiteMinder)">
+    </div>
+    <div class="modal-error" id="ac-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="ac-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="ac-save">Agregar canal</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Configurar canal (mapeos + sync log) -->
+<div class="modal-overlay" id="modal-canal-config">
+  <div class="modal-box" style="max-width:500px">
+    <div class="modal-title" id="cc-title">Configurar canal</div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" data-tab="mappings">Habitaciones</button>
+      <button class="modal-tab" data-tab="log">Log de sync</button>
+    </div>
+
+    <!-- Tab: Mappings -->
+    <div class="tab-panel active" id="tab-mappings">
+      <div class="modal-label" style="margin-bottom:8px">Mapeo habitación local → ID en OTA</div>
+      <div class="mapping-list" id="mapping-list"></div>
+      <div class="mapping-add-row" style="margin-top:10px">
+        <select id="map-room-id" class="form-input" style="flex:1;padding:6px 8px;font-size:12px"></select>
+        <input id="map-ota-room-id" placeholder="ID hab OTA" style="flex:1">
+        <input id="map-ota-rate-id" placeholder="ID tarifa (opcional)" style="flex:1">
+        <button class="btn btn-primary btn-sm" id="btn-add-mapping">+</button>
+      </div>
+      <div class="modal-error" id="map-error"></div>
+    </div>
+
+    <!-- Tab: Sync log -->
+    <div class="tab-panel" id="tab-log">
+      <div class="mapping-list" id="sync-log-list" style="max-height:280px"></div>
+    </div>
+
+    <div class="modal-actions" style="margin-top:8px">
+      <button class="btn btn-outline" id="cc-close">Cerrar</button>
+    </div>
+  </div>
+</div>
 
 <div id="toast-container"></div>
 
