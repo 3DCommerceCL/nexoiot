@@ -113,6 +113,29 @@ db.exec(`
     created_at        TEXT NOT NULL,
     updated_at        TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS transacciones (
+    id               TEXT PRIMARY KEY,
+    reserva_id       TEXT,
+    hotel_id         TEXT NOT NULL,
+    tipo             TEXT NOT NULL,
+    monto_clp        INTEGER NOT NULL,
+    monto_uf         REAL,
+    estado           TEXT NOT NULL DEFAULT 'pendiente',
+    token_ws         TEXT,
+    buy_order        TEXT,
+    session_id       TEXT,
+    mp_preference_id TEXT,
+    mp_payment_id    TEXT,
+    referencia_ota   TEXT,
+    detalle          TEXT,
+    guest_name       TEXT,
+    created_at       TEXT NOT NULL,
+    updated_at       TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_transacciones_reserva ON transacciones(reserva_id);
+  CREATE INDEX IF NOT EXISTS idx_transacciones_hotel ON transacciones(hotel_id, created_at);
+  CREATE INDEX IF NOT EXISTS idx_transacciones_buy_order ON transacciones(buy_order);
 `);
 
 console.log('[db] SQLite listo:', DB_PATH);
