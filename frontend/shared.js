@@ -227,7 +227,7 @@ function renderToast(msg, { type = '', containerId = 'toast-container', duration
 }
 
 // ── FÁBRICA DE apiFetch ───────────────────────────────────────────────────────
-// baseUrl: ej. API_URL  ·  getHeaders: () => headers extra (ej. X-Admin-Key)
+// baseUrl: ej. API_URL  ·  getHeaders: () => headers extra (ej. Authorization: Bearer <token>)
 function createApiFetch(baseUrl, getHeaders) {
   return async function apiFetch(path, opts = {}) {
     const res = await fetch(`${baseUrl}${path}`, {

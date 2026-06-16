@@ -102,6 +102,13 @@ const I18N = {
     dndDesc: 'El personal de limpieza no ingresará a tu habitación mientras esté activo',
     requestTowels: '🧺 Pedir toallas / amenities',
     requestRoomService: '🍽 Pedir room service',
+    requestCleaning: '🧹 Pedir limpieza',
+    requestLateCheckout: '🕐 Solicitar late checkout',
+    requestMaintenance: '🔧 Reportar un problema',
+    requestOther: '💬 Otra solicitud',
+    requestNotePrompt: 'Describe brevemente tu solicitud:',
+    noDevicesMsg: 'Esta habitación no tiene dispositivos inteligentes. Usa Servicios para pedir lo que necesites a recepción.',
+    noDevicesBtn: 'Ir a Servicios',
     toastRequestSent: 'Solicitud enviada a recepción',
     toastDndOn: 'No molestar activado',
     toastDndOff: 'No molestar desactivado',
@@ -234,6 +241,13 @@ const I18N = {
     dndDesc: 'Housekeeping will not enter your room while this is active',
     requestTowels: '🧺 Request towels / amenities',
     requestRoomService: '🍽 Request room service',
+    requestCleaning: '🧹 Request housekeeping',
+    requestLateCheckout: '🕐 Request late checkout',
+    requestMaintenance: '🔧 Report an issue',
+    requestOther: '💬 Other request',
+    requestNotePrompt: 'Briefly describe your request:',
+    noDevicesMsg: 'This room has no smart devices. Use Services to ask the front desk for anything you need.',
+    noDevicesBtn: 'Go to Services',
     toastRequestSent: 'Request sent to the front desk',
     toastDndOn: 'Do Not Disturb on',
     toastDndOff: 'Do Not Disturb off',
@@ -366,6 +380,13 @@ const I18N = {
     dndDesc: 'A equipe de limpeza não entrará no seu quarto enquanto estiver ativo',
     requestTowels: '🧺 Pedir toalhas / amenities',
     requestRoomService: '🍽 Pedir room service',
+    requestCleaning: '🧹 Pedir limpeza',
+    requestLateCheckout: '🕐 Solicitar late checkout',
+    requestMaintenance: '🔧 Relatar um problema',
+    requestOther: '💬 Outra solicitação',
+    requestNotePrompt: 'Descreva brevemente sua solicitação:',
+    noDevicesMsg: 'Este quarto não possui dispositivos inteligentes. Use Serviços para pedir o que precisar à recepção.',
+    noDevicesBtn: 'Ir para Serviços',
     toastRequestSent: 'Solicitação enviada à recepção',
     toastDndOn: 'Não perturbe ativado',
     toastDndOff: 'Não perturbe desativado',
@@ -859,8 +880,11 @@ function toggleDnd() {
   savePrefs({ dnd: app.dnd });
 }
 
-// ── SOLICITUDES DE SERVICIO (toallas/amenities, room service) ───────────────
-async function sendServiceRequest(type) {
+// ── SOLICITUDES DE SERVICIO ───────────────────────────────────────────────────
+// Cubre toda la comunicación habitual huésped↔recepción durante la estadía,
+// con o sin domótica: toallas, room service, limpieza, late checkout,
+// reportar un problema y solicitudes libres (las dos últimas con nota).
+async function sendServiceRequest(type, note = '') {
   if (window.location.protocol === 'file:') {
     showToast(t('toastRequestSent'), 'success');
     return;
@@ -869,13 +893,20 @@ async function sendServiceRequest(type) {
     const res = await fetch(`${API}/room/${app.token}/request`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ type }),
+      body:    JSON.stringify({ type, note }),
     });
     if (!res.ok) throw new Error();
     showToast(t('toastRequestSent'), 'success');
   } catch {
     showToast(t('toastCmdFail'), 'error');
   }
+}
+
+// Tipos que requieren describir el pedido antes de enviarlo.
+function sendServiceRequestWithNote(type) {
+  const note = (window.prompt(t('requestNotePrompt')) || '').trim();
+  if (!note) return; // cancelado o vacío — no se envía
+  sendServiceRequest(type, note);
 }
 
 function setA11y(mode) {
@@ -1065,6 +1096,10 @@ function initNav() {
   document.getElementById('dnd-toggle')?.addEventListener('click', toggleDnd);
   document.getElementById('request-towels-btn')?.addEventListener('click', () => sendServiceRequest('towels'));
   document.getElementById('request-roomservice-btn')?.addEventListener('click', () => sendServiceRequest('roomservice'));
+  document.getElementById('request-cleaning-btn')?.addEventListener('click', () => sendServiceRequest('cleaning'));
+  document.getElementById('request-late-checkout-btn')?.addEventListener('click', () => sendServiceRequest('late_checkout'));
+  document.getElementById('request-maintenance-btn')?.addEventListener('click', () => sendServiceRequestWithNote('maintenance'));
+  document.getElementById('request-other-btn')?.addEventListener('click', () => sendServiceRequestWithNote('other'));
 
   // Onboarding: al cerrar el mensaje de bienvenida, ofrecer el tutorial guiado
   document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
@@ -1205,6 +1240,15 @@ function renderGrid() {
     ...CARD_ORDER.filter(k => app.config[k]),
     ...Object.keys(app.config).filter(k => !CARD_ORDER.includes(k) && k !== 'puerta'),
   ];
+  if (!keys.length) {
+    grid.innerHTML = `
+      <div class="support-card" style="text-align:center">
+        <span class="support-card-ico">🛎️</span>
+        <p>${t('noDevicesMsg')}</p>
+        <button class="support-btn" onclick="switchView('support')">${t('noDevicesBtn')}</button>
+      </div>`;
+    return;
+  }
   grid.innerHTML = keys.map(buildCard).join('');
 }
 
