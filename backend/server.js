@@ -12,6 +12,7 @@ const path      = require('path');
 const tuya      = require('./tuya');
 const rooms     = require('./rooms');
 const reservas  = require('./reservas');
+const bloqueos  = require('./bloqueos');
 
 const app       = express();
 const PORT        = process.env.PORT      || 3000;
@@ -27,19 +28,23 @@ const ALLOWED_ORIGINS = [
   /^http:\/\/127\.0\.0\.1(:\d+)?$/,
 ];
 
-app.use(cors({
+// Endpoints /api/public/ son de acceso abierto (booking widget embebido en sitios de hoteles)
+const corsPublic     = cors({ origin: '*', methods: ['GET', 'OPTIONS'] });
+const corsRestricted = cors({
   origin: (origin, cb) => {
-    // Permitir requests sin origin (curl, Postman, Railway health checks)
     if (!origin) return cb(null, true);
     const allowed = ALLOWED_ORIGINS.some(o =>
       typeof o === 'string' ? o === origin : o.test(origin)
     );
     cb(allowed ? null : new Error(`CORS bloqueado: ${origin}`), allowed);
   },
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'X-Admin-Key'],
   credentials: false,
-}));
+});
+app.use((req, res, next) =>
+  req.path.startsWith('/api/public/') ? corsPublic(req, res, next) : corsRestricted(req, res, next)
+);
 app.use(express.json());
 
 // Sirve la web app del huésped como archivos estáticos
@@ -54,6 +59,48 @@ const limiter = rateLimit({
   message: { error: 'Demasiadas solicitudes. Espera un momento.' },
 });
 app.use('/api/', limiter);
+
+// Rate limiter más estricto para endpoints públicos (sin autenticación)
+const publicLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas solicitudes. Espera un momento.' },
+  keyGenerator: req => `${req.ip}:${req.params.slug || ''}`,
+});
+
+// ── DISPONIBILIDAD: cache en memoria con TTL de 60 s ─────────────────────────
+const disponibilidadCache = new Map();
+const CACHE_TTL_MS = 60_000;
+
+function getCached(key) {
+  const entry = disponibilidadCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL_MS) { disponibilidadCache.delete(key); return null; }
+  return entry.data;
+}
+function setCached(key, data) {
+  disponibilidadCache.set(key, { ts: Date.now(), data });
+}
+function invalidarCacheDisponibilidad(slug) {
+  for (const key of disponibilidadCache.keys()) {
+    if (key.startsWith(`disp:${slug}:`)) disponibilidadCache.delete(key);
+  }
+}
+
+// ── VALOR UF DEL DÍA (cache diario) ──────────────────────────────────────────
+let valorUF = 41000;
+
+async function actualizarUF() {
+  try {
+    const res  = await fetch('https://mindicador.cl/api/uf');
+    const data = await res.json();
+    valorUF = data.serie[0].valor;
+  } catch { /* usar valor de respaldo */ }
+}
+actualizarUF();
+setInterval(actualizarUF, 24 * 60 * 60 * 1000);
 
 // Logging (el token se oculta en los logs)
 app.use((req, _res, next) => {
@@ -506,6 +553,7 @@ app.post('/api/admin/reservas', adminAuth, (req, res) => {
   }
   const r = reservas.createReserva(hotelId, roomId, guestName, checkin, checkout,
     { guestEmail, guestPhone, notes, plan, source });
+  invalidarCacheDisponibilidad(hotelId);
   res.status(201).json(r);
 });
 
@@ -528,14 +576,130 @@ app.patch('/api/admin/reservas/:id', adminAuth, (req, res) => {
   }
 
   const updated = reservas.updateReserva(req.params.id, req.body);
+  invalidarCacheDisponibilidad(existing.hotel_id);
   res.json(updated);
 });
 
 // ── ADMIN: DELETE /api/admin/reservas/:id ─────────────────────────────────────
 app.delete('/api/admin/reservas/:id', adminAuth, (req, res) => {
-  const ok = reservas.cancelReserva(req.params.id);
-  if (!ok) return res.status(404).json({ error: 'Reserva no encontrada' });
+  const existing = reservas.getById(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Reserva no encontrada' });
+  reservas.cancelReserva(req.params.id);
+  invalidarCacheDisponibilidad(existing.hotel_id);
   res.json({ success: true });
+});
+
+// ── PUBLIC: GET /api/public/uf ────────────────────────────────────────────────
+app.get('/api/public/uf', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({ valor: valorUF, fecha: new Date().toISOString().slice(0, 10) });
+});
+
+// ── PUBLIC: GET /api/public/hotels/:slug/disponibilidad ───────────────────────
+app.get('/api/public/hotels/:slug/disponibilidad', publicLimiter, async (req, res) => {
+  const { slug }            = req.params;
+  const { checkin, checkout } = req.query;
+
+  // Validar fechas
+  if (!checkin || !checkout)
+    return res.status(400).json({ error: 'Se requieren checkin y checkout', code: 'MISSING_DATES' });
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(checkin) || !/^\d{4}-\d{2}-\d{2}$/.test(checkout))
+    return res.status(400).json({ error: 'Formato de fecha inválido. Usar YYYY-MM-DD', code: 'INVALID_FORMAT' });
+  const hoy = new Date().toISOString().slice(0, 10);
+  if (checkin < hoy)
+    return res.status(400).json({ error: 'No se puede consultar disponibilidad para fechas pasadas', code: 'PAST_DATES' });
+  if (checkin >= checkout)
+    return res.status(400).json({ error: 'El checkin debe ser anterior al checkout', code: 'INVALID_DATES' });
+  const noches = (new Date(checkout) - new Date(checkin)) / 86400000;
+  if (noches > 365)
+    return res.status(400).json({ error: 'El rango máximo de consulta es 365 noches', code: 'RANGE_TOO_LARGE' });
+
+  // Cache
+  const cacheKey = `disp:${slug}:${checkin}:${checkout}`;
+  const cached = getCached(cacheKey);
+  if (cached) {
+    res.set('X-Cache', 'HIT');
+    res.set('Cache-Control', 'public, max-age=60');
+    return res.json(cached);
+  }
+
+  // Buscar hotel por slug (el ID del hotel ES el slug en hotels.json)
+  const hotelsMap = rooms.getHotels();
+  const hotelData = hotelsMap[slug];
+  if (!hotelData)
+    return res.status(404).json({ error: 'Hotel no encontrado o reservas no disponibles en este canal', code: 'HOTEL_NOT_FOUND' });
+
+  // Habitaciones del hotel (excluir demo)
+  const allRooms = rooms.getRooms();
+  const hotelRooms = Object.entries(allRooms)
+    .filter(([, r]) => r.hotelId === slug && r.demo !== true)
+    .map(([id, r]) => ({ id, nombre: r.name, plan: r.plan || 'base' }));
+
+  // Reservas y bloqueos activos que se solapan con el rango
+  const reservasActivas = reservas.getByHotel(slug, checkin, checkout)
+    .filter(r => !['cancelled', 'checked_out'].includes(r.status));
+  const bloqueosList = bloqueos.getBloqueosByHotelEnRango(slug, checkin, checkout);
+
+  const roomsResult = hotelRooms.map(room => {
+    const estaOcupada  = reservasActivas.some(r => r.room_id === room.id);
+    const estaBloqueada = bloqueosList.some(b => b.room_id === room.id);
+
+    if (estaOcupada || estaBloqueada) {
+      return {
+        id: room.id, nombre: room.nombre, plan: room.plan,
+        disponible: false, motivoBloqueo: estaOcupada ? 'ocupada' : 'bloqueada',
+      };
+    }
+
+    // Tarifas disponibles después de implementar prompt 03
+    return {
+      id: room.id, nombre: room.nombre, plan: room.plan,
+      disponible: true,
+      precioPorNoche: null,
+      precioTotal:    null,
+      minNoches:      1,
+    };
+  });
+
+  const responseData = {
+    hotel:    { nombre: hotelData.name, slug, location: hotelData.location || null },
+    checkin, checkout, noches,
+    uf:       { valor: valorUF, fecha: new Date().toISOString().slice(0, 10) },
+    rooms:    roomsResult,
+  };
+
+  setCached(cacheKey, responseData);
+  res.set('X-Cache', 'MISS');
+  res.set('Cache-Control', 'public, max-age=60');
+  res.json(responseData);
+});
+
+// ── ADMIN: POST /api/admin/rooms/:roomId/bloqueo ──────────────────────────────
+app.post('/api/admin/rooms/:roomId/bloqueo', adminAuth, (req, res) => {
+  const room = rooms.getRooms()[req.params.roomId];
+  if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
+
+  const { desde, hasta, motivo, notas } = req.body;
+  if (!desde || !hasta) return res.status(400).json({ error: 'Requeridos: desde, hasta' });
+  if (desde >= hasta) return res.status(400).json({ error: 'desde debe ser anterior a hasta' });
+
+  const bloqueo = bloqueos.createBloqueo(room.hotelId, req.params.roomId, desde, hasta, motivo, notas);
+  invalidarCacheDisponibilidad(room.hotelId);
+  res.status(201).json(bloqueo);
+});
+
+// ── ADMIN: DELETE /api/admin/bloqueos/:id ─────────────────────────────────────
+app.delete('/api/admin/bloqueos/:id', adminAuth, (req, res) => {
+  const ok = bloqueos.deleteBloqueo(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Bloqueo no encontrado' });
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/rooms/:roomId/bloqueos ──────────────────────────────
+app.get('/api/admin/rooms/:roomId/bloqueos', adminAuth, (req, res) => {
+  if (!rooms.getRooms()[req.params.roomId])
+    return res.status(404).json({ error: 'Habitación no encontrada' });
+  res.json(bloqueos.getBloqueosByRoom(req.params.roomId));
 });
 
 // ── HEALTH CHECK ──────────────────────────────────────────────────────────────
