@@ -1541,7 +1541,9 @@ function initCalendar() {
     },
     editable: true,
     eventResizableFromStart: true,
-    height: '100%',
+    expandRows: true,
+    stickyHeaderDates: true,
+    height: () => document.getElementById('fc-container').offsetHeight || 600,
     resourceAreaHeaderContent: 'Habitación',
     resourceAreaWidth: '150px',
     headerToolbar: {
