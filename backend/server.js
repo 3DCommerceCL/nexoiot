@@ -13,6 +13,8 @@ const tuya      = require('./tuya');
 const rooms     = require('./rooms');
 const reservas  = require('./reservas');
 const bloqueos  = require('./bloqueos');
+const canales   = require('./canales');
+const cm        = require('./channel-manager');
 
 const app       = express();
 const PORT        = process.env.PORT      || 3000;
@@ -554,6 +556,9 @@ app.post('/api/admin/reservas', adminAuth, (req, res) => {
   const r = reservas.createReserva(hotelId, roomId, guestName, checkin, checkout,
     { guestEmail, guestPhone, notes, plan, source });
   invalidarCacheDisponibilidad(hotelId);
+  cm.pushDisponibilidad(hotelId, roomId, checkin, checkout).catch(err =>
+    console.error('[cm] Push fallido tras crear reserva:', err.message)
+  );
   res.status(201).json(r);
 });
 
@@ -586,6 +591,8 @@ app.delete('/api/admin/reservas/:id', adminAuth, (req, res) => {
   if (!existing) return res.status(404).json({ error: 'Reserva no encontrada' });
   reservas.cancelReserva(req.params.id);
   invalidarCacheDisponibilidad(existing.hotel_id);
+  cm.pushDisponibilidad(existing.hotel_id, existing.room_id, existing.checkin, existing.checkout)
+    .catch(err => console.error('[cm] Push fallido tras cancelar reserva:', err.message));
   res.json({ success: true });
 });
 
@@ -672,6 +679,100 @@ app.get('/api/public/hotels/:slug/disponibilidad', publicLimiter, async (req, re
   res.set('X-Cache', 'MISS');
   res.set('Cache-Control', 'public, max-age=60');
   res.json(responseData);
+});
+
+// ── WEBHOOK: POST /api/webhook/reserva/:canalId ───────────────────────────────
+// SiteMinder llama aquí cuando llega una reserva desde Booking.com, Airbnb, etc.
+// Se responde 200 inmediatamente (SiteMinder exige ACK < 3 s) y se procesa async.
+app.post('/api/webhook/reserva/:canalId', express.json({ type: '*/*' }), (req, res) => {
+  const signature = req.headers['x-siteminder-signature'] || req.headers['x-hub-signature-256'] || '';
+  if (!cm.verificarFirma(signature, req.body)) {
+    return res.status(401).json({ error: 'Firma inválida' });
+  }
+  res.json({ received: true });
+  cm.procesarReservaOTA(req.body, req.params.canalId)
+    .catch(err => console.error('[webhook] Error procesando reserva OTA:', err.message));
+});
+
+// ── ADMIN: GET /api/admin/canales ─────────────────────────────────────────────
+// ?hotel=<hotelId> — lista canales del hotel
+app.get('/api/admin/canales', adminAuth, (req, res) => {
+  const { hotel } = req.query;
+  if (!hotel) return res.status(400).json({ error: 'hotel requerido' });
+  const lista = canales.getByHotel(hotel).map(c => ({
+    ...c,
+    syncStatus: canales.getSyncStatus(c.id, 1)[0] || null,
+    mappings:   canales.getMappings(c.id).length,
+  }));
+  res.json(lista);
+});
+
+// ── ADMIN: POST /api/admin/canales ────────────────────────────────────────────
+// Body: { hotelId, nombre, config: { siteminder_property_id } }
+app.post('/api/admin/canales', adminAuth, (req, res) => {
+  const { hotelId, nombre, config } = req.body;
+  if (!hotelId || !nombre) return res.status(400).json({ error: 'Requeridos: hotelId, nombre' });
+  const canal = canales.createCanal(hotelId, nombre, config || {});
+  res.status(201).json(canal);
+});
+
+// ── ADMIN: PATCH /api/admin/canales/:id ───────────────────────────────────────
+// Body: { activo: true|false } o { config: {...} }
+app.patch('/api/admin/canales/:id', adminAuth, (req, res) => {
+  const canal = canales.getById(req.params.id);
+  if (!canal) return res.status(404).json({ error: 'Canal no encontrado' });
+  res.json(canales.updateCanal(req.params.id, req.body));
+});
+
+// ── ADMIN: DELETE /api/admin/canales/:id ──────────────────────────────────────
+app.delete('/api/admin/canales/:id', adminAuth, (req, res) => {
+  const ok = canales.deleteCanal(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Canal no encontrado' });
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/canales/:id/sync-status ─────────────────────────────
+app.get('/api/admin/canales/:id/sync-status', adminAuth, (req, res) => {
+  const canal = canales.getById(req.params.id);
+  if (!canal) return res.status(404).json({ error: 'Canal no encontrado' });
+  res.json(canales.getSyncStatus(req.params.id, 20));
+});
+
+// ── ADMIN: POST /api/admin/canales/:id/sync-now ───────────────────────────────
+app.post('/api/admin/canales/:id/sync-now', adminAuth, async (req, res) => {
+  const canal = canales.getById(req.params.id);
+  if (!canal) return res.status(404).json({ error: 'Canal no encontrado' });
+  try {
+    const result = await cm.resyncHotel(req.params.id);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── ADMIN: GET /api/admin/canales/:id/mappings ────────────────────────────────
+app.get('/api/admin/canales/:id/mappings', adminAuth, (req, res) => {
+  const canal = canales.getById(req.params.id);
+  if (!canal) return res.status(404).json({ error: 'Canal no encontrado' });
+  res.json(canales.getMappings(req.params.id));
+});
+
+// ── ADMIN: POST /api/admin/canales/:id/mappings ───────────────────────────────
+// Body: { roomId, otaRoomId, otaRateId? }
+app.post('/api/admin/canales/:id/mappings', adminAuth, (req, res) => {
+  const canal = canales.getById(req.params.id);
+  if (!canal) return res.status(404).json({ error: 'Canal no encontrado' });
+  const { roomId, otaRoomId, otaRateId } = req.body;
+  if (!roomId || !otaRoomId) return res.status(400).json({ error: 'Requeridos: roomId, otaRoomId' });
+  const mapping = canales.addMapping(req.params.id, roomId, otaRoomId, otaRateId);
+  res.status(201).json(mapping);
+});
+
+// ── ADMIN: DELETE /api/admin/canales/mappings/:mappingId ──────────────────────
+app.delete('/api/admin/canales/mappings/:mappingId', adminAuth, (req, res) => {
+  const ok = canales.deleteMapping(req.params.mappingId);
+  if (!ok) return res.status(404).json({ error: 'Mapping no encontrado' });
+  res.json({ success: true });
 });
 
 // ── ADMIN: POST /api/admin/rooms/:roomId/bloqueo ──────────────────────────────
