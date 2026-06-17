@@ -435,6 +435,10 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">🏨</span>
       <span class="nav-label" data-i18n="navRooms">Habitaciones</span>
     </div>
+    <div class="nav-item" data-view="categorias" data-role="owner">
+      <span class="nav-icon">🛏️</span>
+      <span class="nav-label">Categorías</span>
+    </div>
     <div class="nav-item" data-view="calendar">
       <span class="nav-icon">📅</span>
       <span class="nav-label">Calendario</span>
@@ -508,6 +512,17 @@ select.form-input option{background:var(--card);color:var(--text)}
         <input type="search" class="room-search" id="room-search" data-i18n-placeholder="searchPlaceholder" placeholder="Buscar por habitación o huésped…">
       </div>
       <div class="floor-groups" id="room-grid-rooms"></div>
+    </div>
+
+    <!-- VIEW: CATEGORÍAS (solo owner/superadmin) -->
+    <div class="view" id="view-categorias">
+      <div class="sec-header">
+        <span class="sec-title">Categorías de habitación</span>
+        <button class="btn btn-primary btn-sm" id="btn-add-categoria">+ Agregar categoría</button>
+      </div>
+      <div class="analytics-card">
+        <div id="categorias-list"></div>
+      </div>
     </div>
 
     <!-- VIEW: CALENDARIO -->
@@ -815,8 +830,20 @@ select.form-input option{background:var(--card);color:var(--text)}
       <button class="modal-close" onclick="closeModal('modal-tarifa')">✕</button>
     </div>
     <div class="modal-field" style="margin-top:0">
-      <span class="modal-label">Habitación (dejar vacío = todas)</span>
-      <select class="form-input" id="tf-room"><option value="">Todas las habitaciones</option></select>
+      <span class="modal-label">Aplica a</span>
+      <select class="form-input" id="tf-ambito">
+        <option value="general">Todo el hotel (general)</option>
+        <option value="categoria">Una categoría</option>
+        <option value="room">Una habitación específica</option>
+      </select>
+    </div>
+    <div class="modal-field hidden" id="tf-categoria-field">
+      <span class="modal-label">Categoría</span>
+      <select class="form-input" id="tf-categoria"></select>
+    </div>
+    <div class="modal-field hidden" id="tf-room-field">
+      <span class="modal-label">Habitación</span>
+      <select class="form-input" id="tf-room"></select>
     </div>
     <div class="modal-field">
       <span class="modal-label">Nombre de la tarifa</span>
@@ -844,6 +871,29 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="modal-actions">
       <button class="btn btn-outline" id="tf-cancel">Cancelar</button>
       <button class="btn btn-primary" id="tf-save">Agregar tarifa</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Agregar/editar categoría de habitación -->
+<div class="modal-overlay hidden" id="modal-categoria">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title" id="cg-title">Agregar categoría</div>
+      <button class="modal-close" onclick="closeModal('modal-categoria')">✕</button>
+    </div>
+    <div class="modal-field" style="margin-top:0">
+      <span class="modal-label">Nombre</span>
+      <input class="form-input" id="cg-nombre" placeholder="Individual / Doble / Triple…">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Número de camas</span>
+      <input class="form-input" id="cg-camas" type="number" min="1" value="1">
+    </div>
+    <div class="modal-error" id="cg-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="cg-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="cg-save">Guardar</button>
     </div>
   </div>
 </div>

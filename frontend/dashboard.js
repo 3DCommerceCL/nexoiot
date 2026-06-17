@@ -9,6 +9,8 @@ const API_URL      = 'https://nexoiot-production.up.railway.app/api';
 const FRONTEND_URL = 'https://3dcommercecl.github.io/nexoiot';
 const SESSION_STORAGE = 'nexo_session'; // { token, rol, hotelId, nombre, email }
 let HOTEL_ID = null; // se fija tras login: hotelId de la sesión (owner/recepcion) o ?hotel= de la URL (superadmin)
+let currentRol = null; // 'superadmin' | 'owner' | 'recepcion', fijado tras login
+const isOwnerOrSuper = () => currentRol === 'owner' || currentRol === 'superadmin';
 
 const $ = id => document.getElementById(id);
 
@@ -447,6 +449,7 @@ const state = {
 };
 
 let rooms = []; // [{ id, name, hotel, floor, guest: {...} | null }]
+let categoriasCache = []; // [{ id, hotel_id, nombre, camas }]
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function getSession() {
@@ -516,7 +519,8 @@ async function login() {
 }
 
 function applyRoleVisibility(rol) {
-  const fullAccess = rol === 'owner' || rol === 'superadmin';
+  currentRol = rol;
+  const fullAccess = isOwnerOrSuper();
   document.querySelectorAll('.nav-item[data-role]').forEach(el => {
     el.classList.toggle('hidden', !fullAccess);
   });
@@ -546,9 +550,17 @@ async function loadRooms() {
     return numA - numB;
   });
   $('hotel-name').textContent = rooms[0]?.hotel || 'Panel del Hotel';
+  await loadCategoriasCache();
   renderKPIs();
   renderRooms('overview');
   if (state.view === 'rooms') renderRooms('rooms', state.filter);
+}
+
+async function loadCategoriasCache() {
+  if (!HOTEL_ID) return;
+  try {
+    categoriasCache = await apiFetch(`/admin/categorias?hotel=${encodeURIComponent(HOTEL_ID)}`);
+  } catch { categoriasCache = []; }
 }
 
 // ── SOLICITUDES DE HUÉSPEDES ──────────────────────────────────────────────────
@@ -663,8 +675,19 @@ function renderKPIs() {
 }
 
 // ── ROOM GRID ─────────────────────────────────────────────────────────────────
+function categoriaControlHtml(room) {
+  const cat = categoriasCache.find(c => c.id === room.categoriaId);
+  if (!isOwnerOrSuper()) {
+    return cat ? `<span class="badge">🛏️ ${cat.nombre}</span>` : '';
+  }
+  const opts = ['<option value="">Sin categoría</option>']
+    .concat(categoriasCache.map(c => `<option value="${c.id}" ${c.id === room.categoriaId ? 'selected' : ''}>${c.nombre} (${c.camas} cama${c.camas !== 1 ? 's' : ''})</option>`));
+  return `<select class="form-input" style="font-size:10px;padding:3px 6px;height:auto;width:auto" onclick="event.stopPropagation()" onchange="assignCategoria('${room.id}', this.value)">${opts.join('')}</select>`;
+}
+
 function buildRoomCard(room) {
   const planBadge = `<span class="badge badge-plan">${PLAN_LABELS[room.plan] || 'Base'}</span>`;
+  const categoriaBadge = categoriaControlHtml(room);
   if (room.guest) {
     const co = checkoutInfo(room.guest.checkout);
     // Badges de idioma y accesibilidad del huésped (solo cuando no son los predeterminados)
@@ -679,7 +702,7 @@ function buildRoomCard(room) {
       <div class="rc-top">
         <span class="rc-num">${room.name}</span>
       </div>
-      <div class="rc-badges"><span class="badge badge-floor">${dt('floor', { n: room.floor })}</span>${planBadge}${langBadge}${a11yBadge}${dndBadge}</div>
+      <div class="rc-badges"><span class="badge badge-floor">${dt('floor', { n: room.floor })}</span>${planBadge}${categoriaBadge}${langBadge}${a11yBadge}${dndBadge}</div>
       <div class="rc-guest">${room.guest.guestName}</div>
       <div class="rc-checkout ${co.urgency}">${co.urgency === 'today' ? '⚠️' : '🗓'} ${co.label}</div>
       <div class="rc-footer">
@@ -693,7 +716,7 @@ function buildRoomCard(room) {
     <div class="rc-top">
       <span class="rc-num">${room.name}</span>
     </div>
-    <div class="rc-badges"><span class="badge badge-available">${dt('badgeAvailable')}</span>${planBadge}</div>
+    <div class="rc-badges"><span class="badge badge-available">${dt('badgeAvailable')}</span>${planBadge}${categoriaBadge}</div>
     <div class="rc-empty">${dt('noGuest', { n: room.floor })}</div>
     <button class="btn btn-sm btn-outline-teal" style="margin-top:auto" onclick="openNewStayModal('${room.id}')">${dt('assignStay')}</button>
   </div>`;
@@ -752,7 +775,7 @@ function renderRooms(target = 'overview', filter = 'all') {
 const viewTitle = view =>
   ({
     overview: dt('navOverview'), rooms: dt('navRooms'), settings: dt('navSettings'), calendar: 'Calendario',
-    channels: 'Canales OTA', booking: 'Motor de Reservas', pagos: 'Pagos',
+    channels: 'Canales OTA', booking: 'Motor de Reservas', pagos: 'Pagos', categorias: 'Categorías',
   }[view] || view);
 
 // ── SIDEBAR MÓVIL (off-canvas) ───────────────────────────────────────────────
@@ -777,6 +800,7 @@ function navigate(view) {
   if (view === 'channels') loadCanales();
   if (view === 'booking') loadBookingConfig();
   if (view === 'pagos') loadTransacciones();
+  if (view === 'categorias') loadCategorias();
 }
 
 // ── IDIOMA DEL PANEL ──────────────────────────────────────────────────────────
@@ -2165,6 +2189,98 @@ function copyEmbedCode() {
     .catch(() => showToast('No se pudo copiar. Selecciona el texto manualmente.', 'error'));
 }
 
+// ── CATEGORÍAS DE HABITACIÓN ──────────────────────────────────────────────────
+window.assignCategoria = async function(roomId, categoriaId) {
+  try {
+    await apiFetch(`/admin/rooms/${roomId}/categoria`, {
+      method: 'PATCH', body: JSON.stringify({ categoriaId: categoriaId || null }),
+    });
+    const room = rooms.find(r => r.id === roomId);
+    if (room) room.categoriaId = categoriaId || null;
+    showToast('Categoría actualizada', 'success');
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+    await loadRooms();
+  }
+};
+
+async function loadCategorias() {
+  await loadCategoriasCache();
+  renderCategorias();
+}
+
+function renderCategorias() {
+  if (!categoriasCache.length) {
+    $('categorias-list').innerHTML = '<div class="form-note">Sin categorías configuradas. Crea una para poder asignarla a tus habitaciones y fijarle una tarifa.</div>';
+    return;
+  }
+  $('categorias-list').innerHTML = categoriasCache.map(c => {
+    const nRooms = rooms.filter(r => r.categoriaId === c.id).length;
+    return `
+    <div class="mapping-row" style="margin-bottom:6px">
+      <span class="mapping-room">${c.nombre}</span>
+      <span class="mapping-ota">${c.camas} cama${c.camas !== 1 ? 's' : ''} · ${nRooms} habitación${nRooms !== 1 ? 'es' : ''} asignada${nRooms !== 1 ? 's' : ''}</span>
+      <button class="btn btn-outline btn-sm" style="margin-right:6px" onclick="openEditCategoriaModal('${c.id}')">Editar</button>
+      <button class="mapping-del" onclick="deleteCategoria('${c.id}')" title="Eliminar">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function openAddCategoriaModal() {
+  $('cg-title').textContent = 'Agregar categoría';
+  $('cg-nombre').value = '';
+  $('cg-camas').value = 1;
+  $('cg-error').textContent = '';
+  $('cg-save').onclick = submitCategoria;
+  $('modal-categoria').classList.remove('hidden');
+}
+
+window.openEditCategoriaModal = function(id) {
+  const cat = categoriasCache.find(c => c.id === id);
+  if (!cat) return;
+  $('cg-title').textContent = 'Editar categoría';
+  $('cg-nombre').value = cat.nombre;
+  $('cg-camas').value = cat.camas;
+  $('cg-error').textContent = '';
+  $('cg-save').onclick = () => submitCategoria(id);
+  $('modal-categoria').classList.remove('hidden');
+};
+
+async function submitCategoria(existingId) {
+  $('cg-error').textContent = '';
+  const nombre = $('cg-nombre').value.trim();
+  const camas  = parseInt($('cg-camas').value) || 0;
+  if (!nombre) { $('cg-error').textContent = 'Ingresa un nombre.'; return; }
+  if (camas <= 0) { $('cg-error').textContent = 'Ingresa un número de camas válido.'; return; }
+
+  try {
+    if (existingId) {
+      await apiFetch(`/admin/categorias/${existingId}`, { method: 'PATCH', body: JSON.stringify({ nombre, camas }) });
+    } else {
+      await apiFetch('/admin/categorias', { method: 'POST', body: JSON.stringify({ hotelId: HOTEL_ID, nombre, camas }) });
+    }
+    closeModal('modal-categoria');
+    showToast(existingId ? 'Categoría actualizada' : 'Categoría creada', 'success');
+    await loadCategorias();
+  } catch (err) {
+    $('cg-error').textContent = err.message;
+  }
+}
+
+window.deleteCategoria = async function(id) {
+  const nRooms = rooms.filter(r => r.categoriaId === id).length;
+  const aviso = nRooms ? ` ${nRooms} habitación${nRooms !== 1 ? 'es' : ''} quedará${nRooms !== 1 ? 'n' : ''} sin categoría.` : '';
+  if (!confirm(`¿Eliminar esta categoría?${aviso} Las tarifas asociadas se desactivarán.`)) return;
+  try {
+    await apiFetch(`/admin/categorias/${id}`, { method: 'DELETE' });
+    showToast('Categoría eliminada', 'success');
+    await loadRooms();
+    renderCategorias();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
 async function loadTarifas() {
   try {
     const lista = await apiFetch(`/admin/tarifas?hotel=${encodeURIComponent(HOTEL_ID)}`);
@@ -2179,13 +2295,20 @@ function renderTarifas(lista) {
     $('tarifas-list').innerHTML = '<div class="form-note">Sin tarifas configuradas. Sin tarifas, el motor de reservas no muestra precios.</div>';
     return;
   }
-  $('tarifas-list').innerHTML = lista.map(t => `
+  $('tarifas-list').innerHTML = lista.map(t => {
+    const ambito = t.room_id
+      ? `Hab. ${t.room_id}`
+      : t.categoria_id
+        ? `Categoría: ${categoriasCache.find(c => c.id === t.categoria_id)?.nombre || t.categoria_id}`
+        : 'Todo el hotel';
+    return `
     <div class="mapping-row" style="margin-bottom:6px">
       <span class="mapping-room">${t.nombre}</span>
-      <span class="mapping-ota">${t.room_id ? `Hab. ${t.room_id}` : 'Todas'} · ${t.precio_uf} UF/noche · ${t.desde} → ${t.hasta} · min ${t.min_noches} noche${t.min_noches !== 1 ? 's' : ''}</span>
+      <span class="mapping-ota">${ambito} · ${t.precio_uf} UF/noche · ${t.desde} → ${t.hasta} · min ${t.min_noches} noche${t.min_noches !== 1 ? 's' : ''}</span>
       <span class="badge ${t.activa ? 'badge-active' : 'badge-inactive'}" style="margin-right:6px">${t.activa ? 'Activa' : 'Inactiva'}</span>
       <button class="mapping-del" onclick="deleteTarifa('${t.id}')" title="Eliminar">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 window.deleteTarifa = async function(id) {
@@ -2198,6 +2321,12 @@ window.deleteTarifa = async function(id) {
   }
 };
 
+function updateTarifaAmbitoFields() {
+  const ambito = $('tf-ambito').value;
+  $('tf-categoria-field').classList.toggle('hidden', ambito !== 'categoria');
+  $('tf-room-field').classList.toggle('hidden', ambito !== 'room');
+}
+
 async function openAddTarifaModal() {
   $('tf-error').textContent = '';
   $('tf-nombre').value = '';
@@ -2205,12 +2334,17 @@ async function openAddTarifaModal() {
   $('tf-desde').value  = new Date().toISOString().slice(0, 10);
   $('tf-hasta').value  = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
   $('tf-min').value    = 1;
+  $('tf-ambito').value = 'general';
+  updateTarifaAmbitoFields();
+
+  $('tf-categoria').innerHTML = categoriasCache.length
+    ? categoriasCache.map(c => `<option value="${c.id}">${c.nombre} (${c.camas} cama${c.camas !== 1 ? 's' : ''})</option>`).join('')
+    : '<option value="">Sin categorías creadas</option>';
 
   try {
     const roomsList = await apiFetch(`/admin/rooms?hotel=${encodeURIComponent(HOTEL_ID)}`);
-    $('tf-room').innerHTML = '<option value="">Todas las habitaciones</option>' +
-      roomsList.map(r => `<option value="${r.id}">${r.name} (${r.id})</option>`).join('');
-  } catch { $('tf-room').innerHTML = '<option value="">Todas las habitaciones</option>'; }
+    $('tf-room').innerHTML = roomsList.map(r => `<option value="${r.id}">${r.name} (${r.id})</option>`).join('');
+  } catch { $('tf-room').innerHTML = ''; }
 
   $('modal-tarifa').classList.remove('hidden');
 }
@@ -2222,16 +2356,19 @@ async function submitTarifa() {
   const desde     = $('tf-desde').value;
   const hasta     = $('tf-hasta').value;
   const minNoches = parseInt($('tf-min').value) || 1;
-  const roomId    = $('tf-room').value || undefined;
+  const ambito    = $('tf-ambito').value;
+  const roomId       = ambito === 'room'       ? $('tf-room').value       : undefined;
+  const categoriaId  = ambito === 'categoria'  ? $('tf-categoria').value  : undefined;
 
   if (!nombre) { $('tf-error').textContent = 'Ingresa un nombre para la tarifa.'; return; }
   if (!precioUF || precioUF <= 0) { $('tf-error').textContent = 'Ingresa un precio válido en UF.'; return; }
   if (!desde || !hasta || desde >= hasta) { $('tf-error').textContent = 'Rango de fechas inválido.'; return; }
+  if (ambito === 'categoria' && !categoriaId) { $('tf-error').textContent = 'Crea al menos una categoría primero (sección Categorías).'; return; }
 
   try {
     await apiFetch('/admin/tarifas', {
       method: 'POST',
-      body: JSON.stringify({ hotelId: HOTEL_ID, roomId, nombre, precioUF, desde, hasta, minNoches }),
+      body: JSON.stringify({ hotelId: HOTEL_ID, roomId, categoriaId, nombre, precioUF, desde, hasta, minNoches }),
     });
     closeModal('modal-tarifa');
     showToast('Tarifa agregada', 'success');
@@ -2361,7 +2498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRooms('rooms', state.filter);
   });
 
-  ['modal-room', 'modal-new-stay', 'modal-reserva', 'modal-add-canal', 'modal-canal-config', 'modal-tarifa'].forEach(id => {
+  ['modal-room', 'modal-new-stay', 'modal-reserva', 'modal-add-canal', 'modal-canal-config', 'modal-tarifa', 'modal-categoria'].forEach(id => {
     $(id).addEventListener('click', e => { if (e.target === $(id)) closeModal(id); });
   });
   document.addEventListener('keydown', e => {
@@ -2393,9 +2530,14 @@ document.addEventListener('DOMContentLoaded', () => {
   $('bk-add-tarifa').addEventListener('click', openAddTarifaModal);
   $('tf-cancel').addEventListener('click', () => closeModal('modal-tarifa'));
   $('tf-save').addEventListener('click', submitTarifa);
+  $('tf-ambito').addEventListener('change', updateTarifaAmbitoFields);
 
   // Pagos
   $('pg-filtrar').addEventListener('click', loadTransacciones);
+
+  // Categorías de habitación
+  $('btn-add-categoria').addEventListener('click', openAddCategoriaModal);
+  $('cg-cancel').addEventListener('click', () => closeModal('modal-categoria'));
 
   applyDashLang();
   startClock();
