@@ -38,6 +38,11 @@ function createUsuario(hotelId, email, password, nombre, rol) {
 function getUsuarioById(id)    { return db.prepare('SELECT * FROM usuarios WHERE id = ?').get(id) || null; }
 function getUsuarioByEmail(e)  { return db.prepare('SELECT * FROM usuarios WHERE email = ?').get(e.trim().toLowerCase()) || null; }
 
+// Usado por el endpoint de bootstrap: una vez que existe un superadmin, se autodeshabilita.
+function hasSuperadmin() {
+  return db.prepare("SELECT COUNT(*) AS c FROM usuarios WHERE rol = 'superadmin'").get().c > 0;
+}
+
 function listUsuarios(hotelId) {
   return hotelId
     ? db.prepare('SELECT id, hotel_id, email, nombre, rol, activo, created_at, last_login_at FROM usuarios WHERE hotel_id = ? ORDER BY created_at DESC').all(hotelId)
@@ -94,5 +99,6 @@ function deleteSesion(token) {
 module.exports = {
   hashPassword, verifyPassword,
   createUsuario, getUsuarioById, getUsuarioByEmail, listUsuarios, updateUsuario, deleteUsuario, marcarLogin,
+  hasSuperadmin,
   createSesion, getSesionConUsuario, deleteSesion,
 };

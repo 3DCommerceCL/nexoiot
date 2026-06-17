@@ -165,6 +165,24 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
   res.json({ token, rol: usuario.rol, hotelId: usuario.hotel_id, nombre: usuario.nombre, email: usuario.email });
 });
 
+// ── AUTH: POST /api/auth/bootstrap-superadmin ─────────────────────────────────
+// Crea el primer superadmin. Se autodeshabilita en cuanto exista uno — no requiere
+// secreto ni acceso al servidor: es seguro dejarlo desplegado permanentemente.
+app.post('/api/auth/bootstrap-superadmin', loginLimiter, (req, res) => {
+  if (auth.hasSuperadmin()) {
+    return res.status(403).json({ error: 'Ya existe un superadmin. Este endpoint está deshabilitado.' });
+  }
+  const { email, password, nombre } = req.body || {};
+  if (!email || !password || !nombre) {
+    return res.status(400).json({ error: 'Requeridos: email, password, nombre' });
+  }
+  if (auth.getUsuarioByEmail(email)) {
+    return res.status(409).json({ error: 'Ya existe un usuario con ese email' });
+  }
+  const usuario = auth.createUsuario(null, email, password, nombre, 'superadmin');
+  res.status(201).json({ id: usuario.id, email: usuario.email, nombre: usuario.nombre, rol: usuario.rol });
+});
+
 // ── AUTH: POST /api/auth/logout ───────────────────────────────────────────────
 app.post('/api/auth/logout', requireAuth(), (req, res) => {
   const token = (req.headers['authorization'] || '').slice(7);
