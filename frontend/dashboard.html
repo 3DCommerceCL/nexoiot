@@ -97,6 +97,17 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .filter-btn:hover{color:var(--text);border-color:var(--text3)}
 .filter-btn.active{background:var(--teal-l);color:var(--teal);border-color:var(--teal)}
 .room-search{margin-left:auto;padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-family:var(--font);min-width:200px}
+
+/* ── LISTA DE RESERVAS ── */
+.rl-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.rl-filters input,.rl-filters select{padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;font-family:var(--font)}
+.rl-filters input[type="search"]{min-width:200px}
+.rl-table{width:100%;border-collapse:collapse;font-size:12px}
+.rl-table th{text-align:left;color:var(--text2);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap}
+.rl-table td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text);cursor:pointer}
+.rl-table tbody tr:hover{background:var(--card2)}
+.rl-empty{padding:20px;text-align:center;color:var(--text2);font-size:12px}
+.rl-count{font-size:11px;color:var(--text2);margin-bottom:10px}
 .room-search:focus{outline:none;border-color:var(--teal)}
 .no-results{font-size:12px;color:var(--text2);padding:20px 2px;text-align:center}
 
@@ -198,6 +209,13 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .modal-section-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text2);margin-bottom:10px}
 
 /* ── COBROS ── */
+.resumen-pago{background:var(--card2);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.resumen-pago-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:3px 0}
+.resumen-pago-row.total{border-top:1px solid var(--border);margin-top:4px;padding-top:7px;font-weight:600;color:var(--text)}
+.resumen-pago-val{font-weight:700}
+.resumen-pago-val.ok{color:var(--teal)}
+.resumen-pago-val.wait{color:var(--warn)}
+.resumen-pago-val.pending{color:var(--alert)}
 .cobro-monto-row{display:flex;gap:8px;margin-bottom:10px}
 .cobro-monto-row .form-input{flex:1}
 .cobros-acciones{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
@@ -387,6 +405,7 @@ select.form-input option{background:var(--card);color:var(--text)}
 .fc-event.ev-checked_out{background:var(--text3)!important;border-color:var(--text2)!important}
 .fc-event.ev-cancelled  {background:var(--alert)!important;border-color:#c0392b!important;opacity:.5}
 .fc-event.ev-checkout-today{box-shadow:0 0 0 2px var(--warn) inset!important}
+.fc-event.ev-bloqueo{background:repeating-linear-gradient(45deg,#6b7280,#6b7280 6px,#52525b 6px,#52525b 12px)!important;border-color:#52525b!important;cursor:pointer}
 /* Feedback visual drag */
 .fc-event{cursor:grab}
 .fc-event-dragging{opacity:.7!important;cursor:grabbing!important}
@@ -442,6 +461,10 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="nav-item" data-view="calendar">
       <span class="nav-icon">📅</span>
       <span class="nav-label">Calendario</span>
+    </div>
+    <div class="nav-item" data-view="reservaslist">
+      <span class="nav-icon">📋</span>
+      <span class="nav-label">Reservas</span>
     </div>
     <div class="nav-item" data-view="channels" data-role="owner">
       <span class="nav-icon">🔗</span>
@@ -533,8 +556,38 @@ select.form-input option{background:var(--card);color:var(--text)}
         <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#2563eb"></div>Check-in</div>
         <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--text3)"></div>Check-out</div>
         <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--alert);opacity:.5"></div>Cancelada</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#6b7280"></div>Bloqueada</div>
+        <button class="btn btn-outline btn-sm" id="btn-cierre-habitacion" style="margin-left:auto">🔒 Cierre de habitación</button>
       </div>
       <div id="fc-container"></div>
+    </div>
+
+    <!-- VIEW: LISTA DE RESERVAS -->
+    <div class="view" id="view-reservaslist">
+      <div class="rl-filters">
+        <input type="search" id="rl-search" placeholder="Buscar por huésped…">
+        <select id="rl-estado">
+          <option value="">Todos los estados</option>
+          <option value="confirmed">Confirmada</option>
+          <option value="pending">Pendiente</option>
+          <option value="checked_in">Check-in</option>
+          <option value="checked_out">Check-out</option>
+          <option value="cancelled">Cancelada</option>
+        </select>
+        <select id="rl-fuente">
+          <option value="">Todas las fuentes</option>
+        </select>
+        <input type="date" id="rl-desde">
+        <input type="date" id="rl-hasta">
+        <button class="btn btn-outline btn-sm" id="rl-filtrar">Filtrar</button>
+      </div>
+      <div class="rl-count" id="rl-count"></div>
+      <table class="rl-table">
+        <thead>
+          <tr><th>Estado</th><th>Huésped</th><th>Habitación</th><th>Check-in</th><th>Check-out</th><th>Fuente</th><th>Notas</th></tr>
+        </thead>
+        <tbody id="rl-tbody"></tbody>
+      </table>
     </div>
 
     <!-- VIEW: CANALES OTA (solo owner/superadmin) -->
@@ -720,6 +773,7 @@ select.form-input option{background:var(--card);color:var(--text)}
 
       <div class="modal-section hidden" id="rv-cobros-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
         <div class="modal-section-title">Cobros</div>
+        <div id="rv-resumen-pago" class="resumen-pago"></div>
         <div class="cobro-monto-row">
           <input class="form-input" id="rv-monto-clp" type="number" min="1" placeholder="Monto a cobrar (CLP)">
         </div>
@@ -894,6 +948,48 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="modal-actions">
       <button class="btn btn-outline" id="cg-cancel">Cancelar</button>
       <button class="btn btn-primary" id="cg-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Cierre de habitación (bloqueo) -->
+<div class="modal-overlay hidden" id="modal-bloqueo">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title">Cierre de habitación</div>
+      <button class="modal-close" onclick="closeModal('modal-bloqueo')">✕</button>
+    </div>
+    <div class="modal-field" style="margin-top:0">
+      <span class="modal-label">Habitación</span>
+      <select class="form-input" id="bq-room"></select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 24px;margin-bottom:14px">
+      <div class="modal-field" style="margin:0;padding:0">
+        <span class="modal-label">Desde</span>
+        <input class="form-input" id="bq-desde" type="date">
+      </div>
+      <div class="modal-field" style="margin:0;padding:0">
+        <span class="modal-label">Hasta</span>
+        <input class="form-input" id="bq-hasta" type="date">
+      </div>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Motivo</span>
+      <select class="form-input" id="bq-motivo">
+        <option value="mantenimiento">Mantenimiento</option>
+        <option value="limpieza">Limpieza profunda</option>
+        <option value="reservado">Reservado (uso interno)</option>
+        <option value="otro">Otro</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Notas (opcional)</span>
+      <input class="form-input" id="bq-notas" placeholder="Detalle interno">
+    </div>
+    <div class="modal-error" id="bq-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="bq-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="bq-save">Bloquear habitación</button>
     </div>
   </div>
 </div>

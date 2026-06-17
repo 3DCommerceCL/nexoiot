@@ -1310,6 +1310,15 @@ app.get('/api/admin/rooms/:roomId/bloqueos', requireAuth('owner', 'recepcion'), 
   res.json(bloqueos.getBloqueosByRoom(req.params.roomId));
 });
 
+// ── ADMIN: GET /api/admin/bloqueos ────────────────────────────────────────────
+// ?hotel=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD — bloqueos del hotel en un rango (para el calendario)
+app.get('/api/admin/bloqueos', requireAuth('owner', 'recepcion'), (req, res) => {
+  const { hotel, from, to } = req.query;
+  if (!hotel || !from || !to) return res.status(400).json({ error: 'Requeridos: hotel, from, to' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(bloqueos.getBloqueosByHotelEnRango(hotel, from, to));
+});
+
 // ── HEALTH CHECK ──────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => {
   res.json({

@@ -450,6 +450,7 @@ const state = {
 
 let rooms = []; // [{ id, name, hotel, floor, guest: {...} | null }]
 let categoriasCache = []; // [{ id, hotel_id, nombre, camas }]
+let ultimaTransaccionesLista = []; // última lista cargada en el modal de reserva, para recalcular el resumen en vivo
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function getSession() {
@@ -776,6 +777,7 @@ const viewTitle = view =>
   ({
     overview: dt('navOverview'), rooms: dt('navRooms'), settings: dt('navSettings'), calendar: 'Calendario',
     channels: 'Canales OTA', booking: 'Motor de Reservas', pagos: 'Pagos', categorias: 'Categorías',
+    reservaslist: 'Reservas',
   }[view] || view);
 
 // ── SIDEBAR MÓVIL (off-canvas) ───────────────────────────────────────────────
@@ -801,6 +803,7 @@ function navigate(view) {
   if (view === 'booking') loadBookingConfig();
   if (view === 'pagos') loadTransacciones();
   if (view === 'categorias') loadCategorias();
+  if (view === 'reservaslist') loadReservasLista();
 }
 
 // ── IDIOMA DEL PANEL ──────────────────────────────────────────────────────────
@@ -1572,11 +1575,15 @@ async function submitNewStay() {
 
 // ── CALENDARIO ────────────────────────────────────────────────────────────────
 let fcInstance    = null;
-let occupancyMap  = new Map(); // clave: "roomId:YYYY-MM-DD" → reservaId
+let occupancyMap  = new Map(); // clave: "roomId:YYYY-MM-DD" → reservaId (o '__bloqueo__' si está cerrada)
 
-function buildOccupancyMap(list) {
+function categoriaNombrePara(categoriaId) {
+  return categoriasCache.find(c => c.id === categoriaId)?.nombre || 'Sin categoría';
+}
+
+function buildOccupancyMap(reservasList, bloqueosList = []) {
   occupancyMap = new Map();
-  for (const r of list) {
+  for (const r of reservasList) {
     if (r.status === 'cancelled' || r.status === 'checked_out') continue;
     let d = new Date(r.checkin + 'T00:00:00');
     const end = new Date(r.checkout + 'T00:00:00');
@@ -1585,6 +1592,28 @@ function buildOccupancyMap(list) {
       d.setDate(d.getDate() + 1);
     }
   }
+  for (const b of bloqueosList) {
+    let d = new Date(b.desde + 'T00:00:00');
+    const end = new Date(b.hasta + 'T00:00:00');
+    while (d < end) {
+      occupancyMap.set(`${b.room_id}:${d.toISOString().slice(0, 10)}`, '__bloqueo__');
+      d.setDate(d.getDate() + 1);
+    }
+  }
+}
+
+function bloqueoToEvent(b) {
+  const MOTIVO_LABEL = { mantenimiento: 'Mantenimiento', limpieza: 'Limpieza profunda', reservado: 'Reservado', otro: 'Otro' };
+  return {
+    id: `bloqueo:${b.id}`,
+    resourceId: b.room_id,
+    title: `🔒 ${MOTIVO_LABEL[b.motivo] || 'Bloqueada'}`,
+    start: b.desde,
+    end: b.hasta,
+    classNames: ['ev-bloqueo'],
+    editable: false,
+    extendedProps: { ...b, esBloqueo: true },
+  };
 }
 
 function reservaToEvent(r) {
@@ -1616,14 +1645,19 @@ function initCalendar() {
   fcInstance = new FullCalendar.Calendar(container, {
     schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
     initialView: 'resourceTimelineWeek',
-    resources: rooms.map(r => ({ id: r.id, title: `${r.name} · P${r.floor}` })),
+    resources: rooms.map(r => ({ id: r.id, title: `${r.name} · P${r.floor}`, categoriaNombre: categoriaNombrePara(r.categoriaId) })),
+    resourceGroupField: 'categoriaNombre',
+    resourceAreaColumns: [{ field: 'title', headerContent: 'Habitación' }],
     events: async (info, success, fail) => {
       try {
         const from = info.startStr.slice(0, 10);
         const to   = info.endStr.slice(0, 10);
-        const list = await apiFetch(`/admin/reservas?${hotelQs}from=${from}&to=${to}`);
-        buildOccupancyMap(list);
-        success(list.map(reservaToEvent));
+        const [reservasList, bloqueosList] = await Promise.all([
+          apiFetch(`/admin/reservas?${hotelQs}from=${from}&to=${to}`),
+          apiFetch(`/admin/bloqueos?${hotelQs}from=${from}&to=${to}`).catch(() => []),
+        ]);
+        buildOccupancyMap(reservasList, bloqueosList);
+        success([...reservasList.map(reservaToEvent), ...bloqueosList.map(bloqueoToEvent)]);
       } catch (e) { fail(e); }
     },
     editable: true,
@@ -1659,11 +1693,60 @@ function initCalendar() {
       openReservaModal(null, { roomId: info.resource?.id, date: info.dateStr });
     },
     eventClick: info => {
+      if (info.event.extendedProps.esBloqueo) {
+        confirmarEliminarBloqueo(info.event.extendedProps);
+        return;
+      }
       openReservaModal(info.event.extendedProps);
     },
   });
 
   fcInstance.render();
+}
+
+// ── CIERRE DE HABITACIÓN (bloqueos) ──────────────────────────────────────────
+async function confirmarEliminarBloqueo(bloqueo) {
+  if (!confirm(`¿Levantar el cierre de esta habitación (${bloqueo.motivo})?`)) return;
+  try {
+    await apiFetch(`/admin/bloqueos/${bloqueo.id}`, { method: 'DELETE' });
+    showToast('Cierre eliminado', 'success');
+    fcInstance?.refetchEvents();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function openBloqueoModal() {
+  $('bq-error').textContent = '';
+  $('bq-room').innerHTML = rooms.map(r => `<option value="${r.id}">${r.name} · P${r.floor}</option>`).join('');
+  const hoy = new Date().toISOString().slice(0, 10);
+  $('bq-desde').value = hoy;
+  $('bq-hasta').value = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+  $('bq-motivo').value = 'mantenimiento';
+  $('bq-notas').value = '';
+  $('modal-bloqueo').classList.remove('hidden');
+}
+
+async function submitBloqueo() {
+  $('bq-error').textContent = '';
+  const roomId = $('bq-room').value;
+  const desde  = $('bq-desde').value;
+  const hasta  = $('bq-hasta').value;
+  const motivo = $('bq-motivo').value;
+  const notas  = $('bq-notas').value.trim() || undefined;
+
+  if (!desde || !hasta || desde >= hasta) { $('bq-error').textContent = 'Rango de fechas inválido.'; return; }
+
+  try {
+    await apiFetch(`/admin/rooms/${roomId}/bloqueo`, {
+      method: 'POST', body: JSON.stringify({ desde, hasta, motivo, notas }),
+    });
+    closeModal('modal-bloqueo');
+    showToast('Habitación bloqueada', 'success');
+    fcInstance?.refetchEvents();
+  } catch (err) {
+    $('bq-error').textContent = err.message;
+  }
 }
 
 async function patchReservaDate(info) {
@@ -1801,6 +1884,66 @@ async function cancelReservaModal(id) {
   }
 }
 
+// ── LISTA DE RESERVAS (vista tabla, filtrable) ───────────────────────────────
+const RL_STATUS_LABEL = {
+  confirmed: 'Confirmada', pending: 'Pendiente', checked_in: 'Check-in',
+  checked_out: 'Check-out', cancelled: 'Cancelada',
+};
+let reservasListaCache = [];
+
+async function loadReservasLista() {
+  if (!HOTEL_ID) return;
+  const desde = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+  const hasta = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
+  try {
+    reservasListaCache = await apiFetch(`/admin/reservas?hotel=${encodeURIComponent(HOTEL_ID)}&from=${desde}&to=${hasta}`);
+    const fuentes = [...new Set(reservasListaCache.map(r => r.source).filter(Boolean))];
+    $('rl-fuente').innerHTML = '<option value="">Todas las fuentes</option>' +
+      fuentes.map(f => `<option value="${f}">${f}</option>`).join('');
+    renderReservasLista();
+  } catch (err) {
+    $('rl-tbody').innerHTML = `<tr><td colspan="7" class="rl-empty">Error: ${err.message}</td></tr>`;
+  }
+}
+
+function renderReservasLista() {
+  const search = $('rl-search').value.trim().toLowerCase();
+  const estado = $('rl-estado').value;
+  const fuente = $('rl-fuente').value;
+  const desde  = $('rl-desde').value;
+  const hasta  = $('rl-hasta').value;
+
+  const filtradas = reservasListaCache.filter(r => {
+    if (search && !r.guest_name.toLowerCase().includes(search)) return false;
+    if (estado && r.status !== estado) return false;
+    if (fuente && r.source !== fuente) return false;
+    if (desde && r.checkin < desde) return false;
+    if (hasta && r.checkout > hasta) return false;
+    return true;
+  }).sort((a, b) => a.checkin.localeCompare(b.checkin));
+
+  $('rl-count').textContent = `${filtradas.length} reserva${filtradas.length !== 1 ? 's' : ''} encontrada${filtradas.length !== 1 ? 's' : ''}`;
+
+  if (!filtradas.length) {
+    $('rl-tbody').innerHTML = '<tr><td colspan="7" class="rl-empty">Sin reservas que coincidan con el filtro.</td></tr>';
+    return;
+  }
+
+  $('rl-tbody').innerHTML = filtradas.map(r => {
+    const room = rooms.find(rm => rm.id === r.room_id);
+    return `
+    <tr data-reserva-id="${r.id}">
+      <td><span class="badge ${r.status === 'cancelled' ? 'badge-error' : 'badge-active'}">${RL_STATUS_LABEL[r.status] || r.status}</span></td>
+      <td>${r.guest_name}</td>
+      <td>${room?.name || r.room_id}</td>
+      <td>${r.checkin}</td>
+      <td>${r.checkout}</td>
+      <td>${r.source || '—'}</td>
+      <td>${r.notes || ''}</td>
+    </tr>`;
+  }).join('');
+}
+
 // ── COBROS (Webpay / Mercado Pago / manual) ──────────────────────────────────
 const TRANS_TIPO_LABEL = { webpay: 'Tarjeta', mercadopago: 'Mercado Pago', efectivo: 'Efectivo', transferencia: 'Transferencia' };
 const TRANS_ESTADO_LABEL = { pendiente: 'Pendiente', aprobado: 'Aprobado', rechazado: 'Rechazado', anulado: 'Anulado' };
@@ -1815,14 +1958,20 @@ function renderCobrosSection(reserva) {
   $('rv-link-mp').onclick      = () => enviarLinkMP(reserva.id);
   $('rv-toggle-manual').onclick = () => $('rv-manual-form').classList.toggle('hidden');
   $('rv-manual-confirm').onclick = () => registrarPagoManual(reserva.id);
+  $('rv-monto-clp').oninput = () => renderResumenPago(ultimaTransaccionesLista);
 
-  loadTransacciones(reserva.id);
+  loadReservaTransacciones(reserva.id);
 }
 
-async function loadTransacciones(reservaId) {
+// NOTA: nombre distinto de loadTransacciones() (la de la vista Pagos, sin argumentos)
+// — antes ambas se llamaban igual en el mismo scope y la segunda declaración
+// pisaba a esta, así que el resumen de cobros de una reserva nunca cargaba nada real.
+async function loadReservaTransacciones(reservaId) {
   try {
     const lista = await apiFetch(`/admin/reservas/${reservaId}/transacciones`);
+    ultimaTransaccionesLista = lista;
     renderTransaccionesList(lista);
+    renderResumenPago(lista);
   } catch {
     $('rv-transacciones-list').innerHTML = '';
   }
@@ -1840,6 +1989,20 @@ function renderTransaccionesList(lista) {
       <span class="trans-badge ${t.estado}">${TRANS_ESTADO_LABEL[t.estado] || t.estado}</span>
       <span class="trans-date">${new Date(t.created_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}</span>
     </div>`).join('');
+}
+
+// ── RESUMEN DE PAGO EN VIVO (recibido / pendiente) ────────────────────────────
+function renderResumenPago(lista) {
+  const recibido = lista.filter(t => t.estado === 'aprobado').reduce((s, t) => s + t.monto_clp, 0);
+  const pendienteTransacciones = lista.filter(t => t.estado === 'pendiente').reduce((s, t) => s + t.monto_clp, 0);
+  const esperado = parseInt($('rv-monto-clp').value, 10) || null;
+  const saldoPorCobrar = esperado ? Math.max(esperado - recibido, 0) : null;
+
+  $('rv-resumen-pago').innerHTML = `
+    <div class="resumen-pago-row"><span>Recibido</span><span class="resumen-pago-val ok">$${recibido.toLocaleString('es-CL')} CLP</span></div>
+    ${pendienteTransacciones ? `<div class="resumen-pago-row"><span>En proceso (links/Webpay pendientes)</span><span class="resumen-pago-val wait">$${pendienteTransacciones.toLocaleString('es-CL')} CLP</span></div>` : ''}
+    ${saldoPorCobrar !== null ? `<div class="resumen-pago-row total"><span>Saldo por cobrar</span><span class="resumen-pago-val ${saldoPorCobrar > 0 ? 'pending' : 'ok'}">$${saldoPorCobrar.toLocaleString('es-CL')} CLP</span></div>` : ''}
+  `;
 }
 
 function getMonto() {
@@ -1888,7 +2051,7 @@ async function enviarLinkMP(reservaId) {
     const waPhone = phoneDigits ? (phoneDigits.startsWith('56') ? phoneDigits : '56' + phoneDigits.replace(/^0/, '')) : '';
     const msg = `Hola ${$('rv-guest').value.trim()}, puedes completar el pago de tu reserva aquí: ${linkPago}`;
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-    await loadTransacciones(reservaId);
+    await loadReservaTransacciones(reservaId);
   } catch (err) {
     $('rv-cobro-error').textContent = err.message;
   } finally {
@@ -1910,7 +2073,7 @@ async function registrarPagoManual(reservaId) {
     $('rv-manual-form').classList.add('hidden');
     $('rv-monto-clp').value = '';
     showToast('Pago registrado', 'success');
-    await loadTransacciones(reservaId);
+    await loadReservaTransacciones(reservaId);
   } catch (err) {
     $('rv-cobro-error').textContent = err.message;
   } finally {
@@ -2498,7 +2661,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRooms('rooms', state.filter);
   });
 
-  ['modal-room', 'modal-new-stay', 'modal-reserva', 'modal-add-canal', 'modal-canal-config', 'modal-tarifa', 'modal-categoria'].forEach(id => {
+  ['modal-room', 'modal-new-stay', 'modal-reserva', 'modal-add-canal', 'modal-canal-config', 'modal-tarifa', 'modal-categoria', 'modal-bloqueo'].forEach(id => {
     $(id).addEventListener('click', e => { if (e.target === $(id)) closeModal(id); });
   });
   document.addEventListener('keydown', e => {
@@ -2538,6 +2701,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // Categorías de habitación
   $('btn-add-categoria').addEventListener('click', openAddCategoriaModal);
   $('cg-cancel').addEventListener('click', () => closeModal('modal-categoria'));
+
+  // Cierre de habitación (bloqueos) desde el calendario
+  $('btn-cierre-habitacion').addEventListener('click', openBloqueoModal);
+  $('bq-cancel').addEventListener('click', () => closeModal('modal-bloqueo'));
+  $('bq-save').addEventListener('click', submitBloqueo);
+
+  // Lista de reservas
+  $('rl-filtrar').addEventListener('click', renderReservasLista);
+  $('rl-search').addEventListener('input', renderReservasLista);
+  $('rl-estado').addEventListener('change', renderReservasLista);
+  $('rl-fuente').addEventListener('change', renderReservasLista);
+  $('rl-tbody').addEventListener('click', e => {
+    const row = e.target.closest('tr[data-reserva-id]');
+    if (!row) return;
+    const reserva = reservasListaCache.find(r => r.id === row.dataset.reservaId);
+    if (reserva) openReservaModal(reserva);
+  });
 
   applyDashLang();
   startClock();
