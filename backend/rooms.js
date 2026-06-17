@@ -14,6 +14,13 @@ const HOTELS_FILE   = path.join(__dirname, 'data/hotels.json');
 const REQUESTS_FILE = path.join(__dirname, 'data/requests.json');
 const ACTIVITY_FILE = path.join(__dirname, 'data/activity.json');
 
+// Semillas de fábrica para rooms.json/hotels.json — viven fuera de data/ (no está
+// en el volumen persistente de Railway) para poder reconstruir el archivo si el
+// volumen arranca vacío (pasó en producción: el volumen nunca tuvo estos 2 archivos,
+// solo db/tokens, porque no tenían fallback de siembra como tokens.json sí tiene).
+const ROOMS_SEED_FILE  = path.join(__dirname, 'seed/rooms.seed.json');
+const HOTELS_SEED_FILE = path.join(__dirname, 'seed/hotels.seed.json');
+
 // Cantidad máxima de registros de actividad guardados (global, los más viejos se descartan)
 const ACTIVITY_MAX = 500;
 
@@ -67,6 +74,20 @@ function readJSON(file) {
         return data;
       } catch {}
       return { ...SEED_TOKENS };
+    }
+    // Si rooms.json/hotels.json no existen (volumen nuevo o recién montado),
+    // reconstruirlos desde la semilla de fábrica versionada en backend/seed/.
+    if (file === ROOMS_FILE || file === HOTELS_FILE) {
+      const seedFile = file === ROOMS_FILE ? ROOMS_SEED_FILE : HOTELS_SEED_FILE;
+      try {
+        const data = JSON.parse(fs.readFileSync(seedFile, 'utf8'));
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf8');
+        console.log(`[rooms] ${path.basename(file)} creado desde semilla de fábrica`);
+        _cache.set(file, { mtimeMs: fs.statSync(file).mtimeMs, data });
+        return data;
+      } catch {}
+      return {};
     }
     if (file === REQUESTS_FILE) return [];
     if (file === ACTIVITY_FILE) return [];
