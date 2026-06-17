@@ -86,17 +86,27 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_synclog_hotel ON sync_log(hotel_id, created_at);
   CREATE INDEX IF NOT EXISTS idx_synclog_canal ON sync_log(canal_id, created_at);
 
-  CREATE TABLE IF NOT EXISTS tarifas (
+  CREATE TABLE IF NOT EXISTS categorias (
     id         TEXT PRIMARY KEY,
     hotel_id   TEXT NOT NULL,
-    room_id    TEXT,
     nombre     TEXT NOT NULL,
-    precio_uf  REAL NOT NULL,
-    desde      DATE NOT NULL,
-    hasta      DATE NOT NULL,
-    min_noches INTEGER NOT NULL DEFAULT 1,
-    activa     INTEGER NOT NULL DEFAULT 1,
+    camas      INTEGER NOT NULL,
     created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_categorias_hotel ON categorias(hotel_id);
+
+  CREATE TABLE IF NOT EXISTS tarifas (
+    id           TEXT PRIMARY KEY,
+    hotel_id     TEXT NOT NULL,
+    room_id      TEXT,
+    categoria_id TEXT,
+    nombre       TEXT NOT NULL,
+    precio_uf    REAL NOT NULL,
+    desde        DATE NOT NULL,
+    hasta        DATE NOT NULL,
+    min_noches   INTEGER NOT NULL DEFAULT 1,
+    activa       INTEGER NOT NULL DEFAULT 1,
+    created_at   TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_tarifas_hotel ON tarifas(hotel_id, desde, hasta);
 
@@ -158,6 +168,10 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_sesiones_usuario ON sesiones(usuario_id);
 `);
+
+// ── MIGRACIONES: columnas agregadas a tablas ya existentes ───────────────────
+// CREATE TABLE IF NOT EXISTS no altera tablas que ya existían antes de este campo.
+try { db.exec('ALTER TABLE tarifas ADD COLUMN categoria_id TEXT'); } catch { /* ya existe */ }
 
 console.log('[db] SQLite listo:', DB_PATH);
 module.exports = db;
