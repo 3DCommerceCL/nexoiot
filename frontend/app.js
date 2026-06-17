@@ -107,6 +107,8 @@ const I18N = {
     requestMaintenance: '🔧 Reportar un problema',
     requestOther: '💬 Otra solicitud',
     requestNotePrompt: 'Describe brevemente tu solicitud:',
+    sectionDirectorio: 'Qué ofrece el hotel',
+    directorioEmpty: 'Sin servicios publicados todavía.',
     noDevicesMsg: 'Esta habitación no tiene dispositivos inteligentes. Usa Servicios para pedir lo que necesites a recepción.',
     noDevicesBtn: 'Ir a Servicios',
     toastRequestSent: 'Solicitud enviada a recepción',
@@ -246,6 +248,8 @@ const I18N = {
     requestMaintenance: '🔧 Report an issue',
     requestOther: '💬 Other request',
     requestNotePrompt: 'Briefly describe your request:',
+    sectionDirectorio: 'What the hotel offers',
+    directorioEmpty: 'No services published yet.',
     noDevicesMsg: 'This room has no smart devices. Use Services to ask the front desk for anything you need.',
     noDevicesBtn: 'Go to Services',
     toastRequestSent: 'Request sent to the front desk',
@@ -385,6 +389,8 @@ const I18N = {
     requestMaintenance: '🔧 Relatar um problema',
     requestOther: '💬 Outra solicitação',
     requestNotePrompt: 'Descreva brevemente sua solicitação:',
+    sectionDirectorio: 'O que o hotel oferece',
+    directorioEmpty: 'Nenhum serviço publicado ainda.',
     noDevicesMsg: 'Este quarto não possui dispositivos inteligentes. Use Serviços para pedir o que precisar à recepção.',
     noDevicesBtn: 'Ir para Serviços',
     toastRequestSent: 'Solicitação enviada à recepção',
@@ -614,6 +620,29 @@ async function apiGet(token) {
   return res.json();
 }
 
+// ── DIRECTORIO DE SERVICIOS DEL HOTEL ────────────────────────────────────────
+async function loadDirectorioServicios() {
+  const el = document.getElementById('servicios-directorio');
+  if (!el || window.location.protocol === 'file:' || !app.token) return;
+  try {
+    const res = await fetch(`${API}/room/${app.token}/servicios`);
+    if (!res.ok) return;
+    const lista = await res.json();
+    if (!lista.length) {
+      el.innerHTML = `<div class="directorio-desc">${t('directorioEmpty')}</div>`;
+      return;
+    }
+    el.innerHTML = lista.map(s => `
+      <div class="directorio-item ${s.tipo === 'upsell' ? 'upsell' : ''}">
+        <div>
+          <div class="directorio-nombre">${s.tipo === 'upsell' ? '⭐ ' : ''}${s.nombre}</div>
+          ${s.descripcion ? `<div class="directorio-desc">${s.descripcion}</div>` : ''}
+        </div>
+        ${s.precio_clp ? `<div class="directorio-precio">$${s.precio_clp.toLocaleString('es-CL')}</div>` : ''}
+      </div>`).join('');
+  } catch { /* directorio es informativo — falla en silencio, no bloquea el resto de la app */ }
+}
+
 async function apiCommand(device, command) {
   // En modo estático (file://) no hay servidor — simular éxito
   if (window.location.protocol === 'file:') return { success: true };
@@ -712,6 +741,7 @@ function renderApp(data) {
   renderGrid();
   renderFavorites();
   renderScenes();
+  loadDirectorioServicios();
 
   // Funciones del plan (placeholders) y vista de clima
   renderPlanGrid();

@@ -1,0 +1,12 @@
+{
+  "name": "NexoSuite — Panel de hotel",
+  "short_name": "NexoSuite",
+  "start_url": "/dashboard.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#102943",
+  "theme_color": "#009D71",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
