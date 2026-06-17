@@ -575,6 +575,7 @@ async function loadRequests() {
     requests = [];
   }
   renderRequests();
+  renderMensajes();
 }
 
 const REQUEST_ICONS = { towels: '🧺', roomservice: '🍽', cleaning: '🧹', late_checkout: '🕐', maintenance: '🔧', other: '💬' };
@@ -609,11 +610,48 @@ function renderRequests() {
     </div>`).join('');
 }
 
+// Misma lista de solicitudes que el widget de Overview, pero con respuesta rápida por WhatsApp
+// — bandeja única simplificada, sin integrar la API real de WhatsApp Business.
+function renderMensajes() {
+  const list = $('mensajes-list');
+  if (!list) return;
+  if (!requests.length) {
+    list.innerHTML = `<div class="request-empty">${dt('noRequests')}</div>`;
+    return;
+  }
+  list.innerHTML = requests.map(r => {
+    const room  = rooms.find(rm => rm.id === r.roomId);
+    const phone = room?.guest?.phone;
+    const waBtn = phone
+      ? `<button class="btn btn-sm btn-outline-teal" onclick="responderWhatsApp('${phone}', '${r.guestName.replace(/'/g, "\\'")}')">📱 WhatsApp</button>`
+      : '';
+    return `
+    <div class="request-item" id="msg-${r.id}">
+      <span class="request-ico">${REQUEST_ICONS[r.type] || '🔔'}</span>
+      <div class="request-body">
+        <div class="request-title">${dt(REQUEST_TITLE_KEY[r.type] || 'requestOther')}</div>
+        <div class="request-sub">${dt('requestSub', { room: r.roomName, guest: r.guestName, time: timeAgo(r.createdAt) })}</div>
+        ${r.note ? `<div class="request-note">${r.note}</div>` : ''}
+      </div>
+      ${waBtn}
+      <button class="btn btn-sm btn-outline-teal" onclick="resolveRequest('${r.id}')">${dt('requestResolveBtn')}</button>
+    </div>`;
+  }).join('');
+}
+
+window.responderWhatsApp = function(phone, guestName) {
+  const digits = phone.replace(/\D/g, '');
+  const waPhone = digits.startsWith('56') ? digits : '56' + digits.replace(/^0/, '');
+  const msg = `Hola ${guestName}, te escribimos desde recepción por tu solicitud.`;
+  window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+};
+
 window.resolveRequest = async function(id) {
   try {
     await apiFetch(`/admin/requests/${id}/resolve`, { method: 'POST' });
     requests = requests.filter(r => r.id !== id);
     renderRequests();
+    renderMensajes();
     showToast(dt('requestResolved'), 'success');
   } catch (err) {
     showToast(err.message, 'error');
@@ -777,7 +815,8 @@ const viewTitle = view =>
   ({
     overview: dt('navOverview'), rooms: dt('navRooms'), settings: dt('navSettings'), calendar: 'Calendario',
     channels: 'Canales OTA', booking: 'Motor de Reservas', pagos: 'Pagos', categorias: 'Categorías',
-    reservaslist: 'Reservas',
+    reservaslist: 'Reservas', housekeeping: 'Housekeeping', servicios: 'Servicios',
+    informes: 'Informes', huespedes: 'Huéspedes', mensajes: 'Mensajes',
   }[view] || view);
 
 // ── SIDEBAR MÓVIL (off-canvas) ───────────────────────────────────────────────
@@ -804,6 +843,18 @@ function navigate(view) {
   if (view === 'pagos') loadTransacciones();
   if (view === 'categorias') loadCategorias();
   if (view === 'reservaslist') loadReservasLista();
+  if (view === 'housekeeping') loadHousekeeping();
+  if (view === 'servicios') loadServicios();
+  if (view === 'informes') {
+    if (!$('inf-desde').value) {
+      const hoy = new Date();
+      $('inf-desde').value = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().slice(0, 10);
+      $('inf-hasta').value = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1).toISOString().slice(0, 10);
+    }
+    loadInformes();
+  }
+  if (view === 'huespedes') $('hu-results').innerHTML = '<div class="form-note">Escribe un nombre, email o teléfono para buscar.</div>';
+  if (view === 'mensajes') loadRequests();
 }
 
 // ── IDIOMA DEL PANEL ──────────────────────────────────────────────────────────
@@ -1944,6 +1995,58 @@ function renderReservasLista() {
   }).join('');
 }
 
+// ── HOUSEKEEPING (estado de limpieza por habitación) ─────────────────────────
+const HK_ESTADO_LABEL = { limpia: 'Limpia', sucia: 'Sucia', en_proceso: 'En proceso', inspeccion: 'Inspección' };
+let housekeepingCache = [];
+
+async function loadHousekeeping() {
+  if (!HOTEL_ID) return;
+  try {
+    housekeepingCache = await apiFetch(`/admin/housekeeping?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    renderHousekeeping();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function renderHousekeeping() {
+  const filtro = $('hk-estado-filter').value;
+  const byRoom = new Map(housekeepingCache.map(h => [h.room_id, h]));
+  const list = rooms.filter(r => {
+    const estado = byRoom.get(r.id)?.estado || 'limpia';
+    return !filtro || estado === filtro;
+  });
+
+  $('hk-grid').innerHTML = list.map(r => {
+    const hk = byRoom.get(r.id);
+    const estado = hk?.estado || 'limpia';
+    return `
+    <div class="hk-card">
+      <div class="hk-card-top">
+        <span class="hk-room-name">${r.name}</span>
+        <span class="hk-badge ${estado}">${HK_ESTADO_LABEL[estado]}</span>
+      </div>
+      <select class="hk-estado-select" data-room="${r.id}">
+        ${Object.entries(HK_ESTADO_LABEL).map(([k, v]) => `<option value="${k}" ${k === estado ? 'selected' : ''}>${v}</option>`).join('')}
+      </select>
+      <input type="text" class="hk-notas-input" data-room="${r.id}" placeholder="Notas…" value="${(hk?.notas || '').replace(/"/g, '&quot;')}">
+    </div>`;
+  }).join('');
+}
+
+async function saveHousekeeping(roomId, estado, notas) {
+  try {
+    const updated = await apiFetch(`/admin/housekeeping/${roomId}`, {
+      method: 'PATCH', body: JSON.stringify({ hotelId: HOTEL_ID, estado, notas }),
+    });
+    const idx = housekeepingCache.findIndex(h => h.room_id === roomId);
+    if (idx >= 0) housekeepingCache[idx] = updated; else housekeepingCache.push(updated);
+    renderHousekeeping();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
 // ── COBROS (Webpay / Mercado Pago / manual) ──────────────────────────────────
 const TRANS_TIPO_LABEL = { webpay: 'Tarjeta', mercadopago: 'Mercado Pago', efectivo: 'Efectivo', transferencia: 'Transferencia' };
 const TRANS_ESTADO_LABEL = { pendiente: 'Pendiente', aprobado: 'Aprobado', rechazado: 'Rechazado', anulado: 'Anulado' };
@@ -2322,6 +2425,7 @@ async function loadBookingConfig() {
 <script src="${PUBLIC_BOOKING_URL}/widget.js" async><\/script>`;
 
   await loadTarifas();
+  await loadReglas();
 }
 
 async function saveBookingConfig() {
@@ -2541,6 +2645,355 @@ async function submitTarifa() {
   }
 }
 
+// ── TARIFAS: actualización colectiva + derivadas ─────────────────────────────
+function updateTfaModoUI() {
+  const modo = $('tfa-modo-ui').value;
+  $('tfa-masivo-fields').classList.toggle('hidden', modo !== 'masivo');
+  $('tfa-derivada-fields').classList.toggle('hidden', modo !== 'derivada');
+  $('tfa-precio-field').classList.toggle('hidden', modo !== 'masivo');
+}
+
+function updateTfaDerivadaAmbitoFields() {
+  const ambito = $('tfa-derivada-ambito').value;
+  $('tfa-derivada-categoria-field').classList.toggle('hidden', ambito !== 'categoria');
+  $('tfa-derivada-room-field').classList.toggle('hidden', ambito !== 'room');
+}
+
+async function openTarifaAvanzadaModal() {
+  $('tfa-error').textContent  = '';
+  $('tfa-nombre').value       = '';
+  $('tfa-precio').value       = '';
+  $('tfa-desde').value        = new Date().toISOString().slice(0, 10);
+  $('tfa-hasta').value        = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
+  $('tfa-min').value          = 1;
+  $('tfa-modo-ui').value      = 'masivo';
+  $('tfa-derivada-valor').value = '';
+  updateTfaModoUI();
+
+  const catOptions = categoriasCache.length
+    ? categoriasCache.map(c => `<option value="${c.id}">${c.nombre} (${c.camas} cama${c.camas !== 1 ? 's' : ''})</option>`).join('')
+    : '<option value="" disabled>Sin categorías creadas</option>';
+  $('tfa-categorias').innerHTML = catOptions;
+  $('tfa-derivada-categoria').innerHTML = catOptions;
+
+  let roomsList = [];
+  try { roomsList = await apiFetch(`/admin/rooms?hotel=${encodeURIComponent(HOTEL_ID)}`); } catch {}
+  const roomOptions = roomsList.map(r => `<option value="${r.id}">${r.name} (${r.id})</option>`).join('');
+  $('tfa-rooms').innerHTML = roomOptions;
+  $('tfa-derivada-room').innerHTML = roomOptions;
+
+  try {
+    const tarifasList = await apiFetch(`/admin/tarifas?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    $('tfa-base').innerHTML = tarifasList.length
+      ? tarifasList.map(t => `<option value="${t.id}">${t.nombre} — ${t.precio_uf} UF (${t.desde} → ${t.hasta})</option>`).join('')
+      : '<option value="" disabled>Crea una tarifa primero</option>';
+  } catch { $('tfa-base').innerHTML = ''; }
+
+  updateTfaDerivadaAmbitoFields();
+  $('modal-tarifa-avanzada').classList.remove('hidden');
+}
+
+async function submitTarifaAvanzada() {
+  $('tfa-error').textContent = '';
+  const modo      = $('tfa-modo-ui').value;
+  const nombre    = $('tfa-nombre').value.trim();
+  const desde     = $('tfa-desde').value;
+  const hasta     = $('tfa-hasta').value;
+  const minNoches = parseInt($('tfa-min').value) || 1;
+
+  if (!nombre) { $('tfa-error').textContent = 'Ingresa un nombre para la tarifa.'; return; }
+  if (!desde || !hasta || desde >= hasta) { $('tfa-error').textContent = 'Rango de fechas inválido.'; return; }
+
+  if (modo === 'masivo') {
+    const categoriaIds = [...$('tfa-categorias').selectedOptions].map(o => o.value);
+    const roomIds      = [...$('tfa-rooms').selectedOptions].map(o => o.value);
+    const precioUF     = parseFloat($('tfa-precio').value);
+    if (!precioUF || precioUF <= 0) { $('tfa-error').textContent = 'Ingresa un precio válido en UF.'; return; }
+    if (!categoriaIds.length && !roomIds.length) { $('tfa-error').textContent = 'Selecciona al menos una categoría o habitación.'; return; }
+
+    const targets = [...categoriaIds.map(id => ({ categoriaId: id })), ...roomIds.map(id => ({ roomId: id }))];
+    try {
+      await apiFetch('/admin/tarifas/masivo', {
+        method: 'POST',
+        body: JSON.stringify({ hotelId: HOTEL_ID, targets, nombre, precioUF, desde, hasta, minNoches }),
+      });
+      closeModal('modal-tarifa-avanzada');
+      showToast(`${targets.length} tarifa(s) creadas`, 'success');
+      await loadTarifas();
+    } catch (err) {
+      $('tfa-error').textContent = err.message;
+    }
+    return;
+  }
+
+  // modo === 'derivada'
+  const baseTarifaId = $('tfa-base').value;
+  const ambito        = $('tfa-derivada-ambito').value;
+  const target = ambito === 'room'
+    ? { roomId: $('tfa-derivada-room').value }
+    : { categoriaId: $('tfa-derivada-categoria').value };
+  const derivadaModo = $('tfa-derivada-modo').value;
+  const valor         = parseFloat($('tfa-derivada-valor').value);
+
+  if (!baseTarifaId) { $('tfa-error').textContent = 'Selecciona una tarifa base.'; return; }
+  if (isNaN(valor)) { $('tfa-error').textContent = 'Ingresa un valor de ajuste.'; return; }
+
+  try {
+    await apiFetch('/admin/tarifas/derivada', {
+      method: 'POST',
+      body: JSON.stringify({ hotelId: HOTEL_ID, target, baseTarifaId, modo: derivadaModo, valor, nombre, desde, hasta, minNoches }),
+    });
+    closeModal('modal-tarifa-avanzada');
+    showToast('Tarifa derivada creada', 'success');
+    await loadTarifas();
+  } catch (err) {
+    $('tfa-error').textContent = err.message;
+  }
+}
+
+// ── REGLAS DE RENDIMIENTO (cierre automático) ────────────────────────────────
+async function loadReglas() {
+  try {
+    const lista = await apiFetch(`/admin/reglas-rendimiento?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    renderReglas(lista);
+  } catch {
+    $('reglas-list').innerHTML = '<div class="form-note">Error cargando reglas.</div>';
+  }
+}
+
+function renderReglas(lista) {
+  if (!lista.length) {
+    $('reglas-list').innerHTML = '<div class="form-note">Sin reglas configuradas.</div>';
+    return;
+  }
+  $('reglas-list').innerHTML = lista.map(r => {
+    const ambito = r.ambito === 'general' ? 'Todo el hotel' : `Categoría: ${categoriasCache.find(c => c.id === r.ambito_id)?.nombre || r.ambito_id}`;
+    return `
+    <div class="mapping-row" style="margin-bottom:6px">
+      <span class="mapping-room">${r.nombre}</span>
+      <span class="mapping-ota">${ambito} · cierra con ≤ ${r.umbral} libres</span>
+      <span class="badge ${r.activa ? 'badge-active' : 'badge-inactive'}" style="margin-right:6px;cursor:pointer" onclick="toggleRegla('${r.id}', ${r.activa ? 0 : 1})">${r.activa ? 'Activa' : 'Inactiva'}</span>
+      <button class="mapping-del" onclick="deleteRegla('${r.id}')" title="Eliminar">✕</button>
+    </div>`;
+  }).join('');
+}
+
+window.toggleRegla = async function(id, activa) {
+  try {
+    await apiFetch(`/admin/reglas-rendimiento/${id}`, { method: 'PATCH', body: JSON.stringify({ activa }) });
+    await loadReglas();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+window.deleteRegla = async function(id) {
+  if (!confirm('¿Eliminar esta regla?')) return;
+  try {
+    await apiFetch(`/admin/reglas-rendimiento/${id}`, { method: 'DELETE' });
+    await loadReglas();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+};
+
+function updateReglaAmbitoFields() {
+  $('rg-categoria-field').classList.toggle('hidden', $('rg-ambito').value !== 'categoria');
+}
+
+function openAddReglaModal() {
+  $('rg-error').textContent = '';
+  $('rg-nombre').value  = '';
+  $('rg-ambito').value  = 'general';
+  $('rg-umbral').value  = 2;
+  $('rg-categoria').innerHTML = categoriasCache.length
+    ? categoriasCache.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')
+    : '<option value="">Sin categorías creadas</option>';
+  updateReglaAmbitoFields();
+  $('modal-regla').classList.remove('hidden');
+}
+
+async function submitRegla() {
+  $('rg-error').textContent = '';
+  const nombre = $('rg-nombre').value.trim();
+  const ambito = $('rg-ambito').value;
+  const ambitoId = ambito === 'categoria' ? $('rg-categoria').value : undefined;
+  const umbral = parseInt($('rg-umbral').value);
+
+  if (!nombre) { $('rg-error').textContent = 'Ingresa un nombre.'; return; }
+  if (ambito === 'categoria' && !ambitoId) { $('rg-error').textContent = 'Crea al menos una categoría primero.'; return; }
+  if (isNaN(umbral) || umbral < 0) { $('rg-error').textContent = 'Umbral inválido.'; return; }
+
+  try {
+    await apiFetch('/admin/reglas-rendimiento', {
+      method: 'POST',
+      body: JSON.stringify({ hotelId: HOTEL_ID, nombre, ambito, ambitoId, umbral }),
+    });
+    closeModal('modal-regla');
+    showToast('Regla creada', 'success');
+    await loadReglas();
+  } catch (err) {
+    $('rg-error').textContent = err.message;
+  }
+}
+
+// ── SERVICIOS DEL HOTEL (directorio + upsell) ────────────────────────────────
+let serviciosCache = [];
+let servicioEditandoId = null;
+
+async function loadServicios() {
+  if (!HOTEL_ID) return;
+  try {
+    serviciosCache = await apiFetch(`/admin/servicios?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    renderServicios();
+  } catch {
+    $('servicios-list').innerHTML = '<div class="form-note">Error cargando servicios.</div>';
+  }
+}
+
+function renderServicios() {
+  if (!serviciosCache.length) {
+    $('servicios-list').innerHTML = '<div class="form-note">Sin servicios configurados todavía.</div>';
+    return;
+  }
+  $('servicios-list').innerHTML = serviciosCache.map(s => `
+    <div class="mapping-row" style="margin-bottom:6px">
+      <span class="mapping-room">${s.tipo === 'upsell' ? '⭐ ' : ''}${s.nombre}</span>
+      <span class="mapping-ota">${s.descripcion || ''}${s.precio_clp ? ` · $${s.precio_clp.toLocaleString('es-CL')} CLP` : ''}</span>
+      <span class="badge ${s.activo ? 'badge-active' : 'badge-inactive'}" style="margin-right:6px;cursor:pointer" onclick="toggleServicio('${s.id}', ${s.activo ? 0 : 1})">${s.activo ? 'Activo' : 'Inactivo'}</span>
+      <button class="btn btn-sm btn-ghost" onclick="editServicio('${s.id}')">Editar</button>
+      <button class="mapping-del" onclick="deleteServicio('${s.id}')" title="Eliminar">✕</button>
+    </div>`).join('');
+}
+
+window.toggleServicio = async function(id, activo) {
+  try {
+    await apiFetch(`/admin/servicios/${id}`, { method: 'PATCH', body: JSON.stringify({ activo }) });
+    await loadServicios();
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+};
+
+window.deleteServicio = async function(id) {
+  if (!confirm('¿Eliminar este servicio?')) return;
+  try {
+    await apiFetch(`/admin/servicios/${id}`, { method: 'DELETE' });
+    await loadServicios();
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+};
+
+window.editServicio = function(id) {
+  const s = serviciosCache.find(x => x.id === id);
+  if (!s) return;
+  servicioEditandoId = id;
+  $('sv-title').textContent = 'Editar servicio';
+  $('sv-nombre').value = s.nombre;
+  $('sv-descripcion').value = s.descripcion || '';
+  $('sv-precio').value = s.precio_clp || '';
+  $('sv-tipo').value = s.tipo;
+  $('sv-error').textContent = '';
+  $('modal-servicio').classList.remove('hidden');
+};
+
+function openAddServicioModal() {
+  servicioEditandoId = null;
+  $('sv-title').textContent = 'Agregar servicio';
+  $('sv-nombre').value = '';
+  $('sv-descripcion').value = '';
+  $('sv-precio').value = '';
+  $('sv-tipo').value = 'servicio';
+  $('sv-error').textContent = '';
+  $('modal-servicio').classList.remove('hidden');
+}
+
+async function submitServicio() {
+  $('sv-error').textContent = '';
+  const nombre = $('sv-nombre').value.trim();
+  const descripcion = $('sv-descripcion').value.trim();
+  const precioCLP = $('sv-precio').value ? parseInt($('sv-precio').value) : null;
+  const tipo = $('sv-tipo').value;
+
+  if (!nombre) { $('sv-error').textContent = 'Ingresa un nombre.'; return; }
+
+  try {
+    if (servicioEditandoId) {
+      await apiFetch(`/admin/servicios/${servicioEditandoId}`, {
+        method: 'PATCH', body: JSON.stringify({ nombre, descripcion, precio_clp: precioCLP, tipo }),
+      });
+    } else {
+      await apiFetch('/admin/servicios', {
+        method: 'POST', body: JSON.stringify({ hotelId: HOTEL_ID, nombre, descripcion, precioCLP, tipo }),
+      });
+    }
+    closeModal('modal-servicio');
+    showToast('Servicio guardado', 'success');
+    await loadServicios();
+  } catch (err) {
+    $('sv-error').textContent = err.message;
+  }
+}
+
+// ── INFORMES DE RENDIMIENTO (ADR / ALOS / ocupación / ingresos) ──────────────
+function deltaBadge(actual, anterior) {
+  if (!anterior) return '';
+  const diff = actual - anterior;
+  if (diff === 0) return '<span class="kpi-sub">= vs período anterior</span>';
+  const pct = anterior !== 0 ? Math.round((diff / anterior) * 100) : null;
+  const signo = diff > 0 ? '▲' : '▼';
+  return `<span class="kpi-sub">${signo} ${pct !== null ? Math.abs(pct) + '%' : Math.abs(diff)} vs período anterior</span>`;
+}
+
+async function loadInformes() {
+  if (!HOTEL_ID) return;
+  const desde = $('inf-desde').value;
+  const hasta = $('inf-hasta').value;
+  if (!desde || !hasta) return;
+  try {
+    const { actual, anterior } = await apiFetch(`/admin/informes/rendimiento?hotel=${encodeURIComponent(HOTEL_ID)}&from=${desde}&to=${hasta}`);
+    const cards = [
+      { label: 'Ingresos', val: `$${actual.ingresosCLP.toLocaleString('es-CL')}`, a: actual.ingresosCLP, b: anterior.ingresosCLP },
+      { label: 'ADR (tarifa promedio/noche)', val: `$${actual.adrCLP.toLocaleString('es-CL')}`, a: actual.adrCLP, b: anterior.adrCLP },
+      { label: 'ALOS (noches/estadía)', val: actual.alosNoches, a: actual.alosNoches, b: anterior.alosNoches },
+      { label: 'Ocupación', val: `${actual.ocupacionPct}%`, a: actual.ocupacionPct, b: anterior.ocupacionPct },
+      { label: 'Reservas', val: actual.totalReservas, a: actual.totalReservas, b: anterior.totalReservas },
+      { label: 'Canceladas', val: actual.canceladas, a: actual.canceladas, b: anterior.canceladas },
+    ];
+    $('inf-kpi-grid').innerHTML = cards.map(c => `
+      <div class="kpi-card">
+        <div class="kpi-label">${c.label}</div>
+        <div class="kpi-value">${c.val}</div>
+        ${deltaBadge(c.a, c.b)}
+      </div>`).join('');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+// ── HUÉSPEDES (CRM básico) ────────────────────────────────────────────────────
+async function buscarHuespedes() {
+  const q = $('hu-search').value.trim();
+  if (q.length < 2) { $('hu-results').innerHTML = '<div class="form-note">Ingresa al menos 2 caracteres.</div>'; return; }
+  try {
+    const lista = await apiFetch(`/admin/huespedes?hotel=${encodeURIComponent(HOTEL_ID)}&q=${encodeURIComponent(q)}`);
+    if (!lista.length) { $('hu-results').innerHTML = '<div class="form-note">Sin resultados.</div>'; return; }
+    $('hu-results').innerHTML = lista.map(h => `
+      <div class="hu-card">
+        <div class="hu-card-top">
+          <span class="hu-nombre">${h.nombre}</span>
+          <span class="hu-meta">${h.totalEstadias} estadía${h.totalEstadias !== 1 ? 's' : ''} · última: ${h.ultimaEstadia}</span>
+        </div>
+        <div class="hu-meta">${h.email || ''} ${h.telefono || ''}</div>
+        ${h.reservas.map(r => `
+          <div class="hu-stay-row">
+            <span>${r.checkin} → ${r.checkout}</span>
+            <span>${r.room_id}</span>
+            <span>${r.status}</span>
+          </div>`).join('')}
+      </div>`).join('');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
 // ── PAGOS (reporte hotel-wide — vista owner) ─────────────────────────────────
 const TRANS_TIPO_LABEL_PG   = { webpay: 'Tarjeta (Webpay)', mercadopago: 'Mercado Pago', efectivo: 'Efectivo', transferencia: 'Transferencia' };
 const TRANS_ESTADO_LABEL_PG = { pendiente: 'Pendiente', aprobado: 'Aprobado', rechazado: 'Rechazado', anulado: 'Anulado' };
@@ -2661,7 +3114,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderRooms('rooms', state.filter);
   });
 
-  ['modal-room', 'modal-new-stay', 'modal-reserva', 'modal-add-canal', 'modal-canal-config', 'modal-tarifa', 'modal-categoria', 'modal-bloqueo'].forEach(id => {
+  ['modal-room', 'modal-new-stay', 'modal-reserva', 'modal-add-canal', 'modal-canal-config', 'modal-tarifa', 'modal-tarifa-avanzada', 'modal-categoria', 'modal-bloqueo', 'modal-regla', 'modal-servicio'].forEach(id => {
     $(id).addEventListener('click', e => { if (e.target === $(id)) closeModal(id); });
   });
   document.addEventListener('keydown', e => {
@@ -2695,6 +3148,25 @@ document.addEventListener('DOMContentLoaded', () => {
   $('tf-save').addEventListener('click', submitTarifa);
   $('tf-ambito').addEventListener('change', updateTarifaAmbitoFields);
 
+  $('bk-add-tarifa-avanzada').addEventListener('click', openTarifaAvanzadaModal);
+  $('tfa-cancel').addEventListener('click', () => closeModal('modal-tarifa-avanzada'));
+  $('tfa-save').addEventListener('click', submitTarifaAvanzada);
+  $('tfa-modo-ui').addEventListener('change', updateTfaModoUI);
+  $('tfa-derivada-ambito').addEventListener('change', updateTfaDerivadaAmbitoFields);
+
+  $('bk-add-regla').addEventListener('click', openAddReglaModal);
+  $('rg-cancel').addEventListener('click', () => closeModal('modal-regla'));
+  $('rg-save').addEventListener('click', submitRegla);
+  $('rg-ambito').addEventListener('change', updateReglaAmbitoFields);
+
+  $('btn-add-servicio').addEventListener('click', openAddServicioModal);
+  $('sv-cancel').addEventListener('click', () => closeModal('modal-servicio'));
+  $('sv-save').addEventListener('click', submitServicio);
+
+  $('inf-filtrar').addEventListener('click', loadInformes);
+  $('hu-buscar').addEventListener('click', buscarHuespedes);
+  $('hu-search').addEventListener('keydown', e => { if (e.key === 'Enter') buscarHuespedes(); });
+
   // Pagos
   $('pg-filtrar').addEventListener('click', loadTransacciones);
 
@@ -2719,6 +3191,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (reserva) openReservaModal(reserva);
   });
 
+  // Housekeeping
+  $('hk-estado-filter').addEventListener('change', renderHousekeeping);
+  $('hk-grid').addEventListener('change', e => {
+    if (!e.target.classList.contains('hk-estado-select')) return;
+    const roomId = e.target.dataset.room;
+    const notas  = $('hk-grid').querySelector(`.hk-notas-input[data-room="${roomId}"]`).value;
+    saveHousekeeping(roomId, e.target.value, notas);
+  });
+  $('hk-grid').addEventListener('blur', e => {
+    if (!e.target.classList.contains('hk-notas-input')) return;
+    const roomId = e.target.dataset.room;
+    const estado = $('hk-grid').querySelector(`.hk-estado-select[data-room="${roomId}"]`).value;
+    saveHousekeeping(roomId, estado, e.target.value);
+  }, true);
+
   applyDashLang();
   startClock();
 
@@ -2742,3 +3229,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Solicitudes de huéspedes: refrescar periódicamente
   setInterval(() => { if (getSession()) loadRequests(); }, 20_000);
 });
+
+// PWA: instalable desde el navegador (manifest + ícono ya están en el <head>)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(err => console.warn('[sw] registro falló:', err.message));
+  });
+}

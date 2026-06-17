@@ -21,6 +21,12 @@ const bookingConfig = require('./booking-config');
 const pagos         = require('./pagos');
 const transacciones = require('./transacciones');
 const auth          = require('./auth');
+const housekeeping  = require('./housekeeping');
+const reglas        = require('./reglas-rendimiento');
+const servicios     = require('./servicios');
+const email         = require('./email');
+const informes      = require('./informes');
+const huespedes     = require('./huespedes');
 
 const app       = express();
 const PORT        = process.env.PORT      || 3000;
@@ -390,6 +396,14 @@ app.get('/api/room/:token', async (req, res) => {
     devices,
     scenes:    entry.scenes || {},
   });
+});
+
+// ── API: GET /api/room/:token/servicios ───────────────────────────────────────
+// Directorio de servicios/upsell del hotel, para mostrar en la app del huésped.
+app.get('/api/room/:token/servicios', (req, res) => {
+  const result = rooms.getRoomByToken(req.params.token);
+  if (!result) return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
+  res.json(servicios.getByHotel(result.room.hotelId, true));
 });
 
 // ── API: POST /api/room/:token/scenes ─────────────────────────────────────────
@@ -953,11 +967,13 @@ app.get('/api/public/hotels/:slug/disponibilidad', publicLimiter, async (req, re
   const roomsResult = hotelRooms.map(room => {
     const estaOcupada   = reservasActivas.some(r => r.room_id === room.id);
     const estaBloqueada = bloqueosList.some(b => b.room_id === room.id);
+    const reglaCierre   = !estaOcupada && !estaBloqueada
+      && reglas.estaCerradaPorReglas(slug, room, checkin, checkout, hotelRooms, reservasActivas);
 
-    if (estaOcupada || estaBloqueada) {
+    if (estaOcupada || estaBloqueada || reglaCierre) {
       return {
         id: room.id, nombre: room.nombre, plan: room.plan,
-        disponible: false, motivoBloqueo: estaOcupada ? 'ocupada' : 'bloqueada',
+        disponible: false, motivoBloqueo: estaOcupada ? 'ocupada' : estaBloqueada ? 'bloqueada' : 'cierre_automatico',
       };
     }
 
@@ -1042,6 +1058,22 @@ app.post('/api/public/hotels/:slug/reservas', publicLimiter, async (req, res) =>
     return res.status(409).json({ error: 'Habitación no disponible en esas fechas', code: 'UNAVAILABLE' });
   }
 
+  const roomObj = rooms.getRooms()[roomId];
+  if (!roomObj || roomObj.hotelId !== slug) {
+    return res.status(404).json({ error: 'Habitación no encontrada en este hotel' });
+  }
+  const hotelRoomsForRules = Object.entries(rooms.getRooms())
+    .filter(([, r]) => r.hotelId === slug && r.demo !== true)
+    .map(([id, r]) => ({ id, categoriaId: r.categoriaId || null }));
+  const reservasActivasForRules = reservas.getByHotel(slug, checkin, checkout)
+    .filter(r => !['cancelled', 'checked_out'].includes(r.status));
+  const motivoCierre = reglas.estaCerradaPorReglas(
+    slug, { categoriaId: roomObj.categoriaId || null }, checkin, checkout, hotelRoomsForRules, reservasActivasForRules
+  );
+  if (motivoCierre) {
+    return res.status(409).json({ error: 'Habitación no disponible en esas fechas', code: 'CLOSED_BY_RULE' });
+  }
+
   const nueva = reservas.createReserva(slug, roomId, guestName, checkin, checkout, {
     guestEmail, guestPhone: guestPhone || null, source: 'direct',
   });
@@ -1049,7 +1081,8 @@ app.post('/api/public/hotels/:slug/reservas', publicLimiter, async (req, res) =>
   invalidarCacheDisponibilidad(slug);
   cm.pushDisponibilidad(slug, roomId, checkin, checkout)
     .catch(err => console.error('[cm] Push fallido tras reserva directa:', err.message));
-  // COMPLETAR: enviar email de confirmación al huésped (Resend o SendGrid)
+  email.enviarConfirmacionReserva(hotelData.name, nueva)
+    .catch(err => console.error('[email] Envío de confirmación falló:', err.message));
 
   res.status(201).json({
     id:       nueva.id,
@@ -1080,6 +1113,40 @@ app.post('/api/admin/tarifas', requireAuth('owner'), (req, res) => {
   if (precioUF <= 0) return res.status(400).json({ error: 'precioUF debe ser mayor a 0' });
   const t = tarifas.createTarifa(hotelId, roomId || null, categoriaId || null, nombre, precioUF, desde, hasta, minNoches || 1);
   res.status(201).json(t);
+});
+
+// ── ADMIN: POST /api/admin/tarifas/masivo ─────────────────────────────────────
+// Body: { hotelId, targets: [{roomId}|{categoriaId}], nombre, precioUF, desde, hasta, minNoches }
+// Crea la misma tarifa para varias habitaciones/categorías de una sola vez.
+app.post('/api/admin/tarifas/masivo', requireAuth('owner'), (req, res) => {
+  const { hotelId, targets, nombre, precioUF, desde, hasta, minNoches } = req.body;
+  if (!hotelId || !Array.isArray(targets) || !targets.length || !nombre || !precioUF || !desde || !hasta) {
+    return res.status(400).json({ error: 'Requeridos: hotelId, targets[], nombre, precioUF, desde, hasta' });
+  }
+  if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (desde >= hasta) return res.status(400).json({ error: 'desde debe ser anterior a hasta' });
+  if (precioUF <= 0) return res.status(400).json({ error: 'precioUF debe ser mayor a 0' });
+  const creadas = tarifas.createTarifasMasivo(hotelId, targets, nombre, precioUF, desde, hasta, minNoches || 1);
+  res.status(201).json(creadas);
+});
+
+// ── ADMIN: POST /api/admin/tarifas/derivada ───────────────────────────────────
+// Body: { hotelId, target: {roomId}|{categoriaId}, baseTarifaId, modo: 'pct'|'fijo', valor, nombre, desde, hasta, minNoches }
+app.post('/api/admin/tarifas/derivada', requireAuth('owner'), (req, res) => {
+  const { hotelId, target, baseTarifaId, modo, valor, nombre, desde, hasta, minNoches } = req.body;
+  if (!hotelId || !target || !baseTarifaId || !modo || valor === undefined || !nombre || !desde || !hasta) {
+    return res.status(400).json({ error: 'Requeridos: hotelId, target, baseTarifaId, modo, valor, nombre, desde, hasta' });
+  }
+  if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (!['pct', 'fijo'].includes(modo)) return res.status(400).json({ error: "modo debe ser 'pct' o 'fijo'" });
+  const base = tarifas.getById(baseTarifaId);
+  if (!base || base.hotel_id !== hotelId) return res.status(404).json({ error: 'Tarifa base no encontrada' });
+  try {
+    const t = tarifas.createTarifaDerivada(hotelId, target, baseTarifaId, modo, valor, nombre, desde, hasta, minNoches || 1);
+    res.status(201).json(t);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // ── ADMIN: PATCH /api/admin/tarifas/:id ───────────────────────────────────────
@@ -1136,6 +1203,121 @@ app.delete('/api/admin/categorias/:id', requireAuth('owner'), (req, res) => {
   if (!assertHotelAccess(req, cat.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
   if (!categorias.deleteCategoria(req.params.id)) return res.status(404).json({ error: 'Categoría no encontrada' });
   res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/reglas-rendimiento ──────────────────────────────────
+app.get('/api/admin/reglas-rendimiento', requireAuth('owner'), (req, res) => {
+  const { hotel } = req.query;
+  if (!hotel) return res.status(400).json({ error: 'hotel requerido' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(reglas.getByHotel(hotel));
+});
+
+// ── ADMIN: POST /api/admin/reglas-rendimiento ─────────────────────────────────
+// Body: { hotelId, nombre, ambito: 'general'|'categoria', ambitoId, umbral }
+app.post('/api/admin/reglas-rendimiento', requireAuth('owner'), (req, res) => {
+  const { hotelId, nombre, ambito, ambitoId, umbral } = req.body;
+  if (!hotelId || !nombre || !ambito || umbral === undefined) {
+    return res.status(400).json({ error: 'Requeridos: hotelId, nombre, ambito, umbral' });
+  }
+  if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (!['general', 'categoria'].includes(ambito)) return res.status(400).json({ error: "ambito debe ser 'general' o 'categoria'" });
+  if (ambito === 'categoria' && !ambitoId) return res.status(400).json({ error: 'ambitoId requerido cuando ambito es categoria' });
+  if (umbral < 0) return res.status(400).json({ error: 'umbral debe ser 0 o mayor' });
+  res.status(201).json(reglas.createRegla(hotelId, nombre, ambito, ambitoId, umbral));
+});
+
+// ── ADMIN: PATCH /api/admin/reglas-rendimiento/:id ────────────────────────────
+app.patch('/api/admin/reglas-rendimiento/:id', requireAuth('owner'), (req, res) => {
+  const regla = reglas.getById(req.params.id);
+  if (!regla) return res.status(404).json({ error: 'Regla no encontrada' });
+  if (!assertHotelAccess(req, regla.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(reglas.updateRegla(req.params.id, req.body));
+});
+
+// ── ADMIN: DELETE /api/admin/reglas-rendimiento/:id ───────────────────────────
+app.delete('/api/admin/reglas-rendimiento/:id', requireAuth('owner'), (req, res) => {
+  const regla = reglas.getById(req.params.id);
+  if (!regla) return res.status(404).json({ error: 'Regla no encontrada' });
+  if (!assertHotelAccess(req, regla.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (!reglas.deleteRegla(req.params.id)) return res.status(404).json({ error: 'Regla no encontrada' });
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/informes/rendimiento ────────────────────────────────
+// ?hotel=&from=&to= — KPIs del período + comparación con el período inmediatamente anterior.
+app.get('/api/admin/informes/rendimiento', requireAuth('owner'), (req, res) => {
+  const { hotel, from, to } = req.query;
+  if (!hotel || !from || !to) return res.status(400).json({ error: 'Requeridos: hotel, from, to' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (from >= to) return res.status(400).json({ error: 'from debe ser anterior a to' });
+
+  const totalRooms = Object.values(rooms.getRooms()).filter(r => r.hotelId === hotel && r.demo !== true).length;
+  const actual = informes.metricas(hotel, from, to, totalRooms);
+  const { prevFrom, prevTo } = informes.periodoAnterior(from, to);
+  const anterior = informes.metricas(hotel, prevFrom, prevTo, totalRooms);
+  res.json({ actual, anterior });
+});
+
+// ── ADMIN: GET /api/admin/huespedes ───────────────────────────────────────────
+// ?hotel=&q= — buscador transversal de huéspedes (nombre/email/teléfono) con historial.
+app.get('/api/admin/huespedes', requireAuth('owner', 'recepcion'), (req, res) => {
+  const { hotel, q } = req.query;
+  if (!hotel || !q || q.trim().length < 2) return res.status(400).json({ error: 'Requeridos: hotel, q (mínimo 2 caracteres)' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(huespedes.buscar(hotel, q));
+});
+
+// ── ADMIN: GET /api/admin/servicios ───────────────────────────────────────────
+app.get('/api/admin/servicios', requireAuth('owner', 'recepcion'), (req, res) => {
+  const { hotel } = req.query;
+  if (!hotel) return res.status(400).json({ error: 'hotel requerido' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(servicios.getByHotel(hotel));
+});
+
+// ── ADMIN: POST /api/admin/servicios ──────────────────────────────────────────
+app.post('/api/admin/servicios', requireAuth('owner'), (req, res) => {
+  const { hotelId, nombre, descripcion, precioCLP, tipo } = req.body;
+  if (!hotelId || !nombre) return res.status(400).json({ error: 'Requeridos: hotelId, nombre' });
+  if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (tipo && !['servicio', 'upsell'].includes(tipo)) return res.status(400).json({ error: "tipo debe ser 'servicio' o 'upsell'" });
+  res.status(201).json(servicios.createServicio(hotelId, nombre, descripcion, precioCLP, tipo));
+});
+
+// ── ADMIN: PATCH /api/admin/servicios/:id ─────────────────────────────────────
+app.patch('/api/admin/servicios/:id', requireAuth('owner'), (req, res) => {
+  const s = servicios.getById(req.params.id);
+  if (!s) return res.status(404).json({ error: 'Servicio no encontrado' });
+  if (!assertHotelAccess(req, s.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(servicios.updateServicio(req.params.id, req.body));
+});
+
+// ── ADMIN: DELETE /api/admin/servicios/:id ────────────────────────────────────
+app.delete('/api/admin/servicios/:id', requireAuth('owner'), (req, res) => {
+  const s = servicios.getById(req.params.id);
+  if (!s) return res.status(404).json({ error: 'Servicio no encontrado' });
+  if (!assertHotelAccess(req, s.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (!servicios.deleteServicio(req.params.id)) return res.status(404).json({ error: 'Servicio no encontrado' });
+  res.json({ success: true });
+});
+
+// ── ADMIN: GET /api/admin/housekeeping ────────────────────────────────────────
+app.get('/api/admin/housekeeping', requireAuth('owner', 'recepcion'), (req, res) => {
+  const { hotel } = req.query;
+  if (!hotel) return res.status(400).json({ error: 'hotel requerido' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(housekeeping.getByHotel(hotel));
+});
+
+// ── ADMIN: PATCH /api/admin/housekeeping/:roomId ──────────────────────────────
+// Body: { hotelId, estado, notas } — estado: limpia | sucia | en_proceso | inspeccion
+app.patch('/api/admin/housekeeping/:roomId', requireAuth('owner', 'recepcion'), (req, res) => {
+  const { hotelId, estado, notas } = req.body;
+  if (!hotelId || !estado) return res.status(400).json({ error: 'Requeridos: hotelId, estado' });
+  if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (!housekeeping.ESTADOS.includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
+  res.json(housekeeping.setEstado(req.params.roomId, hotelId, estado, notas));
 });
 
 // ── ADMIN: PATCH /api/admin/rooms/:roomId/categoria ───────────────────────────

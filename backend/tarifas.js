@@ -17,6 +17,13 @@ function createTarifa(hotelId, roomId, categoriaId, nombre, precioUF, desde, has
   return getById(id);
 }
 
+// Crea la misma tarifa (nombre/precio/rango/min_noches) para varios objetivos a la vez
+// — targets: [{ roomId }] o [{ categoriaId }]. Ahorra crear una por una cuando se quiere
+// aplicar el mismo cambio de precio a varios tipos de habitación de un golpe.
+function createTarifasMasivo(hotelId, targets, nombre, precioUF, desde, hasta, minNoches = 1) {
+  return targets.map(t => createTarifa(hotelId, t.roomId || null, t.categoriaId || null, nombre, precioUF, desde, hasta, minNoches));
+}
+
 function getById(id) {
   return db.prepare('SELECT * FROM tarifas WHERE id = ?').get(id) || null;
 }
@@ -59,11 +66,48 @@ function updateTarifa(id, fields) {
   if (!sets.length) return getById(id);
   vals.push(id);
   db.prepare(`UPDATE tarifas SET ${sets.join(', ')} WHERE id = ?`).run(...vals);
+  if ('precio_uf' in fields) recomputeDerivadas(id);
   return getById(id);
+}
+
+// ── TARIFAS DERIVADAS (% o monto fijo desde una tarifa base) ─────────────────
+function precioDerivado(precioBase, modo, valor) {
+  return modo === 'pct' ? precioBase * (1 + valor / 100) : precioBase + valor;
+}
+
+function createTarifaDerivada(hotelId, target, baseTarifaId, modo, valor, nombre, desde, hasta, minNoches = 1) {
+  const base = getById(baseTarifaId);
+  if (!base) throw new Error('Tarifa base no encontrada');
+  const id = genId();
+  const precioUF = precioDerivado(base.precio_uf, modo, valor);
+  db.prepare(`
+    INSERT INTO tarifas
+      (id, hotel_id, room_id, categoria_id, nombre, precio_uf, desde, hasta, min_noches, activa, created_at, derivada_de_id, derivada_modo, derivada_valor)
+    VALUES (?,?,?,?,?,?,?,?,?,1,?,?,?,?)
+  `).run(
+    id, hotelId, target.roomId || null, target.categoriaId || null, nombre, precioUF, desde, hasta, minNoches,
+    now(), baseTarifaId, modo, valor
+  );
+  return getById(id);
+}
+
+// Recalcula el precio de todas las tarifas derivadas de `baseId` cuando la base cambia de precio.
+function recomputeDerivadas(baseId) {
+  const base = getById(baseId);
+  if (!base) return;
+  const hijas = db.prepare('SELECT * FROM tarifas WHERE derivada_de_id = ?').all(baseId);
+  for (const hija of hijas) {
+    const precioUF = precioDerivado(base.precio_uf, hija.derivada_modo, hija.derivada_valor);
+    db.prepare('UPDATE tarifas SET precio_uf = ? WHERE id = ?').run(precioUF, hija.id);
+    recomputeDerivadas(hija.id); // por si hay tarifas derivadas de una derivada
+  }
 }
 
 function deleteTarifa(id) {
   return db.prepare('DELETE FROM tarifas WHERE id = ?').run(id).changes > 0;
 }
 
-module.exports = { createTarifa, getById, getByHotel, getTarifasVigentes, updateTarifa, deleteTarifa };
+module.exports = {
+  createTarifa, createTarifasMasivo, createTarifaDerivada,
+  getById, getByHotel, getTarifasVigentes, updateTarifa, deleteTarifa,
+};

@@ -167,11 +167,47 @@ db.exec(`
     created_at  TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_sesiones_usuario ON sesiones(usuario_id);
+
+  CREATE TABLE IF NOT EXISTS housekeeping (
+    room_id    TEXT PRIMARY KEY,
+    hotel_id   TEXT NOT NULL,
+    estado     TEXT NOT NULL DEFAULT 'limpia',
+    notas      TEXT,
+    updated_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_housekeeping_hotel ON housekeeping(hotel_id);
+
+  CREATE TABLE IF NOT EXISTS reglas_rendimiento (
+    id         TEXT PRIMARY KEY,
+    hotel_id   TEXT NOT NULL,
+    nombre     TEXT NOT NULL,
+    ambito     TEXT NOT NULL,
+    ambito_id  TEXT,
+    umbral     INTEGER NOT NULL,
+    activa     INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_reglas_hotel ON reglas_rendimiento(hotel_id);
+
+  CREATE TABLE IF NOT EXISTS servicios_hotel (
+    id          TEXT PRIMARY KEY,
+    hotel_id    TEXT NOT NULL,
+    nombre      TEXT NOT NULL,
+    descripcion TEXT,
+    precio_clp  INTEGER,
+    tipo        TEXT NOT NULL DEFAULT 'servicio',
+    activo      INTEGER NOT NULL DEFAULT 1,
+    created_at  TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_servicios_hotel ON servicios_hotel(hotel_id);
 `);
 
 // ── MIGRACIONES: columnas agregadas a tablas ya existentes ───────────────────
 // CREATE TABLE IF NOT EXISTS no altera tablas que ya existían antes de este campo.
 try { db.exec('ALTER TABLE tarifas ADD COLUMN categoria_id TEXT'); } catch { /* ya existe */ }
+try { db.exec('ALTER TABLE tarifas ADD COLUMN derivada_de_id TEXT'); } catch { /* ya existe */ }
+try { db.exec("ALTER TABLE tarifas ADD COLUMN derivada_modo TEXT"); } catch { /* ya existe */ }
+try { db.exec('ALTER TABLE tarifas ADD COLUMN derivada_valor REAL'); } catch { /* ya existe */ }
 
 console.log('[db] SQLite listo:', DB_PATH);
 module.exports = db;

@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Nexo IoT — Panel Hotel</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#009D71">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
 <!-- FullCalendar Scheduler (core + resource-timeline + interaction, paquete combinado v6) -->
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.js"></script>
@@ -108,6 +112,25 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .rl-table tbody tr:hover{background:var(--card2)}
 .rl-empty{padding:20px;text-align:center;color:var(--text2);font-size:12px}
 .rl-count{font-size:11px;color:var(--text2);margin-bottom:10px}
+
+/* ── HOUSEKEEPING ── */
+.hk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.hk-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px}
+.hk-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.hk-room-name{font-weight:600;font-size:13px;color:var(--text)}
+.hk-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.hk-badge.limpia{background:var(--teal-l);color:var(--teal)}
+.hk-badge.sucia{background:rgba(192,57,43,.12);color:var(--alert)}
+.hk-badge.en_proceso{background:var(--warn-l);color:var(--warn)}
+.hk-badge.inspeccion{background:rgba(37,99,235,.12);color:#2563eb}
+.hk-card select,.hk-card input{width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:12px;font-family:var(--font);margin-bottom:6px}
+
+/* ── HUÉSPEDES (CRM) ── */
+.hu-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+.hu-card-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.hu-nombre{font-weight:600;font-size:14px}
+.hu-meta{font-size:11px;color:var(--text2)}
+.hu-stay-row{display:flex;gap:10px;font-size:11px;color:var(--text2);padding:4px 0;border-top:1px solid var(--border)}
 .room-search:focus{outline:none;border-color:var(--teal)}
 .no-results{font-size:12px;color:var(--text2);padding:20px 2px;text-align:center}
 
@@ -466,6 +489,26 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">📋</span>
       <span class="nav-label">Reservas</span>
     </div>
+    <div class="nav-item" data-view="housekeeping">
+      <span class="nav-icon">🧹</span>
+      <span class="nav-label">Housekeeping</span>
+    </div>
+    <div class="nav-item" data-view="servicios" data-role="owner">
+      <span class="nav-icon">🛎️</span>
+      <span class="nav-label">Servicios</span>
+    </div>
+    <div class="nav-item" data-view="informes" data-role="owner">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Informes</span>
+    </div>
+    <div class="nav-item" data-view="huespedes">
+      <span class="nav-icon">👤</span>
+      <span class="nav-label">Huéspedes</span>
+    </div>
+    <div class="nav-item" data-view="mensajes">
+      <span class="nav-icon">💬</span>
+      <span class="nav-label">Mensajes</span>
+    </div>
     <div class="nav-item" data-view="channels" data-role="owner">
       <span class="nav-icon">🔗</span>
       <span class="nav-label">Canales OTA</span>
@@ -590,6 +633,55 @@ select.form-input option{background:var(--card);color:var(--text)}
       </table>
     </div>
 
+    <!-- VIEW: HOUSEKEEPING -->
+    <div class="view" id="view-housekeeping">
+      <div class="rl-filters">
+        <select id="hk-estado-filter">
+          <option value="">Todos los estados</option>
+          <option value="limpia">Limpia</option>
+          <option value="sucia">Sucia</option>
+          <option value="en_proceso">En proceso</option>
+          <option value="inspeccion">Inspección</option>
+        </select>
+      </div>
+      <div class="hk-grid" id="hk-grid"></div>
+    </div>
+
+    <!-- VIEW: SERVICIOS DEL HOTEL (directorio + upsell, owner) -->
+    <div class="view" id="view-servicios">
+      <div class="sec-header" style="margin-bottom:10px">
+        <span class="sec-title">Servicios y ofertas para el huésped</span>
+        <button class="btn btn-primary btn-sm" id="btn-add-servicio">+ Agregar servicio</button>
+      </div>
+      <div class="form-note" style="margin-bottom:10px">Aparecen en la app del huésped (sin descarga, vía QR). "Upsell" se muestra destacado como oferta.</div>
+      <div id="servicios-list"></div>
+    </div>
+
+    <!-- VIEW: INFORMES DE RENDIMIENTO (owner) -->
+    <div class="view" id="view-informes">
+      <div class="rl-filters">
+        <input type="date" id="inf-desde">
+        <input type="date" id="inf-hasta">
+        <button class="btn btn-outline btn-sm" id="inf-filtrar">Calcular</button>
+      </div>
+      <div class="kpi-grid" id="inf-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px"></div>
+    </div>
+
+    <!-- VIEW: HUÉSPEDES (CRM básico) -->
+    <div class="view" id="view-huespedes">
+      <div class="rl-filters">
+        <input type="search" id="hu-search" placeholder="Buscar por nombre, email o teléfono…">
+        <button class="btn btn-outline btn-sm" id="hu-buscar">Buscar</button>
+      </div>
+      <div id="hu-results"></div>
+    </div>
+
+    <!-- VIEW: MENSAJES (bandeja única: solicitudes de huéspedes + respuesta rápida por WhatsApp) -->
+    <div class="view" id="view-mensajes">
+      <div class="form-note" style="margin-bottom:10px">Todas las solicitudes pendientes de los huéspedes, con respuesta rápida por WhatsApp cuando hay teléfono registrado.</div>
+      <div class="requests-list" id="mensajes-list"></div>
+    </div>
+
     <!-- VIEW: CANALES OTA (solo owner/superadmin) -->
     <div class="view" id="view-channels">
       <div class="sec-header">
@@ -650,9 +742,21 @@ select.form-input option{background:var(--card);color:var(--text)}
       <div class="analytics-card">
         <div class="sec-header" style="margin-bottom:10px">
           <span class="sec-title">Tarifas</span>
-          <button class="btn btn-primary btn-sm" id="bk-add-tarifa">+ Agregar tarifa</button>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm" id="bk-add-tarifa-avanzada">Actualización colectiva / derivada</button>
+            <button class="btn btn-primary btn-sm" id="bk-add-tarifa">+ Agregar tarifa</button>
+          </div>
         </div>
         <div id="tarifas-list"></div>
+      </div>
+
+      <div class="analytics-card">
+        <div class="sec-header" style="margin-bottom:10px">
+          <span class="sec-title">Reglas de rendimiento (cierre automático)</span>
+          <button class="btn btn-primary btn-sm" id="bk-add-regla">+ Agregar regla</button>
+        </div>
+        <div class="form-note" style="margin-bottom:10px">Cierra la venta online cuando quedan pocas habitaciones libres en el rango consultado. No afecta reservas creadas desde este panel, solo el motor de reservas público y canales OTA.</div>
+        <div id="reglas-list"></div>
       </div>
     </div>
 
@@ -925,6 +1029,167 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="modal-actions">
       <button class="btn btn-outline" id="tf-cancel">Cancelar</button>
       <button class="btn btn-primary" id="tf-save">Agregar tarifa</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Actualización colectiva / tarifa derivada -->
+<div class="modal-overlay hidden" id="modal-tarifa-avanzada">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-header">
+      <div class="modal-title">Actualización colectiva / derivada</div>
+      <button class="modal-close" onclick="closeModal('modal-tarifa-avanzada')">✕</button>
+    </div>
+    <div class="modal-field" style="margin-top:0">
+      <span class="modal-label">Modo</span>
+      <select class="form-input" id="tfa-modo-ui">
+        <option value="masivo">Aplicar el mismo precio a varias categorías/habitaciones</option>
+        <option value="derivada">Derivar de una tarifa base (% o monto fijo)</option>
+      </select>
+    </div>
+
+    <div id="tfa-masivo-fields">
+      <div class="modal-field">
+        <span class="modal-label">Categorías (Ctrl/Cmd+clic para varias)</span>
+        <select class="form-input" id="tfa-categorias" multiple style="height:90px"></select>
+      </div>
+      <div class="modal-field">
+        <span class="modal-label">Habitaciones específicas (opcional)</span>
+        <select class="form-input" id="tfa-rooms" multiple style="height:90px"></select>
+      </div>
+    </div>
+
+    <div id="tfa-derivada-fields" class="hidden">
+      <div class="modal-field">
+        <span class="modal-label">Tarifa base</span>
+        <select class="form-input" id="tfa-base"></select>
+      </div>
+      <div class="modal-field">
+        <span class="modal-label">Aplica a</span>
+        <select class="form-input" id="tfa-derivada-ambito">
+          <option value="categoria">Una categoría</option>
+          <option value="room">Una habitación específica</option>
+        </select>
+      </div>
+      <div class="modal-field" id="tfa-derivada-categoria-field">
+        <span class="modal-label">Categoría</span>
+        <select class="form-input" id="tfa-derivada-categoria"></select>
+      </div>
+      <div class="modal-field hidden" id="tfa-derivada-room-field">
+        <span class="modal-label">Habitación</span>
+        <select class="form-input" id="tfa-derivada-room"></select>
+      </div>
+      <div class="modal-field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <span class="modal-label">Ajuste</span>
+          <select class="form-input" id="tfa-derivada-modo">
+            <option value="pct">% sobre la base</option>
+            <option value="fijo">Monto fijo (UF)</option>
+          </select>
+        </div>
+        <div>
+          <span class="modal-label">Valor</span>
+          <input class="form-input" id="tfa-derivada-valor" type="number" step="0.01" placeholder="Ej: 20 o -0.5">
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-field">
+      <span class="modal-label">Nombre de la tarifa</span>
+      <input class="form-input" id="tfa-nombre" placeholder="Temporada alta">
+    </div>
+    <div class="modal-field hidden" id="tfa-precio-field">
+      <span class="modal-label">Precio por noche (UF)</span>
+      <input class="form-input" id="tfa-precio" type="number" step="0.01" min="0.1" placeholder="Ej: 2.5">
+    </div>
+    <div class="modal-field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <span class="modal-label">Desde</span>
+        <input class="form-input" id="tfa-desde" type="date">
+      </div>
+      <div>
+        <span class="modal-label">Hasta</span>
+        <input class="form-input" id="tfa-hasta" type="date">
+      </div>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Mínimo de noches</span>
+      <input class="form-input" id="tfa-min" type="number" min="1" value="1">
+    </div>
+    <div class="modal-error" id="tfa-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="tfa-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="tfa-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Agregar/editar servicio -->
+<div class="modal-overlay hidden" id="modal-servicio">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <div class="modal-title" id="sv-title">Agregar servicio</div>
+      <button class="modal-close" onclick="closeModal('modal-servicio')">✕</button>
+    </div>
+    <div class="modal-field" style="margin-top:0">
+      <span class="modal-label">Nombre</span>
+      <input class="form-input" id="sv-nombre" placeholder="Desayuno buffet / Tour al amanecer">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Descripción</span>
+      <input class="form-input" id="sv-descripcion" placeholder="Breve descripción para el huésped">
+    </div>
+    <div class="modal-field" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <span class="modal-label">Precio (CLP, opcional)</span>
+        <input class="form-input" id="sv-precio" type="number" min="0" placeholder="Ej: 15000">
+      </div>
+      <div>
+        <span class="modal-label">Tipo</span>
+        <select class="form-input" id="sv-tipo">
+          <option value="servicio">Servicio informativo</option>
+          <option value="upsell">Oferta / upsell</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-error" id="sv-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="sv-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="sv-save">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Agregar regla de rendimiento -->
+<div class="modal-overlay hidden" id="modal-regla">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-header">
+      <div class="modal-title">Agregar regla de rendimiento</div>
+      <button class="modal-close" onclick="closeModal('modal-regla')">✕</button>
+    </div>
+    <div class="modal-field" style="margin-top:0">
+      <span class="modal-label">Nombre</span>
+      <input class="form-input" id="rg-nombre" placeholder="Cierre últimas habitaciones">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Ámbito</span>
+      <select class="form-input" id="rg-ambito">
+        <option value="general">Todo el hotel</option>
+        <option value="categoria">Una categoría</option>
+      </select>
+    </div>
+    <div class="modal-field hidden" id="rg-categoria-field">
+      <span class="modal-label">Categoría</span>
+      <select class="form-input" id="rg-categoria"></select>
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Cerrar venta cuando queden ≤ N habitaciones libres</span>
+      <input class="form-input" id="rg-umbral" type="number" min="0" value="2">
+    </div>
+    <div class="modal-error" id="rg-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="rg-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="rg-save">Guardar</button>
     </div>
   </div>
 </div>
