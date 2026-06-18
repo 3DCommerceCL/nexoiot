@@ -2597,7 +2597,7 @@ function openAddCategoriaModal() {
   $('cg-nombre').value = '';
   $('cg-camas').value = 1;
   $('cg-error').textContent = '';
-  $('cg-save').onclick = submitCategoria;
+  $('cg-save').onclick = () => submitCategoria();
   $('modal-categoria').classList.remove('hidden');
 }
 
