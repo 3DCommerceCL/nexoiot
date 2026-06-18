@@ -379,11 +379,15 @@ function createRequest(token, type, note = '') {
   return request;
 }
 
-// ── LISTAR SOLICITUDES (filtrar por hotel y/o estado) ────────────────────────
-function listRequests({ hotelId, status } = {}) {
+// ── LISTAR SOLICITUDES (filtrar por hotel, estado y/o rango de fecha) ────────
+// from/to comparan contra createdAt (fecha de la solicitud, no de resolución),
+// como YYYY-MM-DD — para el registro/log que revisa el hotel.
+function listRequests({ hotelId, status, from, to } = {}) {
   let list = getRequests();
   if (hotelId) list = list.filter(r => r.hotelId === hotelId);
   if (status)  list = list.filter(r => r.status === status);
+  if (from)    list = list.filter(r => r.createdAt.slice(0, 10) >= from);
+  if (to)      list = list.filter(r => r.createdAt.slice(0, 10) <= to);
   return list.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 }
 

@@ -575,7 +575,6 @@ async function loadRequests() {
     requests = [];
   }
   renderRequests();
-  renderMensajes();
 }
 
 const REQUEST_ICONS = { towels: '🧺', roomservice: '🍽', cleaning: '🧹', late_checkout: '🕐', maintenance: '🔧', other: '💬' };
@@ -589,6 +588,10 @@ function timeAgo(iso) {
   if (mins < 1)  return '<1m';
   if (mins < 60) return `${mins}m`;
   return `${Math.round(mins / 60)}h`;
+}
+
+function fechaHora(iso) {
+  return new Date(iso).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
 function renderRequests() {
@@ -610,31 +613,53 @@ function renderRequests() {
     </div>`).join('');
 }
 
-// Misma lista de solicitudes que el widget de Overview, pero con respuesta rápida por WhatsApp
-// — bandeja única simplificada, sin integrar la API real de WhatsApp Business.
-function renderMensajes() {
+// ── REGISTRO DE SOLICITUDES (vista Mensajes: pendientes con WhatsApp + log con fecha/hora) ──
+let mensajesLog = [];
+
+async function loadMensajesLog() {
+  if (!HOTEL_ID) return;
+  const estado = $('msg-estado').value;
+  const desde  = $('msg-desde').value;
+  const hasta  = $('msg-hasta').value;
+  let qs = `?hotel=${encodeURIComponent(HOTEL_ID)}`;
+  if (estado) qs += `&status=${estado}`;
+  if (desde)  qs += `&from=${desde}`;
+  if (hasta)  qs += `&to=${hasta}`;
+  try {
+    mensajesLog = await apiFetch(`/admin/requests${qs}`);
+    renderMensajesLog();
+  } catch (err) {
+    $('mensajes-list').innerHTML = `<div class="request-empty">Error: ${err.message}</div>`;
+  }
+}
+
+function renderMensajesLog() {
   const list = $('mensajes-list');
   if (!list) return;
-  if (!requests.length) {
+  $('msg-count').textContent = `${mensajesLog.length} solicitud${mensajesLog.length !== 1 ? 'es' : ''}`;
+  if (!mensajesLog.length) {
     list.innerHTML = `<div class="request-empty">${dt('noRequests')}</div>`;
     return;
   }
-  list.innerHTML = requests.map(r => {
+  list.innerHTML = mensajesLog.map(r => {
     const room  = rooms.find(rm => rm.id === r.roomId);
     const phone = room?.guest?.phone;
-    const waBtn = phone
+    const esPendiente = r.status === 'pending';
+    const waBtn = esPendiente && phone
       ? `<button class="btn btn-sm btn-outline-teal" onclick="responderWhatsApp('${phone}', '${r.guestName.replace(/'/g, "\\'")}')">📱 WhatsApp</button>`
       : '';
+    const accion = esPendiente
+      ? `${waBtn}<button class="btn btn-sm btn-outline-teal" onclick="resolveRequest('${r.id}')">${dt('requestResolveBtn')}</button>`
+      : `<span class="badge badge-active">Resuelta ${fechaHora(r.resolvedAt)}</span>`;
     return `
     <div class="request-item" id="msg-${r.id}">
       <span class="request-ico">${REQUEST_ICONS[r.type] || '🔔'}</span>
       <div class="request-body">
         <div class="request-title">${dt(REQUEST_TITLE_KEY[r.type] || 'requestOther')}</div>
-        <div class="request-sub">${dt('requestSub', { room: r.roomName, guest: r.guestName, time: timeAgo(r.createdAt) })}</div>
+        <div class="request-sub">${r.roomName} · ${r.guestName} · ${fechaHora(r.createdAt)}</div>
         ${r.note ? `<div class="request-note">${r.note}</div>` : ''}
       </div>
-      ${waBtn}
-      <button class="btn btn-sm btn-outline-teal" onclick="resolveRequest('${r.id}')">${dt('requestResolveBtn')}</button>
+      ${accion}
     </div>`;
   }).join('');
 }
@@ -651,7 +676,7 @@ window.resolveRequest = async function(id) {
     await apiFetch(`/admin/requests/${id}/resolve`, { method: 'POST' });
     requests = requests.filter(r => r.id !== id);
     renderRequests();
-    renderMensajes();
+    if (state.view === 'mensajes') await loadMensajesLog();
     showToast(dt('requestResolved'), 'success');
   } catch (err) {
     showToast(err.message, 'error');
@@ -856,7 +881,7 @@ function navigate(view) {
     loadInformes();
   }
   if (view === 'huespedes') $('hu-results').innerHTML = '<div class="form-note">Escribe un nombre, email o teléfono para buscar.</div>';
-  if (view === 'mensajes') loadRequests();
+  if (view === 'mensajes') loadMensajesLog();
   if (view === 'grid-tarifas') loadGrid();
 }
 
@@ -3330,6 +3355,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (reserva) openReservaModal(reserva);
   });
 
+  // Mensajes / registro de solicitudes
+  $('msg-filtrar').addEventListener('click', loadMensajesLog);
+  $('msg-estado').addEventListener('change', loadMensajesLog);
+
   // Housekeeping
   $('hk-estado-filter').addEventListener('change', renderHousekeeping);
   $('hk-grid').addEventListener('change', e => {
@@ -3367,6 +3396,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Solicitudes de huéspedes: refrescar periódicamente
   setInterval(() => { if (getSession()) loadRequests(); }, 20_000);
+
+  // Ocupación de habitaciones: refrescar sola para que una reserva creada desde otra
+  // sesión (ej. recepción en otro equipo) aparezca sin que el usuario tenga que recargar.
+  setInterval(() => {
+    if (getSession() && (state.view === 'overview' || state.view === 'rooms')) loadRooms();
+  }, 15_000);
 });
 
 // PWA: instalable desde el navegador (manifest + ícono ya están en el <head>)

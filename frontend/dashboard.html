@@ -708,9 +708,19 @@ select.form-input option{background:var(--card);color:var(--text)}
       <div id="hu-results"></div>
     </div>
 
-    <!-- VIEW: MENSAJES (bandeja única: solicitudes de huéspedes + respuesta rápida por WhatsApp) -->
+    <!-- VIEW: MENSAJES (bandeja de pendientes + registro/log completo con fecha y hora) -->
     <div class="view" id="view-mensajes">
-      <div class="form-note" style="margin-bottom:10px">Todas las solicitudes pendientes de los huéspedes, con respuesta rápida por WhatsApp cuando hay teléfono registrado.</div>
+      <div class="rl-filters">
+        <select id="msg-estado">
+          <option value="pending">Pendientes</option>
+          <option value="">Todas (registro completo)</option>
+          <option value="done">Resueltas</option>
+        </select>
+        <input type="date" id="msg-desde">
+        <input type="date" id="msg-hasta">
+        <button class="btn btn-outline btn-sm" id="msg-filtrar">Filtrar</button>
+      </div>
+      <div class="rl-count" id="msg-count"></div>
       <div class="requests-list" id="mensajes-list"></div>
     </div>
 

@@ -689,14 +689,15 @@ app.get('/api/admin/hotels', requireAuth('superadmin'), (req, res) => {
 });
 
 // ── ADMIN: GET /api/admin/requests ────────────────────────────────────────────
-// Acepta ?hotel=<hotelId> y ?status=pending|done para filtrar.
+// Acepta ?hotel=<hotelId>, ?status=pending|done y ?from=/&to=YYYY-MM-DD para filtrar.
+// Sin status, devuelve el registro completo (para el log que revisa el hotel).
 // Para owner/recepcion, siempre se fuerza el filtro a su propio hotel.
 app.get('/api/admin/requests', requireAuth('superadmin', 'owner', 'recepcion'), (req, res) => {
   const hotelFiltro = req.user.rol === 'superadmin' ? (req.query.hotel || null) : req.user.hotelId;
   if (req.query.hotel && !assertHotelAccess(req, req.query.hotel)) {
     return res.status(403).json({ error: 'Sin acceso a este hotel' });
   }
-  res.json(rooms.listRequests({ hotelId: hotelFiltro, status: req.query.status }));
+  res.json(rooms.listRequests({ hotelId: hotelFiltro, status: req.query.status, from: req.query.from, to: req.query.to }));
 });
 
 // ── ADMIN: POST /api/admin/requests/:id/resolve ───────────────────────────────
