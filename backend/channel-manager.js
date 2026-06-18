@@ -8,6 +8,7 @@
 const crypto   = require('crypto');
 const db       = require('./db');
 const reservas = require('./reservas');
+const rooms    = require('./rooms');
 
 const SM_URL    = process.env.SITEMINDER_API_URL;
 const SM_KEY    = process.env.SITEMINDER_API_KEY;
@@ -193,6 +194,15 @@ async function procesarReservaOTA(payload, canalId) {
       notes:      `OTA via ${canal.nombre} — Ref: ${payload.reservationId || payload.id || 'N/A'}`,
     }
   );
+
+  // Generar el token/QR de check-in igual que en las reservas creadas desde el panel —
+  // sin esto, la reserva OTA no se vería como ocupación real ni el huésped tendría acceso.
+  try {
+    const token = rooms.generateToken(mapping.room_id, guestName, checkin, checkout, nueva.guest_phone || '');
+    reservas.updateReserva(nueva.id, { token });
+  } catch (err) {
+    console.error('[cm] No se pudo generar token IoT para reserva OTA', nueva.id, ':', err.message);
+  }
 
   logSync({ hotelId: canal.hotel_id, canalId, tipo: 'pull_reserva', status: 'ok', payload: { reservaId: nueva.id } });
   console.log(`[cm] Reserva OTA creada: ${nueva.id} (${canal.nombre})`);

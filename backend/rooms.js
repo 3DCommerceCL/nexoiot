@@ -312,11 +312,14 @@ function getRoomByToken(token) {
 }
 
 // ── LISTAR TOKENS ACTIVOS ─────────────────────────────────────────────────────
+// "Activo" = el huésped está actualmente en la habitación (checkin <= ahora <= checkout),
+// no solo que el token no haya expirado — una reserva futura no debe verse como ocupada hoy.
 function listActiveTokens() {
   const tokens = getTokens();
   const rooms  = getRooms();
+  const ahora  = new Date();
   return Object.entries(tokens)
-    .filter(([, t]) => t.active && new Date(t.checkout) >= new Date())
+    .filter(([, t]) => t.active && new Date(t.checkin) <= ahora && new Date(t.checkout) >= ahora)
     .map(([token, t]) => ({
       token,
       roomId:    t.roomId,
@@ -338,7 +341,7 @@ function getActiveTokenForRoom(roomId) {
   const tokens = getTokens();
   const now = new Date();
   const candidates = Object.entries(tokens)
-    .filter(([, t]) => t.roomId === roomId && t.active && new Date(t.checkout) >= now)
+    .filter(([, t]) => t.roomId === roomId && t.active && new Date(t.checkin) <= now && new Date(t.checkout) >= now)
     .sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt));
   return candidates.length ? candidates[0][0] : null;
 }

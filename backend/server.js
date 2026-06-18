@@ -105,6 +105,26 @@ function invalidarCacheDisponibilidad(slug) {
   }
 }
 
+// ── PUENTE RESERVA (PMS) → TOKEN DE CHECK-IN (QR / acceso IoT) ───────────────
+// Una reserva por sí sola no le da acceso al huésped a la app de la habitación —
+// el QR/token es lo que la app y la vista de Habitaciones usan para saber que hay
+// alguien alojado. Generamos el token automáticamente al crear/confirmar la reserva,
+// y lo expiramos al cancelar/hacer checkout o al reprogramar fechas/habitación.
+function generarTokenParaReserva(reserva, telefono) {
+  try {
+    const token = rooms.generateToken(reserva.room_id, reserva.guest_name, reserva.checkin, reserva.checkout, telefono || reserva.guest_phone || '');
+    reservas.updateReserva(reserva.id, { token });
+    return token;
+  } catch (err) {
+    console.error('[reservas] No se pudo generar token IoT para', reserva.id, ':', err.message);
+    return null;
+  }
+}
+
+function expirarTokenDeReserva(reserva) {
+  if (reserva.token) rooms.expireToken(reserva.token);
+}
+
 // ── VALOR UF DEL DÍA (cache diario) ──────────────────────────────────────────
 let valorUF = 41000;
 
@@ -713,8 +733,10 @@ app.post('/api/admin/reservas', requireAuth('owner', 'recepcion'), (req, res) =>
   if (!reservas.checkDisponibilidad(roomId, checkin, checkout)) {
     return res.status(409).json({ error: 'Habitación no disponible en esas fechas', code: 'ROOM_UNAVAILABLE' });
   }
-  const r = reservas.createReserva(hotelId, roomId, guestName, checkin, checkout,
+  let r = reservas.createReserva(hotelId, roomId, guestName, checkin, checkout,
     { guestEmail, guestPhone, notes, plan, source });
+  generarTokenParaReserva(r, guestPhone);
+  r = reservas.getById(r.id);
   invalidarCacheDisponibilidad(hotelId);
   cm.pushDisponibilidad(hotelId, roomId, checkin, checkout).catch(err =>
     console.error('[cm] Push fallido tras crear reserva:', err.message)
@@ -741,7 +763,20 @@ app.patch('/api/admin/reservas/:id', requireAuth('owner', 'recepcion'), (req, re
     }
   }
 
-  const updated = reservas.updateReserva(req.params.id, req.body);
+  let updated = reservas.updateReserva(req.params.id, req.body);
+
+  // Mantener sincronizado el token de check-in (QR) con el estado/fechas de la reserva.
+  if (status === 'cancelled' || status === 'checked_out') {
+    expirarTokenDeReserva(existing);
+  } else if (checkin || checkout || room_id) {
+    if (existing.token) expirarTokenDeReserva(existing);
+    generarTokenParaReserva(updated);
+    updated = reservas.getById(req.params.id);
+  } else if (!existing.token && !['cancelled', 'checked_out'].includes(existing.status)) {
+    generarTokenParaReserva(updated);
+    updated = reservas.getById(req.params.id);
+  }
+
   invalidarCacheDisponibilidad(existing.hotel_id);
   res.json(updated);
 });
@@ -752,6 +787,7 @@ app.delete('/api/admin/reservas/:id', requireAuth('owner', 'recepcion'), (req, r
   if (!existing) return res.status(404).json({ error: 'Reserva no encontrada' });
   if (!assertHotelAccess(req, existing.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
   reservas.cancelReserva(req.params.id);
+  expirarTokenDeReserva(existing);
   invalidarCacheDisponibilidad(existing.hotel_id);
   cm.pushDisponibilidad(existing.hotel_id, existing.room_id, existing.checkin, existing.checkout)
     .catch(err => console.error('[cm] Push fallido tras cancelar reserva:', err.message));
@@ -1114,6 +1150,7 @@ app.post('/api/public/hotels/:slug/reservas', publicLimiter, async (req, res) =>
   const nueva = reservas.createReserva(slug, roomId, guestName, checkin, checkout, {
     guestEmail, guestPhone: guestPhone || null, source: 'direct',
   });
+  generarTokenParaReserva(nueva, guestPhone);
 
   invalidarCacheDisponibilidad(slug);
   cm.pushDisponibilidad(slug, roomId, checkin, checkout)
