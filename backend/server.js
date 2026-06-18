@@ -16,6 +16,7 @@ const bloqueos  = require('./bloqueos');
 const canales       = require('./canales');
 const cm            = require('./channel-manager');
 const tarifas       = require('./tarifas');
+const tarifasDia    = require('./tarifas-dia');
 const categorias    = require('./categorias');
 const bookingConfig = require('./booking-config');
 const pagos         = require('./pagos');
@@ -27,6 +28,8 @@ const servicios     = require('./servicios');
 const email         = require('./email');
 const informes      = require('./informes');
 const huespedes     = require('./huespedes');
+const checkinPrevio = require('./checkin-previo');
+const encuestas     = require('./encuestas');
 
 const app       = express();
 const PORT        = process.env.PORT      || 3000;
@@ -876,6 +879,14 @@ app.get('/api/admin/reservas/:id/transacciones', requireAuth('owner', 'recepcion
   res.json(transacciones.getByReserva(req.params.id));
 });
 
+// ── ADMIN: GET /api/admin/reservas/:id/precheckin ─────────────────────────────
+app.get('/api/admin/reservas/:id/precheckin', requireAuth('owner', 'recepcion'), (req, res) => {
+  const reserva = reservas.getById(req.params.id);
+  if (!reserva) return res.status(404).json({ error: 'Reserva no encontrada' });
+  if (!assertHotelAccess(req, reserva.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(checkinPrevio.getByReserva(req.params.id));
+});
+
 // ── ADMIN: GET /api/admin/transacciones ───────────────────────────────────────
 // ?hotel=<id>&desde=YYYY-MM-DD&hasta=YYYY-MM-DD — reporte hotel-wide, solo owner/superadmin
 app.get('/api/admin/transacciones', requireAuth('owner'), (req, res) => {
@@ -888,6 +899,11 @@ app.get('/api/admin/transacciones', requireAuth('owner'), (req, res) => {
 // ── BOOKING ENGINE: GET /reservar/:slug ──────────────────────────────────────
 app.get('/reservar/:slug', (_req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/booking-engine.html'));
+});
+
+// ── PRE-CHECKIN: GET /precheckin/:reservaId ───────────────────────────────────
+app.get('/precheckin/:reservaId', (_req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/precheckin.html'));
 });
 
 // ── BOOKING ENGINE: GET /widget.js ────────────────────────────────────────────
@@ -961,8 +977,33 @@ app.get('/api/public/hotels/:slug/disponibilidad', publicLimiter, async (req, re
   // Reservas, bloqueos y tarifas que se solapan con el rango
   const reservasActivas = reservas.getByHotel(slug, checkin, checkout)
     .filter(r => !['cancelled', 'checked_out'].includes(r.status));
-  const bloqueosList = bloqueos.getBloqueosByHotelEnRango(slug, checkin, checkout);
-  const tarifasMap   = tarifas.getTarifasVigentes(slug, checkin, checkout);
+  const bloqueosList   = bloqueos.getBloqueosByHotelEnRango(slug, checkin, checkout);
+  const tarifasActivas = tarifas.getActivasEnRango(slug, checkin, checkout);
+  const categoriaIds   = [...new Set(hotelRooms.map(r => r.categoriaId).filter(Boolean))];
+  const overridesRoom      = tarifasDia.getEnRango(slug, 'room', hotelRooms.map(r => r.id), checkin, checkout);
+  const overridesCategoria = tarifasDia.getEnRango(slug, 'categoria', categoriaIds, checkin, checkout);
+
+  // Suma el precio noche por noche (override de grid > tarifa de rango/categoría/general,
+  // respetando días de semana) — null si alguna noche queda sin precio resoluble.
+  function precioEstadia(room) {
+    let totalUF = 0;
+    let minNochesPrimeraNoche = 1;
+    let d = new Date(checkin + 'T00:00:00Z');
+    const end = new Date(checkout + 'T00:00:00Z');
+    let i = 0;
+    while (d < end) {
+      const fecha = d.toISOString().slice(0, 10);
+      const override = tarifasDia.resolverOverride(room.id, room.categoriaId, fecha, overridesRoom, overridesCategoria);
+      const tarifaRango = tarifas.resolverTarifaRango(room.id, room.categoriaId, fecha, tarifasActivas);
+      const precioNoche = override?.precio_uf ?? tarifaRango?.precio_uf ?? null;
+      if (precioNoche === null) return { totalUF: null, minNoches: 1 };
+      if (i === 0) minNochesPrimeraNoche = tarifaRango?.min_noches || 1;
+      totalUF += precioNoche;
+      d.setUTCDate(d.getUTCDate() + 1);
+      i++;
+    }
+    return { totalUF, minNoches: minNochesPrimeraNoche };
+  }
 
   const roomsResult = hotelRooms.map(room => {
     const estaOcupada   = reservasActivas.some(r => r.room_id === room.id);
@@ -977,23 +1018,19 @@ app.get('/api/public/hotels/:slug/disponibilidad', publicLimiter, async (req, re
       };
     }
 
-    const tarifa    = tarifasMap.get(room.id)
-      || (room.categoriaId ? tarifasMap.get(`cat:${room.categoriaId}`) : null)
-      || tarifasMap.get('__gen__')
-      || null;
-    const minNoches = tarifa?.min_noches || 1;
+    const { totalUF, minNoches } = precioEstadia(room);
     if (noches < minNoches) {
       return { id: room.id, nombre: room.nombre, plan: room.plan, disponible: false, motivoBloqueo: `minimo_${minNoches}_noches` };
     }
 
-    const precioUF = tarifa?.precio_uf || null;
+    const precioPromedioUF = totalUF !== null ? +(totalUF / noches).toFixed(2) : null;
     return {
       id:    room.id,
       nombre: room.nombre,
       plan:  room.plan,
       disponible: true,
-      precioPorNoche: precioUF ? { uf: precioUF, clp_referencial: Math.round(precioUF * valorUF) } : null,
-      precioTotal:    precioUF ? { uf: +(precioUF * noches).toFixed(2), clp_referencial: Math.round(precioUF * noches * valorUF) } : null,
+      precioPorNoche: precioPromedioUF !== null ? { uf: precioPromedioUF, clp_referencial: Math.round(precioPromedioUF * valorUF) } : null,
+      precioTotal:    totalUF !== null ? { uf: +totalUF.toFixed(2), clp_referencial: Math.round(totalUF * valorUF) } : null,
       minNoches,
     };
   });
@@ -1093,6 +1130,40 @@ app.post('/api/public/hotels/:slug/reservas', publicLimiter, async (req, res) =>
   });
 });
 
+// ── PUBLIC: GET /api/public/reservas/:id/precheckin ───────────────────────────
+// El id de la reserva funciona como token opaco del link (mismo patrón que /api/room/:token)
+// — no requiere login, solo conocer el id que se envía al huésped.
+app.get('/api/public/reservas/:id/precheckin', publicLimiter, (req, res) => {
+  const reserva = reservas.getById(req.params.id);
+  if (!reserva) return res.status(404).json({ error: 'Reserva no encontrada' });
+  const hotelData = rooms.getHotels()[reserva.hotel_id];
+  const existente = checkinPrevio.getByReserva(reserva.id);
+  res.json({
+    guestName: reserva.guest_name,
+    checkin:   reserva.checkin,
+    checkout:  reserva.checkout,
+    hotelNombre: hotelData?.name || reserva.hotel_id,
+    completado: !!existente,
+  });
+});
+
+// ── PUBLIC: POST /api/public/reservas/:id/precheckin ──────────────────────────
+app.post('/api/public/reservas/:id/precheckin', publicLimiter, (req, res) => {
+  const reserva = reservas.getById(req.params.id);
+  if (!reserva) return res.status(404).json({ error: 'Reserva no encontrada' });
+  const { docTipo, docNumero, telefono, nombresAdicionales, aceptaTyc, firmaBase64 } = req.body;
+  if (!docTipo || !docNumero || !aceptaTyc || !firmaBase64) {
+    return res.status(400).json({ error: 'Requeridos: docTipo, docNumero, aceptaTyc, firmaBase64' });
+  }
+  if (!['rut', 'pasaporte'].includes(docTipo)) return res.status(400).json({ error: "docTipo debe ser 'rut' o 'pasaporte'" });
+  try {
+    const creado = checkinPrevio.crear(reserva.id, reserva.hotel_id, { docTipo, docNumero, telefono, nombresAdicionales, aceptaTyc, firmaBase64 });
+    res.status(201).json(creado);
+  } catch (err) {
+    res.status(409).json({ error: err.message });
+  }
+});
+
 // ── ADMIN: GET /api/admin/tarifas ─────────────────────────────────────────────
 app.get('/api/admin/tarifas', requireAuth('owner'), (req, res) => {
   const { hotel } = req.query;
@@ -1104,36 +1175,36 @@ app.get('/api/admin/tarifas', requireAuth('owner'), (req, res) => {
 // ── ADMIN: POST /api/admin/tarifas ────────────────────────────────────────────
 // roomId y categoriaId son mutuamente excluyentes; si no se envía ninguno, la tarifa es general.
 app.post('/api/admin/tarifas', requireAuth('owner'), (req, res) => {
-  const { hotelId, roomId, categoriaId, nombre, precioUF, desde, hasta, minNoches } = req.body;
+  const { hotelId, roomId, categoriaId, nombre, precioUF, desde, hasta, minNoches, diasSemana } = req.body;
   if (!hotelId || !nombre || !precioUF || !desde || !hasta) {
     return res.status(400).json({ error: 'Requeridos: hotelId, nombre, precioUF, desde, hasta' });
   }
   if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
   if (desde >= hasta) return res.status(400).json({ error: 'desde debe ser anterior a hasta' });
   if (precioUF <= 0) return res.status(400).json({ error: 'precioUF debe ser mayor a 0' });
-  const t = tarifas.createTarifa(hotelId, roomId || null, categoriaId || null, nombre, precioUF, desde, hasta, minNoches || 1);
+  const t = tarifas.createTarifa(hotelId, roomId || null, categoriaId || null, nombre, precioUF, desde, hasta, minNoches || 1, diasSemana || null);
   res.status(201).json(t);
 });
 
 // ── ADMIN: POST /api/admin/tarifas/masivo ─────────────────────────────────────
-// Body: { hotelId, targets: [{roomId}|{categoriaId}], nombre, precioUF, desde, hasta, minNoches }
+// Body: { hotelId, targets: [{roomId}|{categoriaId}], nombre, precioUF, desde, hasta, minNoches, diasSemana }
 // Crea la misma tarifa para varias habitaciones/categorías de una sola vez.
 app.post('/api/admin/tarifas/masivo', requireAuth('owner'), (req, res) => {
-  const { hotelId, targets, nombre, precioUF, desde, hasta, minNoches } = req.body;
+  const { hotelId, targets, nombre, precioUF, desde, hasta, minNoches, diasSemana } = req.body;
   if (!hotelId || !Array.isArray(targets) || !targets.length || !nombre || !precioUF || !desde || !hasta) {
     return res.status(400).json({ error: 'Requeridos: hotelId, targets[], nombre, precioUF, desde, hasta' });
   }
   if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
   if (desde >= hasta) return res.status(400).json({ error: 'desde debe ser anterior a hasta' });
   if (precioUF <= 0) return res.status(400).json({ error: 'precioUF debe ser mayor a 0' });
-  const creadas = tarifas.createTarifasMasivo(hotelId, targets, nombre, precioUF, desde, hasta, minNoches || 1);
+  const creadas = tarifas.createTarifasMasivo(hotelId, targets, nombre, precioUF, desde, hasta, minNoches || 1, diasSemana || null);
   res.status(201).json(creadas);
 });
 
 // ── ADMIN: POST /api/admin/tarifas/derivada ───────────────────────────────────
-// Body: { hotelId, target: {roomId}|{categoriaId}, baseTarifaId, modo: 'pct'|'fijo', valor, nombre, desde, hasta, minNoches }
+// Body: { hotelId, target: {roomId}|{categoriaId}, baseTarifaId, modo: 'pct'|'fijo', valor, nombre, desde, hasta, minNoches, diasSemana }
 app.post('/api/admin/tarifas/derivada', requireAuth('owner'), (req, res) => {
-  const { hotelId, target, baseTarifaId, modo, valor, nombre, desde, hasta, minNoches } = req.body;
+  const { hotelId, target, baseTarifaId, modo, valor, nombre, desde, hasta, minNoches, diasSemana } = req.body;
   if (!hotelId || !target || !baseTarifaId || !modo || valor === undefined || !nombre || !desde || !hasta) {
     return res.status(400).json({ error: 'Requeridos: hotelId, target, baseTarifaId, modo, valor, nombre, desde, hasta' });
   }
@@ -1142,11 +1213,73 @@ app.post('/api/admin/tarifas/derivada', requireAuth('owner'), (req, res) => {
   const base = tarifas.getById(baseTarifaId);
   if (!base || base.hotel_id !== hotelId) return res.status(404).json({ error: 'Tarifa base no encontrada' });
   try {
-    const t = tarifas.createTarifaDerivada(hotelId, target, baseTarifaId, modo, valor, nombre, desde, hasta, minNoches || 1);
+    const t = tarifas.createTarifaDerivada(hotelId, target, baseTarifaId, modo, valor, nombre, desde, hasta, minNoches || 1, diasSemana || null);
     res.status(201).json(t);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
+});
+
+// ── ADMIN: GET /api/admin/tarifas/grid ────────────────────────────────────────
+// ?hotel=&ambito=room|categoria&from=&to= — precio efectivo por día para la grilla editable.
+app.get('/api/admin/tarifas/grid', requireAuth('owner'), (req, res) => {
+  const { hotel, ambito, from, to } = req.query;
+  if (!hotel || !ambito || !from || !to) return res.status(400).json({ error: 'Requeridos: hotel, ambito, from, to' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (!['room', 'categoria'].includes(ambito)) return res.status(400).json({ error: "ambito debe ser 'room' o 'categoria'" });
+
+  const ambitoIds = ambito === 'room'
+    ? Object.entries(rooms.getRooms()).filter(([, r]) => r.hotelId === hotel && r.demo !== true).map(([id]) => id)
+    : categorias.getByHotel(hotel).map(c => c.id);
+
+  const tarifasActivas = tarifas.getActivasEnRango(hotel, from, to);
+  const overrides = tarifasDia.getEnRango(hotel, ambito, ambitoIds, from, to);
+
+  const dias = [];
+  let d = new Date(from + 'T00:00:00Z');
+  const end = new Date(to + 'T00:00:00Z');
+  while (d < end) { dias.push(d.toISOString().slice(0, 10)); d.setUTCDate(d.getUTCDate() + 1); }
+
+  const precios = {};
+  for (const id of ambitoIds) {
+    precios[id] = {};
+    for (const fecha of dias) {
+      const override = overrides.find(o => o.ambito_id === id && o.fecha === fecha);
+      const rango = ambito === 'room'
+        ? tarifas.resolverTarifaRango(id, null, fecha, tarifasActivas)
+        : tarifas.resolverTarifaRango(null, id, fecha, tarifasActivas);
+      precios[id][fecha] = {
+        precioUF: override?.precio_uf ?? rango?.precio_uf ?? null,
+        esOverride: !!override,
+      };
+    }
+  }
+
+  res.json({ ambito, ambitoIds, dias, precios });
+});
+
+// ── ADMIN: PUT /api/admin/tarifas/grid/celda ──────────────────────────────────
+// Body: { hotelId, ambito: 'room'|'categoria', ambitoId, fecha, precioUF }
+app.put('/api/admin/tarifas/grid/celda', requireAuth('owner'), (req, res) => {
+  const { hotelId, ambito, ambitoId, fecha, precioUF } = req.body;
+  if (!hotelId || !ambito || !ambitoId || !fecha || !precioUF) {
+    return res.status(400).json({ error: 'Requeridos: hotelId, ambito, ambitoId, fecha, precioUF' });
+  }
+  if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (!['room', 'categoria'].includes(ambito)) return res.status(400).json({ error: "ambito debe ser 'room' o 'categoria'" });
+  if (precioUF <= 0) return res.status(400).json({ error: 'precioUF debe ser mayor a 0' });
+  invalidarCacheDisponibilidad(hotelId);
+  res.json(tarifasDia.setPrecio(hotelId, ambito, ambitoId, fecha, precioUF));
+});
+
+// ── ADMIN: DELETE /api/admin/tarifas/grid/celda ───────────────────────────────
+// Quita el override del día, vuelve a depender de la tarifa de rango/categoría/general.
+app.delete('/api/admin/tarifas/grid/celda', requireAuth('owner'), (req, res) => {
+  const { hotel, ambito, ambitoId, fecha } = req.query;
+  if (!hotel || !ambito || !ambitoId || !fecha) return res.status(400).json({ error: 'Requeridos: hotel, ambito, ambitoId, fecha' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  invalidarCacheDisponibilidad(hotel);
+  res.json({ success: tarifasDia.borrarPrecio(hotel, ambito, ambitoId, fecha) });
 });
 
 // ── ADMIN: PATCH /api/admin/tarifas/:id ───────────────────────────────────────
@@ -1522,4 +1655,9 @@ app.listen(PORT, () => {
   console.log(`  Web app: http://localhost:${PORT}/room/DEMO1234`);
   console.log(`  API:     http://localhost:${PORT}/api/`);
   console.log(`  Health:  http://localhost:${PORT}/health\n`);
+
+  // Encuestas de satisfacción post-estadía: barrido diario en proceso (sin dependencia
+  // de cron externo) — corre poco después de arrancar y luego cada 24h.
+  setTimeout(() => encuestas.enviarPendientes().catch(err => console.error('[encuestas] sweep falló:', err.message)), 30_000);
+  setInterval(() => encuestas.enviarPendientes().catch(err => console.error('[encuestas] sweep falló:', err.message)), 24 * 60 * 60 * 1000);
 });

@@ -189,6 +189,37 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_reglas_hotel ON reglas_rendimiento(hotel_id);
 
+  CREATE TABLE IF NOT EXISTS tarifas_dia (
+    hotel_id   TEXT NOT NULL,
+    ambito     TEXT NOT NULL,
+    ambito_id  TEXT NOT NULL,
+    fecha      DATE NOT NULL,
+    precio_uf  REAL NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (hotel_id, ambito, ambito_id, fecha)
+  );
+  CREATE INDEX IF NOT EXISTS idx_tarifas_dia_hotel ON tarifas_dia(hotel_id, fecha);
+
+  CREATE TABLE IF NOT EXISTS encuestas_enviadas (
+    reserva_id TEXT PRIMARY KEY,
+    hotel_id   TEXT NOT NULL,
+    enviado_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS checkin_previo (
+    id              TEXT PRIMARY KEY,
+    reserva_id      TEXT NOT NULL UNIQUE,
+    hotel_id        TEXT NOT NULL,
+    doc_tipo        TEXT NOT NULL,
+    doc_numero      TEXT NOT NULL,
+    telefono        TEXT,
+    nombres_adicionales TEXT,
+    acepta_tyc      INTEGER NOT NULL DEFAULT 0,
+    firma_base64    TEXT NOT NULL,
+    created_at      TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_checkin_previo_hotel ON checkin_previo(hotel_id);
+
   CREATE TABLE IF NOT EXISTS servicios_hotel (
     id          TEXT PRIMARY KEY,
     hotel_id    TEXT NOT NULL,
@@ -208,6 +239,8 @@ try { db.exec('ALTER TABLE tarifas ADD COLUMN categoria_id TEXT'); } catch { /* 
 try { db.exec('ALTER TABLE tarifas ADD COLUMN derivada_de_id TEXT'); } catch { /* ya existe */ }
 try { db.exec("ALTER TABLE tarifas ADD COLUMN derivada_modo TEXT"); } catch { /* ya existe */ }
 try { db.exec('ALTER TABLE tarifas ADD COLUMN derivada_valor REAL'); } catch { /* ya existe */ }
+try { db.exec('ALTER TABLE tarifas ADD COLUMN dias_semana TEXT'); } catch { /* ya existe — NULL = todos los días, o CSV de 0(domingo)-6(sábado) */ }
+try { db.exec('ALTER TABLE booking_config ADD COLUMN link_resenas TEXT'); } catch { /* ya existe */ }
 
 console.log('[db] SQLite listo:', DB_PATH);
 module.exports = db;

@@ -817,6 +817,7 @@ const viewTitle = view =>
     channels: 'Canales OTA', booking: 'Motor de Reservas', pagos: 'Pagos', categorias: 'Categorías',
     reservaslist: 'Reservas', housekeeping: 'Housekeeping', servicios: 'Servicios',
     informes: 'Informes', huespedes: 'Huéspedes', mensajes: 'Mensajes',
+    'grid-tarifas': 'Grid de tarifas',
   }[view] || view);
 
 // ── SIDEBAR MÓVIL (off-canvas) ───────────────────────────────────────────────
@@ -855,6 +856,7 @@ function navigate(view) {
   }
   if (view === 'huespedes') $('hu-results').innerHTML = '<div class="form-note">Escribe un nombre, email o teléfono para buscar.</div>';
   if (view === 'mensajes') loadRequests();
+  if (view === 'grid-tarifas') loadGrid();
 }
 
 // ── IDIOMA DEL PANEL ──────────────────────────────────────────────────────────
@@ -1878,7 +1880,24 @@ function openReservaModal(reserva = null, prefill = {}) {
   $('rv-cobros-section').classList.toggle('hidden', isNew);
   if (!isNew) renderCobrosSection(reserva);
 
+  // Check-in previo (solo en edición)
+  $('rv-precheckin-section').classList.toggle('hidden', isNew);
+  if (!isNew) loadPrecheckinStatus(reserva);
+
   $('modal-reserva').classList.remove('hidden');
+}
+
+// ── CHECK-IN PREVIO (estado + link para copiar) ──────────────────────────────
+async function loadPrecheckinStatus(reserva) {
+  try {
+    const datos = await apiFetch(`/admin/reservas/${reserva.id}/precheckin`);
+    $('rv-precheckin-status').innerHTML = datos
+      ? `<span class="badge badge-active">Completado</span> <span class="form-note">Doc: ${datos.doc_tipo.toUpperCase()} ${datos.doc_numero}${datos.telefono ? ' · ' + datos.telefono : ''}</span>`
+      : '<span class="badge badge-inactive">Pendiente</span>';
+    $('rv-precheckin-copy').dataset.reservaId = reserva.id;
+  } catch {
+    $('rv-precheckin-status').innerHTML = '<span class="form-note">No se pudo cargar el estado.</span>';
+  }
 }
 
 async function submitReservaModal(existingId) {
@@ -1993,6 +2012,84 @@ function renderReservasLista() {
       <td>${r.notes || ''}</td>
     </tr>`;
   }).join('');
+}
+
+// ── GRID DE TARIFAS (planilla habitación/categoría × fecha) ──────────────────
+let gtDesde = new Date().toISOString().slice(0, 10);
+let gtData = null;
+
+function gtFormatRango() {
+  const desde = new Date(gtDesde + 'T00:00:00');
+  const hasta = new Date(desde.getTime() + 6 * 86400000);
+  const fmt = d => d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' });
+  $('gt-rango').textContent = `${fmt(desde)} → ${fmt(hasta)}`;
+}
+
+async function loadGrid() {
+  if (!HOTEL_ID) return;
+  const ambito = $('gt-ambito').value;
+  const hasta = new Date(new Date(gtDesde).getTime() + 7 * 86400000).toISOString().slice(0, 10);
+  gtFormatRango();
+  try {
+    gtData = await apiFetch(`/admin/tarifas/grid?hotel=${encodeURIComponent(HOTEL_ID)}&ambito=${ambito}&from=${gtDesde}&to=${hasta}`);
+    renderGridTarifas();
+  } catch (err) {
+    $('gt-table').innerHTML = `<tr><td>Error: ${err.message}</td></tr>`;
+  }
+}
+
+function gtNombrePara(ambito, id) {
+  if (ambito === 'room') return rooms.find(r => r.id === id)?.name || id;
+  return categoriasCache.find(c => c.id === id)?.nombre || id;
+}
+
+function renderGridTarifas() {
+  if (!gtData) return;
+  const { ambito, ambitoIds, dias, precios } = gtData;
+  if (!ambitoIds.length) {
+    $('gt-table').innerHTML = `<tr><td>${ambito === 'categoria' ? 'Crea categorías primero.' : 'Sin habitaciones.'}</td></tr>`;
+    return;
+  }
+  const thead = `<thead><tr><th>${ambito === 'room' ? 'Habitación' : 'Categoría'}</th>${dias.map(f => `<th>${f.slice(5)}</th>`).join('')}</tr></thead>`;
+  const tbody = `<tbody>${ambitoIds.map(id => `
+    <tr>
+      <td class="gt-rowname">${gtNombrePara(ambito, id)}</td>
+      ${dias.map(fecha => {
+        const cell = precios[id][fecha];
+        const valor = cell.precioUF !== null ? cell.precioUF : '—';
+        return `<td class="gt-cell ${cell.esOverride ? 'override' : ''}" data-ambito-id="${id}" data-fecha="${fecha}">${valor}</td>`;
+      }).join('')}
+    </tr>`).join('')}</tbody>`;
+  $('gt-table').innerHTML = thead + tbody;
+}
+
+async function gtEditarCelda(td) {
+  const ambitoId = td.dataset.ambitoId;
+  const fecha    = td.dataset.fecha;
+  const actual   = gtData.precios[ambitoId][fecha].precioUF;
+  td.innerHTML = `<input type="number" step="0.01" min="0.01" value="${actual ?? ''}">`;
+  const input = td.querySelector('input');
+  input.focus();
+  input.select();
+
+  const guardar = async () => {
+    const nuevo = parseFloat(input.value);
+    if (!nuevo || nuevo <= 0) { renderGridTarifas(); return; }
+    try {
+      await apiFetch('/admin/tarifas/grid/celda', {
+        method: 'PUT',
+        body: JSON.stringify({ hotelId: HOTEL_ID, ambito: gtData.ambito, ambitoId, fecha, precioUF: nuevo }),
+      });
+      gtData.precios[ambitoId][fecha] = { precioUF: nuevo, esOverride: true };
+      renderGridTarifas();
+      showToast('Precio actualizado', 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+      renderGridTarifas();
+    }
+  };
+  input.addEventListener('blur', guardar, { once: true });
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
 }
 
 // ── HOUSEKEEPING (estado de limpieza por habitación) ─────────────────────────
@@ -2415,6 +2512,7 @@ async function loadBookingConfig() {
     $('bk-color2').value   = cfg.color_secundario || '#102943';
     $('bk-logo').value     = cfg.logo_url || '';
     $('bk-policy').value   = cfg.politica_cancel || '';
+    $('bk-link-resenas').value = cfg.link_resenas || '';
   } catch (err) {
     showToast('Error cargando configuración: ' + err.message, 'error');
   }
@@ -2441,6 +2539,7 @@ async function saveBookingConfig() {
         color_secundario: $('bk-color2').value,
         logo_url:         $('bk-logo').value.trim() || null,
         politica_cancel:  $('bk-policy').value.trim() || null,
+        link_resenas:     $('bk-link-resenas').value.trim() || null,
       }),
     });
     showToast('Configuración guardada', 'success');
@@ -2568,10 +2667,13 @@ function renderTarifas(lista) {
       : t.categoria_id
         ? `Categoría: ${categoriasCache.find(c => c.id === t.categoria_id)?.nombre || t.categoria_id}`
         : 'Todo el hotel';
+    const diasTxt = t.dias_semana
+      ? ` · solo ${t.dias_semana.split(',').map(d => DIAS_SEMANA_LABELS[+d]).join('/')}`
+      : '';
     return `
     <div class="mapping-row" style="margin-bottom:6px">
       <span class="mapping-room">${t.nombre}</span>
-      <span class="mapping-ota">${ambito} · ${t.precio_uf} UF/noche · ${t.desde} → ${t.hasta} · min ${t.min_noches} noche${t.min_noches !== 1 ? 's' : ''}</span>
+      <span class="mapping-ota">${ambito} · ${t.precio_uf} UF/noche · ${t.desde} → ${t.hasta} · min ${t.min_noches} noche${t.min_noches !== 1 ? 's' : ''}${diasTxt}</span>
       <span class="badge ${t.activa ? 'badge-active' : 'badge-inactive'}" style="margin-right:6px">${t.activa ? 'Activa' : 'Inactiva'}</span>
       <button class="mapping-del" onclick="deleteTarifa('${t.id}')" title="Eliminar">✕</button>
     </div>`;
@@ -2588,6 +2690,15 @@ window.deleteTarifa = async function(id) {
   }
 };
 
+// ── SELECTOR DE DÍAS DE SEMANA (compartido entre modal-tarifa y modal-tarifa-avanzada) ──
+const DIAS_SEMANA_LABELS = ['D', 'L', 'M', 'M', 'J', 'V', 'S']; // índice = getUTCDay(), 0=domingo
+function renderDiasSemanaSelector(containerId) {
+  $(containerId).innerHTML = DIAS_SEMANA_LABELS.map((lbl, i) => `<div class="dia-toggle" data-dia="${i}">${lbl}</div>`).join('');
+}
+function getDiasSemanaSeleccionados(containerId) {
+  return [...$(containerId).querySelectorAll('.dia-toggle.active')].map(el => parseInt(el.dataset.dia, 10));
+}
+
 function updateTarifaAmbitoFields() {
   const ambito = $('tf-ambito').value;
   $('tf-categoria-field').classList.toggle('hidden', ambito !== 'categoria');
@@ -2603,6 +2714,7 @@ async function openAddTarifaModal() {
   $('tf-min').value    = 1;
   $('tf-ambito').value = 'general';
   updateTarifaAmbitoFields();
+  renderDiasSemanaSelector('tf-dias-semana');
 
   $('tf-categoria').innerHTML = categoriasCache.length
     ? categoriasCache.map(c => `<option value="${c.id}">${c.nombre} (${c.camas} cama${c.camas !== 1 ? 's' : ''})</option>`).join('')
@@ -2632,10 +2744,12 @@ async function submitTarifa() {
   if (!desde || !hasta || desde >= hasta) { $('tf-error').textContent = 'Rango de fechas inválido.'; return; }
   if (ambito === 'categoria' && !categoriaId) { $('tf-error').textContent = 'Crea al menos una categoría primero (sección Categorías).'; return; }
 
+  const diasSemana = getDiasSemanaSeleccionados('tf-dias-semana');
+
   try {
     await apiFetch('/admin/tarifas', {
       method: 'POST',
-      body: JSON.stringify({ hotelId: HOTEL_ID, roomId, categoriaId, nombre, precioUF, desde, hasta, minNoches }),
+      body: JSON.stringify({ hotelId: HOTEL_ID, roomId, categoriaId, nombre, precioUF, desde, hasta, minNoches, diasSemana: diasSemana.length ? diasSemana : null }),
     });
     closeModal('modal-tarifa');
     showToast('Tarifa agregada', 'success');
@@ -2669,6 +2783,7 @@ async function openTarifaAvanzadaModal() {
   $('tfa-modo-ui').value      = 'masivo';
   $('tfa-derivada-valor').value = '';
   updateTfaModoUI();
+  renderDiasSemanaSelector('tfa-dias-semana');
 
   const catOptions = categoriasCache.length
     ? categoriasCache.map(c => `<option value="${c.id}">${c.nombre} (${c.camas} cama${c.camas !== 1 ? 's' : ''})</option>`).join('')
@@ -2703,6 +2818,8 @@ async function submitTarifaAvanzada() {
 
   if (!nombre) { $('tfa-error').textContent = 'Ingresa un nombre para la tarifa.'; return; }
   if (!desde || !hasta || desde >= hasta) { $('tfa-error').textContent = 'Rango de fechas inválido.'; return; }
+  const diasSemanaSel = getDiasSemanaSeleccionados('tfa-dias-semana');
+  const diasSemana = diasSemanaSel.length ? diasSemanaSel : null;
 
   if (modo === 'masivo') {
     const categoriaIds = [...$('tfa-categorias').selectedOptions].map(o => o.value);
@@ -2715,7 +2832,7 @@ async function submitTarifaAvanzada() {
     try {
       await apiFetch('/admin/tarifas/masivo', {
         method: 'POST',
-        body: JSON.stringify({ hotelId: HOTEL_ID, targets, nombre, precioUF, desde, hasta, minNoches }),
+        body: JSON.stringify({ hotelId: HOTEL_ID, targets, nombre, precioUF, desde, hasta, minNoches, diasSemana }),
       });
       closeModal('modal-tarifa-avanzada');
       showToast(`${targets.length} tarifa(s) creadas`, 'success');
@@ -2741,7 +2858,7 @@ async function submitTarifaAvanzada() {
   try {
     await apiFetch('/admin/tarifas/derivada', {
       method: 'POST',
-      body: JSON.stringify({ hotelId: HOTEL_ID, target, baseTarifaId, modo: derivadaModo, valor, nombre, desde, hasta, minNoches }),
+      body: JSON.stringify({ hotelId: HOTEL_ID, target, baseTarifaId, modo: derivadaModo, valor, nombre, desde, hasta, minNoches, diasSemana }),
     });
     closeModal('modal-tarifa-avanzada');
     showToast('Tarifa derivada creada', 'success');
@@ -3154,6 +3271,21 @@ document.addEventListener('DOMContentLoaded', () => {
   $('tfa-modo-ui').addEventListener('change', updateTfaModoUI);
   $('tfa-derivada-ambito').addEventListener('change', updateTfaDerivadaAmbitoFields);
 
+  $('gt-ambito').addEventListener('change', loadGrid);
+  $('gt-prev').addEventListener('click', () => { gtDesde = new Date(new Date(gtDesde).getTime() - 7 * 86400000).toISOString().slice(0, 10); loadGrid(); });
+  $('gt-next').addEventListener('click', () => { gtDesde = new Date(new Date(gtDesde).getTime() + 7 * 86400000).toISOString().slice(0, 10); loadGrid(); });
+  $('gt-table').addEventListener('click', e => {
+    const td = e.target.closest('.gt-cell');
+    if (td && !td.querySelector('input')) gtEditarCelda(td);
+  });
+
+  ['tf-dias-semana', 'tfa-dias-semana'].forEach(id => {
+    $(id).addEventListener('click', e => {
+      const el = e.target.closest('.dia-toggle');
+      if (el) el.classList.toggle('active');
+    });
+  });
+
   $('bk-add-regla').addEventListener('click', openAddReglaModal);
   $('rg-cancel').addEventListener('click', () => closeModal('modal-regla'));
   $('rg-save').addEventListener('click', submitRegla);
@@ -3162,6 +3294,12 @@ document.addEventListener('DOMContentLoaded', () => {
   $('btn-add-servicio').addEventListener('click', openAddServicioModal);
   $('sv-cancel').addEventListener('click', () => closeModal('modal-servicio'));
   $('sv-save').addEventListener('click', submitServicio);
+
+  $('rv-precheckin-copy').addEventListener('click', () => {
+    const id = $('rv-precheckin-copy').dataset.reservaId;
+    const url = `${window.location.origin}/precheckin/${id}`;
+    navigator.clipboard.writeText(url).then(() => showToast('Link copiado', 'success'));
+  });
 
   $('inf-filtrar').addEventListener('click', loadInformes);
   $('hu-buscar').addEventListener('click', buscarHuespedes);

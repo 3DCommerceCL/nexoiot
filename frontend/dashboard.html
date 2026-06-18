@@ -113,6 +113,17 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .rl-empty{padding:20px;text-align:center;color:var(--text2);font-size:12px}
 .rl-count{font-size:11px;color:var(--text2);margin-bottom:10px}
 
+/* ── GRID DE TARIFAS ── */
+.gt-cell{min-width:64px;text-align:center;cursor:pointer}
+.gt-cell.override{background:var(--teal-l);font-weight:700;color:var(--teal)}
+.gt-cell input{width:60px;text-align:center;padding:4px;border-radius:5px;border:1px solid var(--teal);font-size:12px;font-family:var(--font)}
+.gt-rowname{white-space:nowrap;font-weight:600}
+
+/* ── DÍAS DE SEMANA (selector compacto en modales de tarifa) ── */
+.dias-semana-row{display:flex;gap:4px}
+.dia-toggle{flex:1;text-align:center;padding:6px 0;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;user-select:none}
+.dia-toggle.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+
 /* ── HOUSEKEEPING ── */
 .hk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
 .hk-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px}
@@ -497,6 +508,10 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">🛎️</span>
       <span class="nav-label">Servicios</span>
     </div>
+    <div class="nav-item" data-view="grid-tarifas" data-role="owner">
+      <span class="nav-icon">🧮</span>
+      <span class="nav-label">Grid de tarifas</span>
+    </div>
     <div class="nav-item" data-view="informes" data-role="owner">
       <span class="nav-icon">📊</span>
       <span class="nav-label">Informes</span>
@@ -657,6 +672,23 @@ select.form-input option{background:var(--card);color:var(--text)}
       <div id="servicios-list"></div>
     </div>
 
+    <!-- VIEW: GRID DE TARIFAS (planilla habitación/categoría × fecha, editable inline) -->
+    <div class="view" id="view-grid-tarifas">
+      <div class="rl-filters">
+        <select id="gt-ambito">
+          <option value="categoria">Por categoría</option>
+          <option value="room">Por habitación</option>
+        </select>
+        <button class="btn btn-outline btn-sm" id="gt-prev">← Semana</button>
+        <span class="form-note" id="gt-rango" style="margin:0 4px"></span>
+        <button class="btn btn-outline btn-sm" id="gt-next">Semana →</button>
+      </div>
+      <div class="form-note" style="margin-bottom:10px">Click en una celda para editar el precio de esa fecha puntual. Las celdas resaltadas tienen un precio especial distinto de la tarifa de rango.</div>
+      <div style="overflow-x:auto">
+        <table class="rl-table" id="gt-table"></table>
+      </div>
+    </div>
+
     <!-- VIEW: INFORMES DE RENDIMIENTO (owner) -->
     <div class="view" id="view-informes">
       <div class="rl-filters">
@@ -723,6 +755,10 @@ select.form-input option{background:var(--card);color:var(--text)}
           <div class="form-group full">
             <label class="form-label">Política de cancelación</label>
             <input class="form-input" id="bk-policy" placeholder="Cancelación gratuita hasta 24 horas antes…">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Link de reseñas (Google/TripAdvisor) — habilita la encuesta automática post-estadía</label>
+            <input class="form-input" id="bk-link-resenas" placeholder="https://g.page/r/.../review">
           </div>
         </div>
         <div class="form-error" id="bk-save-err"></div>
@@ -875,6 +911,12 @@ select.form-input option{background:var(--card);color:var(--text)}
         <button class="btn btn-danger-outline" id="rv-cancel-stay" style="padding:11px 14px">Cancelar reserva</button>
       </div>
 
+      <div class="modal-section hidden" id="rv-precheckin-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <div class="modal-section-title">Check-in previo</div>
+        <div id="rv-precheckin-status"></div>
+        <button class="btn btn-outline btn-sm" id="rv-precheckin-copy" style="margin-top:8px">Copiar link de check-in previo</button>
+      </div>
+
       <div class="modal-section hidden" id="rv-cobros-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
         <div class="modal-section-title">Cobros</div>
         <div id="rv-resumen-pago" class="resumen-pago"></div>
@@ -1025,6 +1067,10 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="modal-label">Mínimo de noches</span>
       <input class="form-input" id="tf-min" type="number" min="1" value="1">
     </div>
+    <div class="modal-field">
+      <span class="modal-label">Días en que aplica (ninguno marcado = todos los días)</span>
+      <div class="dias-semana-row" id="tf-dias-semana"></div>
+    </div>
     <div class="modal-error" id="tf-error"></div>
     <div class="modal-actions">
       <button class="btn btn-outline" id="tf-cancel">Cancelar</button>
@@ -1115,6 +1161,10 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="modal-field">
       <span class="modal-label">Mínimo de noches</span>
       <input class="form-input" id="tfa-min" type="number" min="1" value="1">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Días en que aplica (ninguno marcado = todos los días)</span>
+      <div class="dias-semana-row" id="tfa-dias-semana"></div>
     </div>
     <div class="modal-error" id="tfa-error"></div>
     <div class="modal-actions">
