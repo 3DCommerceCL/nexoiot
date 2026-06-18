@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Check-in previo</title>
+<link rel="stylesheet" href="/theme.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+.pc-header{padding:22px 24px 18px;background:var(--header-grad)}
+.pc-header-inner{max-width:480px;margin:0 auto}
+.pc-hotel-name{font-size:18px;font-weight:700;color:#fff;line-height:1.2}
+.pc-tagline{font-size:12px;color:rgba(255,255,255,.7);margin-top:3px}
+.pc-wrap{max-width:480px;margin:0 auto;padding:20px 16px 40px}
+.pc-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:var(--shadow)}
+.pc-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:10px}
+.pc-sub{font-size:13px;color:var(--text2);margin-bottom:16px}
+.pc-field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.pc-label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px}
+.pc-input,.pc-select{padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;font-family:var(--font);width:100%;outline:none}
+.pc-tyc-box{background:var(--bg);border-radius:8px;padding:12px;font-size:12px;color:var(--text2);line-height:1.6;max-height:140px;overflow-y:auto;margin-bottom:10px}
+.pc-checkbox-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:14px}
+.pc-checkbox-row input{margin-top:3px}
+.pc-checkbox-row label{font-size:13px;color:var(--text)}
+.pc-sig-wrap{border:1.5px dashed var(--border);border-radius:8px;margin-bottom:8px;touch-action:none}
+.pc-sig-wrap canvas{width:100%;height:140px;display:block;cursor:crosshair}
+.pc-sig-actions{display:flex;justify-content:flex-end;margin-bottom:14px}
+.pc-link{font-size:12px;color:var(--teal);cursor:pointer;background:none;border:none;font-family:var(--font)}
+.pc-btn{display:block;width:100%;padding:13px;border-radius:9px;border:none;background:var(--teal);color:#fff;font-size:15px;font-weight:700;font-family:var(--font);cursor:pointer}
+.pc-btn:disabled{opacity:.45;cursor:not-allowed}
+.pc-err{font-size:13px;color:var(--alert);margin-top:6px;min-height:18px}
+.pc-success{text-align:center;padding:20px 10px}
+.pc-success-icon{font-size:44px;margin-bottom:10px}
+.pc-loading{text-align:center;padding:30px;color:var(--text2)}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="pc-header">
+  <div class="pc-header-inner">
+    <div class="pc-hotel-name" id="pc-hotel">Cargando…</div>
+    <div class="pc-tagline">Check-in previo</div>
+  </div>
+</div>
+
+<div class="pc-wrap">
+  <div class="pc-card" id="pc-loading">
+    <div class="pc-loading">Cargando tu reserva…</div>
+  </div>
+
+  <div class="pc-card hidden" id="pc-success">
+    <div class="pc-success">
+      <div class="pc-success-icon">✅</div>
+      <div class="pc-title">Check-in previo completado</div>
+      <div class="pc-sub" id="pc-success-msg">Ya registramos tus datos. Te esperamos.</div>
+    </div>
+  </div>
+
+  <div class="pc-card hidden" id="pc-form-card">
+    <div class="pc-title">Completa tu check-in antes de llegar</div>
+    <div class="pc-sub" id="pc-stay-info"></div>
+
+    <div class="pc-field">
+      <span class="pc-label">Tipo de documento</span>
+      <select class="pc-select" id="pc-doc-tipo">
+        <option value="rut">RUT (chileno)</option>
+        <option value="pasaporte">Pasaporte</option>
+      </select>
+    </div>
+    <div class="pc-field">
+      <span class="pc-label">Número de documento</span>
+      <input class="pc-input" id="pc-doc-numero" placeholder="Ej: 12.345.678-9">
+    </div>
+    <div class="pc-field">
+      <span class="pc-label">Teléfono (opcional)</span>
+      <input class="pc-input" id="pc-telefono" placeholder="+56 9 1234 5678">
+    </div>
+    <div class="pc-field">
+      <span class="pc-label">Otros huéspedes que te acompañan (opcional, uno por línea)</span>
+      <textarea class="pc-input" id="pc-nombres-adicionales" rows="2" placeholder="Nombre completo"></textarea>
+    </div>
+
+    <div class="pc-tyc-box">
+      Al completar este check-in previo, aceptas las políticas de uso de la habitación, el reglamento
+      interno del hotel y autorizas el tratamiento de tus datos personales con fines de registro de
+      huéspedes, conforme a la legislación chilena vigente.
+    </div>
+    <div class="pc-checkbox-row">
+      <input type="checkbox" id="pc-acepta-tyc">
+      <label for="pc-acepta-tyc">He leído y acepto los términos y condiciones</label>
+    </div>
+
+    <div class="pc-field">
+      <span class="pc-label">Firma</span>
+    </div>
+    <div class="pc-sig-wrap">
+      <canvas id="pc-sig-canvas"></canvas>
+    </div>
+    <div class="pc-sig-actions">
+      <button class="pc-link" id="pc-sig-clear">Borrar firma</button>
+    </div>
+
+    <button class="pc-btn" id="pc-submit">Confirmar check-in previo</button>
+    <div class="pc-err" id="pc-error"></div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const reservaId = window.location.pathname.match(/\/precheckin\/([A-Za-z0-9_-]+)/)[1];
+
+let drawing = false, hasSignature = false;
+function setupCanvas() {
+  const canvas = document.getElementById('pc-sig-canvas');
+  const ctx = canvas.getContext('2d');
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = canvas.clientWidth * ratio;
+  canvas.height = canvas.clientHeight * ratio;
+  ctx.scale(ratio, ratio);
+  ctx.strokeStyle = '#102943';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+
+  const pos = e => {
+    const rect = canvas.getBoundingClientRect();
+    const t = e.touches ? e.touches[0] : e;
+    return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+  };
+  const start = e => { drawing = true; hasSignature = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
+  const move  = e => { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
+  const end   = () => { drawing = false; };
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start);
+  canvas.addEventListener('touchmove', move);
+  canvas.addEventListener('touchend', end);
+
+  document.getElementById('pc-sig-clear').addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasSignature = false;
+  });
+}
+
+async function init() {
+  try {
+    const res = await fetch(`${API}/public/reservas/${reservaId}/precheckin`);
+    if (!res.ok) throw new Error('No encontramos tu reserva.');
+    const data = await res.json();
+    document.getElementById('pc-hotel').textContent = data.hotelNombre;
+    document.getElementById('pc-loading').classList.add('hidden');
+
+    if (data.completado) {
+      document.getElementById('pc-success').classList.remove('hidden');
+      return;
+    }
+
+    document.getElementById('pc-stay-info').textContent =
+      `${data.guestName} · ${data.checkin} → ${data.checkout}`;
+    document.getElementById('pc-form-card').classList.remove('hidden');
+    setupCanvas();
+  } catch (err) {
+    document.getElementById('pc-loading').innerHTML = `<div class="pc-err">${err.message}</div>`;
+  }
+}
+
+document.getElementById('pc-submit').addEventListener('click', async () => {
+  const error = document.getElementById('pc-error');
+  error.textContent = '';
+  const docTipo = document.getElementById('pc-doc-tipo').value;
+  const docNumero = document.getElementById('pc-doc-numero').value.trim();
+  const telefono = document.getElementById('pc-telefono').value.trim();
+  const nombresAdicionales = document.getElementById('pc-nombres-adicionales').value
+    .split('\n').map(s => s.trim()).filter(Boolean);
+  const aceptaTyc = document.getElementById('pc-acepta-tyc').checked;
+
+  if (!docNumero) { error.textContent = 'Ingresa tu número de documento.'; return; }
+  if (!aceptaTyc) { error.textContent = 'Debes aceptar los términos y condiciones.'; return; }
+  if (!hasSignature) { error.textContent = 'Falta tu firma.'; return; }
+
+  const canvas = document.getElementById('pc-sig-canvas');
+  const firmaBase64 = canvas.toDataURL('image/png');
+
+  const btn = document.getElementById('pc-submit');
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API}/public/reservas/${reservaId}/precheckin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ docTipo, docNumero, telefono, nombresAdicionales, aceptaTyc, firmaBase64 }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'No se pudo completar el check-in previo.');
+    }
+    document.getElementById('pc-form-card').classList.add('hidden');
+    document.getElementById('pc-success').classList.remove('hidden');
+  } catch (err) {
+    error.textContent = err.message;
+    btn.disabled = false;
+  }
+});
+
+init();
+</script>
+</body>
+</html>

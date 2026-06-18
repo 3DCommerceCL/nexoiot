@@ -14,9 +14,10 @@ const DEFAULTS = {
   idiomas:          '["es"]',
   rooms_visibles:   null,
   activo:           1,
+  link_resenas:     null,
 };
 
-const ALLOWED = ['titulo', 'color_primario', 'color_secundario', 'logo_url', 'politica_cancel', 'idiomas', 'rooms_visibles', 'activo'];
+const ALLOWED = ['titulo', 'color_primario', 'color_secundario', 'logo_url', 'politica_cancel', 'idiomas', 'rooms_visibles', 'activo', 'link_resenas'];
 
 function getConfig(hotelId) {
   const row = db.prepare('SELECT * FROM booking_config WHERE hotel_id = ?').get(hotelId);
@@ -31,6 +32,7 @@ function getConfig(hotelId) {
     idiomas: ['es'],
     rooms_visibles: null,
     activo: true,
+    link_resenas: null,
   };
 }
 
@@ -51,10 +53,10 @@ function upsertConfig(hotelId, fields) {
     }
     db.prepare(`
       INSERT INTO booking_config
-        (hotel_id, titulo, color_primario, color_secundario, logo_url, politica_cancel, idiomas, rooms_visibles, activo, created_at, updated_at)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?)
+        (hotel_id, titulo, color_primario, color_secundario, logo_url, politica_cancel, idiomas, rooms_visibles, activo, link_resenas, created_at, updated_at)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
     `).run(hotelId, merged.titulo, merged.color_primario, merged.color_secundario,
-      merged.logo_url, merged.politica_cancel, merged.idiomas, merged.rooms_visibles, merged.activo, ts, ts);
+      merged.logo_url, merged.politica_cancel, merged.idiomas, merged.rooms_visibles, merged.activo, merged.link_resenas, ts, ts);
   } else {
     const sets = [], vals = [];
     for (const [k, v] of Object.entries(fields)) {
