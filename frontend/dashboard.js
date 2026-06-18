@@ -837,6 +837,7 @@ function navigate(view) {
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === `view-${view}`));
   $('page-title').textContent = viewTitle(view);
   $('content').classList.toggle('cal-active', view === 'calendar');
+  if (view === 'overview') renderRooms('overview');
   if (view === 'rooms') renderRooms('rooms', state.filter);
   if (view === 'calendar') initCalendar();
   if (view === 'channels') loadCanales();
