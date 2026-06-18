@@ -69,6 +69,7 @@ const app = {
   _placeholder: {}, // estado local de funciones del plan (no conectadas a dispositivos reales)
   _manual: {},   // { key: bool } — modo manual (control físico) para luces/enchufes
   _unlocked: {}, // { key: bool } — motor de cortina desbloqueado para mover a mano
+  _curtainAnim: {}, // { key: intervalId } — animación en curso de la barra de posición
 };
 
 // ── IDIOMAS (i18n) ────────────────────────────────────────────────────────────
@@ -657,6 +658,61 @@ async function apiCommand(device, command) {
     throw new Error(body.error || `HTTP_${res.status}`);
   }
   return res.json();
+}
+
+// ── ANIMACIÓN DE LA BARRA DE CORTINA ──────────────────────────────────────────
+// Las cortinas motorizadas tardan en moverse de verdad; antes la barra saltaba
+// de inmediato al extremo. Esto la mueve gradualmente hasta el destino, y si se
+// presiona Parar antes de llegar, queda congelada donde iba en ese momento.
+const CURTAIN_TRAVEL_MS = 15000; // tiempo estimado para recorrer 0% → 100%
+
+function stopCurtainAnim(key) {
+  if (app._curtainAnim[key]) {
+    clearInterval(app._curtainAnim[key]);
+    delete app._curtainAnim[key];
+  }
+}
+
+function animateCurtainTo(key, target) {
+  stopCurtainAnim(key);
+  const from = app.devices[key]?.position ?? 0;
+  if (from === target) return;
+  const duration = (Math.abs(target - from) / 100) * CURTAIN_TRAVEL_MS;
+  const start = Date.now();
+
+  app._curtainAnim[key] = setInterval(() => {
+    const progress = Math.min(1, (Date.now() - start) / duration);
+    const pos = Math.round(from + (target - from) * progress);
+    app.devices[key].position = pos;
+
+    const slider = document.querySelector(`input[data-action="curtain-pos"][data-key="${key}"]`);
+    if (slider) slider.value = pos;
+    const valEl = document.getElementById(`curtain-val-${key}`);
+    if (valEl) valEl.textContent = pos + '%';
+
+    if (progress >= 1) {
+      stopCurtainAnim(key);
+      updateCard(key); // refresca el texto de estado (Abierta/Cerrada) al llegar
+    }
+  }, 100);
+}
+
+async function curtainControl(key, ctrl) {
+  const before = app.devices[key]?.position ?? 0;
+  if (ctrl === 'stop') {
+    stopCurtainAnim(key); // congela la posición donde iba la animación
+  } else {
+    animateCurtainTo(key, ctrl === 'open' ? 100 : 0);
+  }
+  try {
+    await apiCommand(key, { control: ctrl });
+  } catch (err) {
+    stopCurtainAnim(key);
+    app.devices[key].position = before;
+    updateCard(key);
+    showToast(t('toastCmdFail'), 'error');
+    console.error('[CMD]', key, { control: ctrl }, err.message);
+  }
 }
 
 // ── COMANDO CON OPTIMISTIC UI ─────────────────────────────────────────────────
@@ -1949,14 +2005,10 @@ function handleGridClick(e) {
     return;
   }
 
-  // Botones de cortina (open/stop/close)
+  // Botones de cortina (open/stop/close) — la barra se anima gradualmente, ver curtainControl()
   const cBtn = e.target.closest('[data-curtain]');
   if (cBtn) {
-    const key = cBtn.dataset.key;
-    const ctrl = cBtn.dataset.curtain;
-    const optimistic = ctrl === 'open' ? { position: 100 } : ctrl === 'close' ? { position: 0 } : {};
-    Object.assign(app.devices[key], optimistic);
-    doCmd(key, { control: ctrl });
+    curtainControl(cBtn.dataset.key, cBtn.dataset.curtain);
     return;
   }
 
@@ -2023,6 +2075,7 @@ function handleGridInput(e) {
   const curtainSlider = e.target.closest('input[data-action="curtain-pos"]');
   if (curtainSlider) {
     const key = curtainSlider.dataset.key;
+    stopCurtainAnim(key); // el huésped toma control manual — cancela cualquier animación en curso
     const pos = parseInt(curtainSlider.value);
     const valEl = document.getElementById(`curtain-val-${key}`);
     if (valEl) valEl.textContent = pos + '%';
