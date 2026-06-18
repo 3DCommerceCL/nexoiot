@@ -34296,36 +34296,7 @@
     "floor": 1,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_102_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_102_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_102_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_102_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_102_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-103": {
     "name": "Habitación 103",
@@ -34334,123 +34305,25 @@
     "floor": 1,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_103_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_103_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_103_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_103_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_103_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-104": {
     "name": "Habitación 104",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 1,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_104_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_104_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_104_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_104_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_104_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-105": {
     "name": "Habitación 105",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 1,
-    "plan": "premium",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_105_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_105_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_105_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_105_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_105_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_105_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_105_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-106": {
     "name": "Habitación 106",
@@ -34459,194 +34332,34 @@
     "floor": 1,
     "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_106_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_106_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_106_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_106_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_106_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_106_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_106_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-107": {
     "name": "Habitación 107",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 1,
-    "plan": "premium",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_107_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_107_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_107_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_107_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_107_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_107_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_107_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-108": {
     "name": "Habitación 108",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 1,
-    "plan": "max_comfort",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_108_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_108_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_108_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_108_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_108_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_108_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_108_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-109": {
     "name": "Habitación 109",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 1,
-    "plan": "max_comfort",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_109_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_109_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_109_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_109_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_109_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_109_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_109_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-110": {
     "name": "Habitación 110",
@@ -34655,112 +34368,25 @@
     "floor": 1,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_110_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_110_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_110_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_110_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_110_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-201": {
     "name": "Habitación 201",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 2,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_201_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_201_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_201_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_201_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_201_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-202": {
     "name": "Habitación 202",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 2,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_202_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_202_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_202_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_202_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_202_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-203": {
     "name": "Habitación 203",
@@ -34769,36 +34395,7 @@
     "floor": 2,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_203_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_203_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_203_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_203_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_203_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-204": {
     "name": "Habitación 204",
@@ -34807,36 +34404,7 @@
     "floor": 2,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_204_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_204_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_204_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_204_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_204_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-205": {
     "name": "Habitación 205",
@@ -34845,531 +34413,106 @@
     "floor": 2,
     "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_205_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_205_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_205_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_205_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_205_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_205_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_205_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-206": {
     "name": "Habitación 206",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 2,
-    "plan": "premium",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_206_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_206_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_206_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_206_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_206_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_206_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_206_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-207": {
     "name": "Habitación 207",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 2,
-    "plan": "premium",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_207_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_207_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_207_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_207_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_207_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_207_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_207_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-208": {
     "name": "Habitación 208",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 2,
-    "plan": "max_comfort",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_208_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_208_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_208_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_208_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_208_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_208_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_208_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-209": {
     "name": "Habitación 209",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 2,
-    "plan": "max_comfort",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_209_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_209_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_209_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_209_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_209_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_209_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_209_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-210": {
     "name": "Habitación 210",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 2,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_210_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_210_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_210_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_210_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_210_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-301": {
     "name": "Habitación 301",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 3,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_301_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_301_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_301_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_301_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_301_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-302": {
     "name": "Habitación 302",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 3,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_302_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_302_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_302_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_302_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_302_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-303": {
     "name": "Habitación 303",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 3,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_303_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_303_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_303_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_303_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_303_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-304": {
     "name": "Habitación 304",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 3,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_304_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_304_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_304_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_304_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_304_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-305": {
     "name": "Habitación 305",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 3,
-    "plan": "premium",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_305_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_305_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_305_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_305_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_305_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_305_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_305_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-306": {
     "name": "Habitación 306",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 3,
-    "plan": "premium",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_306_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_306_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_306_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_306_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_306_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_306_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_306_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-307": {
     "name": "Habitación 307",
@@ -35378,47 +34521,7 @@
     "floor": 3,
     "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_307_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_307_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_307_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_307_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_307_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_307_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_307_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-308": {
     "name": "Habitación 308",
@@ -35427,47 +34530,7 @@
     "floor": 3,
     "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_308_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_308_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_308_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_308_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_308_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_308_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_308_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-309": {
     "name": "Habitación 309",
@@ -35476,47 +34539,7 @@
     "floor": 3,
     "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_309_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_309_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_309_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_309_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_309_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_309_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_309_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-310": {
     "name": "Habitación 310",
@@ -35525,36 +34548,7 @@
     "floor": 3,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_310_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_310_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_310_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_310_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_310_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-401": {
     "name": "Habitación 401",
@@ -35563,199 +34557,43 @@
     "floor": 4,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_401_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_401_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_401_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_401_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_401_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-402": {
     "name": "Habitación 402",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 4,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_402_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_402_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_402_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_402_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_402_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-403": {
     "name": "Habitación 403",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 4,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_403_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_403_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_403_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_403_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_403_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-404": {
     "name": "Habitación 404",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 4,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_404_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_404_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_404_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_404_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_404_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-norte-405": {
     "name": "Habitación 405",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 4,
-    "plan": "premium",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_405_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_405_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_405_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_405_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_405_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_405_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_405_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-406": {
     "name": "Habitación 406",
@@ -35764,308 +34602,61 @@
     "floor": 4,
     "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_406_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_406_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_406_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_406_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_406_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_406_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_406_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-407": {
     "name": "Habitación 407",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 4,
-    "plan": "premium",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_407_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_407_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_407_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_407_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_407_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_407_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_407_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-408": {
     "name": "Habitación 408",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 4,
-    "plan": "max_comfort",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_408_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_408_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_408_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_408_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_408_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_408_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_408_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-409": {
     "name": "Habitación 409",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 4,
-    "plan": "max_comfort",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_409_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_409_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_409_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_409_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_409_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-norte_409_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-norte_409_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-norte-410": {
     "name": "Habitación 410",
     "hotel": "Hotel Demo Norte",
     "hotelId": "demo-norte",
     "floor": 4,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-norte_410_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-norte_410_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-norte_410_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-norte_410_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-norte_410_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-101": {
     "name": "Habitación 101",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 1,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_101_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_101_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_101_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_101_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_101_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-102": {
     "name": "Habitación 102",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 1,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_102_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_102_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_102_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_102_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_102_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-103": {
     "name": "Habitación 103",
@@ -36074,36 +34665,7 @@
     "floor": 1,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_103_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_103_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_103_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_103_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_103_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-104": {
     "name": "Habitación 104",
@@ -36112,36 +34674,7 @@
     "floor": 1,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_104_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_104_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_104_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_104_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_104_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-105": {
     "name": "Habitación 105",
@@ -36150,96 +34683,16 @@
     "floor": 1,
     "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_105_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_105_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_105_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_105_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_105_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_105_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_105_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-106": {
     "name": "Habitación 106",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 1,
-    "plan": "premium",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_106_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_106_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_106_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_106_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_106_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_106_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_106_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-107": {
     "name": "Habitación 107",
@@ -36248,47 +34701,7 @@
     "floor": 1,
     "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_107_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_107_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_107_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_107_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_107_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_107_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_107_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-108": {
     "name": "Habitación 108",
@@ -36297,134 +34710,25 @@
     "floor": 1,
     "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_108_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_108_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_108_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_108_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_108_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_108_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_108_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-109": {
     "name": "Habitación 109",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 1,
-    "plan": "max_comfort",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_109_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_109_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_109_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_109_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_109_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_109_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_109_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-110": {
     "name": "Habitación 110",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 1,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_110_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_110_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_110_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_110_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_110_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-201": {
     "name": "Habitación 201",
@@ -36433,74 +34737,16 @@
     "floor": 2,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_201_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_201_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_201_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_201_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_201_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-202": {
     "name": "Habitación 202",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 2,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_202_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_202_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_202_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_202_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_202_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-203": {
     "name": "Habitación 203",
@@ -36509,36 +34755,7 @@
     "floor": 2,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_203_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_203_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_203_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_203_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_203_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-204": {
     "name": "Habitación 204",
@@ -36547,183 +34764,34 @@
     "floor": 2,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_204_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_204_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_204_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_204_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_204_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-205": {
     "name": "Habitación 205",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 2,
-    "plan": "premium",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_205_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_205_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_205_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_205_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_205_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_205_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_205_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-206": {
     "name": "Habitación 206",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 2,
-    "plan": "premium",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_206_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_206_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_206_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_206_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_206_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_206_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_206_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-207": {
     "name": "Habitación 207",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 2,
-    "plan": "premium",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_207_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_207_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_207_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_207_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_207_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_207_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_207_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-208": {
     "name": "Habitación 208",
@@ -36732,172 +34800,34 @@
     "floor": 2,
     "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_208_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_208_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_208_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_208_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_208_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_208_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_208_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-209": {
     "name": "Habitación 209",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 2,
-    "plan": "max_comfort",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_209_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_209_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_209_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_209_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_209_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_209_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_209_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-210": {
     "name": "Habitación 210",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 2,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_210_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_210_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_210_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_210_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_210_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-301": {
     "name": "Habitación 301",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 3,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_301_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_301_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_301_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_301_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_301_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-302": {
     "name": "Habitación 302",
@@ -36906,36 +34836,7 @@
     "floor": 3,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_302_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_302_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_302_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_302_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_302_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-303": {
     "name": "Habitación 303",
@@ -36944,123 +34845,25 @@
     "floor": 3,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_303_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_303_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_303_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_303_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_303_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-304": {
     "name": "Habitación 304",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 3,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_304_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_304_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_304_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_304_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_304_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-305": {
     "name": "Habitación 305",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 3,
-    "plan": "premium",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_305_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_305_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_305_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_305_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_305_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_305_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_305_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-306": {
     "name": "Habitación 306",
@@ -37069,47 +34872,7 @@
     "floor": 3,
     "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_306_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_306_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_306_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_306_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_306_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_306_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_306_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-307": {
     "name": "Habitación 307",
@@ -37118,47 +34881,7 @@
     "floor": 3,
     "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_307_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_307_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_307_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_307_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_307_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_307_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_307_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-308": {
     "name": "Habitación 308",
@@ -37167,210 +34890,43 @@
     "floor": 3,
     "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_308_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_308_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_308_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_308_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_308_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_308_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_308_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-309": {
     "name": "Habitación 309",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 3,
-    "plan": "max_comfort",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_309_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_309_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_309_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_309_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_309_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_309_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_309_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-310": {
     "name": "Habitación 310",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 3,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_310_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_310_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_310_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_310_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_310_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-401": {
     "name": "Habitación 401",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 4,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_401_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_401_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_401_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_401_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_401_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-402": {
     "name": "Habitación 402",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 4,
-    "plan": "base",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_402_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_402_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_402_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_402_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_402_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-403": {
     "name": "Habitación 403",
@@ -37379,36 +34935,7 @@
     "floor": 4,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_403_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_403_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_403_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_403_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_403_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-404": {
     "name": "Habitación 404",
@@ -37417,183 +34944,34 @@
     "floor": 4,
     "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_404_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_404_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_404_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_404_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_404_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   },
   "demo-sur-405": {
     "name": "Habitación 405",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 4,
-    "plan": "premium",
+    "plan": "base",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_405_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_405_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_405_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_405_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_405_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_405_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_405_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-406": {
     "name": "Habitación 406",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 4,
-    "plan": "premium",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_406_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_406_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_406_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_406_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_406_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_406_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_406_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-407": {
     "name": "Habitación 407",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 4,
-    "plan": "premium",
+    "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_407_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_407_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_407_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_407_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_407_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_407_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_407_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-408": {
     "name": "Habitación 408",
@@ -37602,47 +34980,7 @@
     "floor": 4,
     "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_408_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_408_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_408_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_408_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_408_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_408_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_408_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-409": {
     "name": "Habitación 409",
@@ -37651,84 +34989,15 @@
     "floor": 4,
     "plan": "max_comfort",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_409_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_409_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_409_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_409_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_409_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1",
-          "Entrada 2"
-        ]
-      },
-      "luz_velador2": {
-        "deviceId": "demo_demo-sur_409_luz_velador2",
-        "type": "light_rgb",
-        "label": "Luz Velador 2"
-      },
-      "led_cama": {
-        "deviceId": "demo_demo-sur_409_led_cama",
-        "type": "light_rgb",
-        "label": "LED Bajo Cama"
-      }
-    }
+    "devices": {}
   },
   "demo-sur-410": {
     "name": "Habitación 410",
     "hotel": "Hotel Demo Sur",
     "hotelId": "demo-sur",
     "floor": 4,
-    "plan": "base",
+    "plan": "premium",
     "categoriaId": null,
-    "devices": {
-      "puerta": {
-        "deviceId": "demo_demo-sur_410_puerta",
-        "type": "door_sensor",
-        "label": "Sensor de Puerta"
-      },
-      "luz_techo": {
-        "deviceId": "demo_demo-sur_410_luz_techo",
-        "type": "light_rgb",
-        "label": "Luz Techo"
-      },
-      "luz_velador1": {
-        "deviceId": "demo_demo-sur_410_luz_velador1",
-        "type": "light_rgb",
-        "label": "Luz Velador 1"
-      },
-      "cortina": {
-        "deviceId": "demo_demo-sur_410_cortina",
-        "type": "curtain",
-        "label": "Cortina"
-      },
-      "enchufe": {
-        "deviceId": "demo_demo-sur_410_enchufe",
-        "type": "switch_3ch",
-        "label": "Enchufe USB",
-        "channels": [
-          "Entrada 1"
-        ]
-      }
-    }
+    "devices": {}
   }
 }

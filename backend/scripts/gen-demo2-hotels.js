@@ -32,28 +32,9 @@ const PILOT_DEVICES = {
   enchufe:      { deviceId: 'ebeffe2c971f4f2b88ciac', type: 'switch_3ch',  label: 'Enchufe USB', channels: ['Entrada 1', 'Entrada 2'] },
 };
 
-function planFor(roomNum) {
-  const m = roomNum % 10;
-  if (m < 5) return 'base';
-  if (m < 8) return 'premium';
-  return 'max_comfort';
-}
-
-function devicesFor(plan, prefix) {
-  const id = key => `demo_${prefix}_${key}`;
-  const devices = {
-    puerta: { deviceId: id('puerta'), type: 'door_sensor', label: 'Sensor de Puerta' },
-    luz_techo: { deviceId: id('luz_techo'), type: 'light_rgb', label: 'Luz Techo' },
-    luz_velador1: { deviceId: id('luz_velador1'), type: 'light_rgb', label: 'Luz Velador 1' },
-    cortina: { deviceId: id('cortina'), type: 'curtain', label: 'Cortina' },
-    enchufe: { deviceId: id('enchufe'), type: 'switch_3ch', label: 'Enchufe USB', channels: ['Entrada 1'] },
-  };
-  if (plan !== 'base') {
-    devices.luz_velador2 = { deviceId: id('luz_velador2'), type: 'light_rgb', label: 'Luz Velador 2' };
-    devices.led_cama     = { deviceId: id('led_cama'),     type: 'light_rgb', label: 'LED Bajo Cama' };
-    devices.enchufe.channels = ['Entrada 1', 'Entrada 2'];
-  }
-  return devices;
+const PLANES = ['base', 'premium', 'max_comfort'];
+function planAleatorio() {
+  return PLANES[Math.floor(Math.random() * PLANES.length)];
 }
 
 function readJSON(file) { return JSON.parse(fs.readFileSync(file, 'utf8')); }
@@ -69,8 +50,6 @@ HOTELS.forEach((hotel, hIdx) => {
     for (let n = 1; n <= 10; n++) {
       const roomNum = floor * 100 + n; // 101..110, 201..210, 301..310, 401..410
       const roomId  = `${hotel.id}-${roomNum}`;
-      const plan    = planFor(roomNum);
-      const prefix  = `${hotel.id}_${roomNum}`;
       const isPilot = hIdx === 0 && roomNum === 101;
 
       rooms[roomId] = {
@@ -78,9 +57,13 @@ HOTELS.forEach((hotel, hIdx) => {
         hotel: hotel.name,
         hotelId: hotel.id,
         floor,
-        plan: isPilot ? 'premium' : plan,
+        plan: isPilot ? 'premium' : planAleatorio(),
         categoriaId: null,
-        devices: isPilot ? PILOT_DEVICES : devicesFor(plan, prefix),
+        // Sin piloto = sin dispositivos reales instalados todavía (como sería en la
+        // práctica: el plan/categoría existe en el PMS, pero el hardware IoT solo se
+        // activa en las habitaciones donde de verdad se instaló). La app del huésped
+        // muestra la vista de soporte/PMS básico cuando devices está vacío.
+        devices: isPilot ? PILOT_DEVICES : {},
       };
     }
   }

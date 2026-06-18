@@ -752,6 +752,15 @@ function renderApp(data) {
     document.querySelector('.nav-item[data-view="climate"]')?.classList.add('hidden');
   }
 
+  // Sin dispositivos inteligentes instalados: ocultar Habitación/Escenas/Clima del menú
+  // (no hay nada que controlar) y dejar Soporte como página principal de la app.
+  if (!Object.keys(app.config).length) {
+    document.querySelector('.nav-item[data-view="room"]')?.classList.add('hidden');
+    document.querySelector('.nav-item[data-view="scenes"]')?.classList.add('hidden');
+    document.querySelector('.nav-item[data-view="climate"]')?.classList.add('hidden');
+    switchView('support');
+  }
+
   // Mostrar app
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('app').classList.remove('hidden');
