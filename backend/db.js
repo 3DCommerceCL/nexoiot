@@ -231,6 +231,25 @@ db.exec(`
     created_at  TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_servicios_hotel ON servicios_hotel(hotel_id);
+
+  CREATE TABLE IF NOT EXISTS trial_solicitudes (
+    id              TEXT PRIMARY KEY,
+    hotel_nombre    TEXT NOT NULL,
+    rut             TEXT NOT NULL,
+    razon_social    TEXT,
+    giro            TEXT,
+    giro_verificado INTEGER NOT NULL DEFAULT 0,
+    email           TEXT NOT NULL,
+    nombre_contacto TEXT NOT NULL,
+    telefono        TEXT,
+    status          TEXT NOT NULL DEFAULT 'pendiente',
+    motivo_rechazo  TEXT,
+    hotel_id        TEXT,
+    usuario_id      TEXT,
+    created_at      TEXT NOT NULL,
+    resuelto_at     TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_trial_status ON trial_solicitudes(status);
 `);
 
 // ── MIGRACIONES: columnas agregadas a tablas ya existentes ───────────────────

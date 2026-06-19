@@ -31,6 +31,8 @@ const huespedes     = require('./huespedes');
 const checkinPrevio = require('./checkin-previo');
 const encuestas     = require('./encuestas');
 const voz           = require('./voz');
+const trial          = require('./trial');
+const verificacionRut = require('./verificacion-rut');
 
 const app       = express();
 const PORT        = process.env.PORT      || 3000;
@@ -95,6 +97,17 @@ const voiceLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Demasiados comandos de voz seguidos. Espera un momento.' },
+});
+
+// Límite estricto para solicitudes de trial — es un flujo sensible (crea registros,
+// dispara revisión humana o aprobación automática), no algo que deba poder hacerse
+// en loop desde un script.
+const trialLimiter = rateLimit({
+  windowMs: 60 * 60_000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas solicitudes de prueba. Inténtalo más tarde.' },
 });
 
 // ── DISPONIBILIDAD: cache en memoria con TTL de 60 s ─────────────────────────
@@ -1137,6 +1150,84 @@ app.get('/api/public/hotels/:slug/disponibilidad', publicLimiter, async (req, re
   res.set('X-Cache', 'MISS');
   res.set('Cache-Control', 'public, max-age=60');
   res.json(responseData);
+});
+
+// ── PUBLIC: POST /api/trial/solicitar ─────────────────────────────────────────
+// Registro self-serve del trial de PMS. Gateo estricto: nadie queda con acceso
+// activo sin que el giro se haya verificado como hotelería/alojamiento — ya sea
+// automáticamente (proveedor de verificación configurado) o por revisión manual
+// (modo simulación, mientras no se eligió/contrató un proveedor real).
+app.post('/api/trial/solicitar', trialLimiter, async (req, res) => {
+  const { hotelNombre, rut, email, nombreContacto, telefono, giroDeclarado } = req.body || {};
+  if (!hotelNombre || !rut || !email || !nombreContacto) {
+    return res.status(400).json({ error: 'Requeridos: hotelNombre, rut, email, nombreContacto' });
+  }
+  if (!verificacionRut.validarRUT(rut)) {
+    return res.status(400).json({ error: 'El RUT ingresado no es válido', code: 'RUT_INVALIDO' });
+  }
+
+  let giroInfo;
+  try {
+    giroInfo = await verificacionRut.consultarGiro(rut);
+  } catch (err) {
+    return res.status(502).json({ error: 'No se pudo verificar el RUT en este momento. Intenta más tarde.', detail: err.message });
+  }
+
+  const giroFinal = giroInfo.giro || giroDeclarado || '';
+  const esHotelero = verificacionRut.esGiroHotelero(giroFinal);
+
+  // Verificación real (proveedor configurado) y el giro NO es de hotelería → rechazo directo.
+  if (giroInfo.verificado && !esHotelero) {
+    trial.createSolicitud({
+      hotelNombre, rut: verificacionRut.limpiarRUT(rut), razonSocial: giroInfo.razonSocial,
+      giro: giroFinal, giroVerificado: true, email, nombreContacto, telefono,
+      status: 'rechazado', motivoRechazo: 'Giro verificado no corresponde a hotelería/alojamiento',
+    });
+    return res.status(403).json({
+      error: 'El giro registrado para este RUT no corresponde a hotelería o alojamiento turístico',
+      code:  'GIRO_NO_HOTELERO',
+    });
+  }
+
+  // Verificación real y sí es hotelero → aprobado automático.
+  // Sin verificación real todavía (modo simulación) → queda pendiente de revisión
+  // manual, nunca se activa solo — eso es lo que pediste con el gateo estricto.
+  const status = giroInfo.verificado && esHotelero ? 'aprobado' : 'pendiente';
+
+  const solicitud = trial.createSolicitud({
+    hotelNombre, rut: verificacionRut.limpiarRUT(rut), razonSocial: giroInfo.razonSocial,
+    giro: giroFinal, giroVerificado: giroInfo.verificado, email, nombreContacto, telefono, status,
+  });
+
+  res.status(201).json({
+    id:     solicitud.id,
+    status: solicitud.status,
+    mensaje: status === 'aprobado'
+      ? 'Solicitud aprobada — te contactaremos a tu correo para activar tu cuenta de prueba.'
+      : 'Solicitud recibida. La verificación automática del SII todavía no está activa, así que la revisamos manualmente y te contactamos a tu correo en menos de 24 horas.',
+  });
+});
+
+// ── ADMIN: GET /api/admin/trial-solicitudes ───────────────────────────────────
+app.get('/api/admin/trial-solicitudes', requireAuth('superadmin'), (req, res) => {
+  res.json(trial.listSolicitudes(req.query.status));
+});
+
+// ── ADMIN: POST /api/admin/trial-solicitudes/:id/aprobar ─────────────────────
+// Nota: marca la solicitud como aprobada, pero todavía NO crea automáticamente
+// el hotel/usuario — eso queda pendiente como siguiente paso (aprovisionamiento).
+app.post('/api/admin/trial-solicitudes/:id/aprobar', requireAuth('superadmin'), (req, res) => {
+  const solicitud = trial.getById(req.params.id);
+  if (!solicitud) return res.status(404).json({ error: 'Solicitud no encontrada' });
+  res.json(trial.resolver(req.params.id, { status: 'aprobado' }));
+});
+
+// ── ADMIN: POST /api/admin/trial-solicitudes/:id/rechazar ────────────────────
+app.post('/api/admin/trial-solicitudes/:id/rechazar', requireAuth('superadmin'), (req, res) => {
+  const solicitud = trial.getById(req.params.id);
+  if (!solicitud) return res.status(404).json({ error: 'Solicitud no encontrada' });
+  const { motivo } = req.body || {};
+  res.json(trial.resolver(req.params.id, { status: 'rechazado', motivoRechazo: motivo || null }));
 });
 
 // ── PUBLIC: GET /api/public/hotels/:slug/config ───────────────────────────────
