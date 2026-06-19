@@ -2143,7 +2143,7 @@ function housekeepingControlHtml(room) {
   return `
     <div class="rc-hk-row">
       <span style="font-size:11px;opacity:.85">🧹</span>
-      <select class="hk-badge ${estado}" onclick="event.stopPropagation()" onchange="setHousekeepingInline('${room.id}', this.value)">${opts}</select>
+      <select class="form-input" style="font-size:10px;padding:3px 6px;height:auto;width:auto" onclick="event.stopPropagation()" onchange="setHousekeepingInline('${room.id}', this.value)">${opts}</select>
     </div>`;
 }
 
