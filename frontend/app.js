@@ -188,7 +188,7 @@ const I18N = {
     themeAuto: 'Automático',
     themeLight: 'Claro',
     themeDark: 'Oscuro',
-    a11yVisionNote: 'Texto y controles más grandes, con mayor contraste, para personas con baja visión.',
+    a11yVisionNote: 'Texto y controles más grandes, con mayor contraste, para personas con baja visión. El botón de micrófono (esquina inferior derecha) crece y se vuelve la forma principal de controlar la habitación por voz.',
     a11yHearingNote: 'Avisos visuales destacados y de mayor duración en lugar de señales sonoras.',
     supportQuestion: '¿Necesitas ayuda con tu habitación o tienes alguna duda?',
     callReception: '📞 Llamar a recepción',
@@ -210,6 +210,11 @@ const I18N = {
     toastScene: 'Escena aplicada',
     toastSceneFail: 'Algunos comandos fallaron',
     toastPreview: 'Vista previa — función no conectada a un dispositivo real',
+    voiceListening: 'Escuchando… toca el micrófono otra vez para enviar',
+    voiceProcessing: 'Procesando tu comando…',
+    voiceNotUnderstood: 'No identifiqué un comando. Intenta de nuevo, por ejemplo: abre la cortina.',
+    toastVoiceUnsupported: 'El control por voz no es compatible con este navegador',
+    toastVoiceMicDenied: 'No se pudo acceder al micrófono. Revisa los permisos.',
     voiceOn: 'Asistente activo (Amazon Echo)',
     voiceOff: 'Modo privado — solo control por app',
     bathAutoNote: ' · Programada para encenderse automáticamente si hay alguien dentro',
@@ -329,7 +334,7 @@ const I18N = {
     themeAuto: 'Automatic',
     themeLight: 'Light',
     themeDark: 'Dark',
-    a11yVisionNote: 'Larger text and controls with higher contrast for low-vision guests.',
+    a11yVisionNote: 'Larger text and controls with higher contrast for low-vision guests. The microphone button (bottom-right corner) grows and becomes the main way to control the room by voice.',
     a11yHearingNote: 'Prominent, longer-lasting visual alerts instead of sound cues.',
     supportQuestion: 'Need help with your room or have any questions?',
     callReception: '📞 Call the front desk',
@@ -351,6 +356,11 @@ const I18N = {
     toastScene: 'Scene applied',
     toastSceneFail: 'Some commands failed',
     toastPreview: 'Preview — feature not connected to a real device',
+    voiceListening: 'Listening… tap the microphone again to send',
+    voiceProcessing: 'Processing your command…',
+    voiceNotUnderstood: 'I didn\'t recognize a command. Try again, for example: open the curtain.',
+    toastVoiceUnsupported: 'Voice control isn\'t supported on this browser',
+    toastVoiceMicDenied: 'Couldn\'t access the microphone. Check your permissions.',
     voiceOn: 'Assistant active (Amazon Echo)',
     voiceOff: 'Private mode — app control only',
     bathAutoNote: ' · Set to turn on automatically when someone is inside',
@@ -470,7 +480,7 @@ const I18N = {
     themeAuto: 'Automático',
     themeLight: 'Claro',
     themeDark: 'Escuro',
-    a11yVisionNote: 'Texto e controles maiores, com mais contraste, para pessoas com baixa visão.',
+    a11yVisionNote: 'Texto e controles maiores, com mais contraste, para pessoas com baixa visão. O botão de microfone (canto inferior direito) cresce e passa a ser a forma principal de controlar o quarto por voz.',
     a11yHearingNote: 'Avisos visuais destacados e mais duradouros em vez de sinais sonoros.',
     supportQuestion: 'Precisa de ajuda com seu quarto ou tem alguma dúvida?',
     callReception: '📞 Ligar para a recepção',
@@ -492,6 +502,11 @@ const I18N = {
     toastScene: 'Cena aplicada',
     toastSceneFail: 'Alguns comandos falharam',
     toastPreview: 'Pré-visualização — função não conectada a um dispositivo real',
+    voiceListening: 'Ouvindo… toque no microfone novamente para enviar',
+    voiceProcessing: 'Processando seu comando…',
+    voiceNotUnderstood: 'Não identifiquei um comando. Tente de novo, por exemplo: abra a cortina.',
+    toastVoiceUnsupported: 'O controle por voz não é compatível com este navegador',
+    toastVoiceMicDenied: 'Não foi possível acessar o microfone. Verifique as permissões.',
     voiceOn: 'Assistente ativo (Amazon Echo)',
     voiceOff: 'Modo privado — controle apenas pelo app',
     bathAutoNote: ' · Programada para acender automaticamente se houver alguém dentro',
@@ -712,6 +727,111 @@ async function curtainControl(key, ctrl) {
     updateCard(key);
     showToast(t('toastCmdFail'), 'error');
     console.error('[CMD]', key, { control: ctrl }, err.message);
+  }
+}
+
+// ── CONTROL POR VOZ ────────────────────────────────────────────────────────
+// Pensado primero como vía principal de control para huéspedes no videntes.
+// Toggle (no "mantener presionado"): un toque inicia la grabación, otro la
+// envía. El estado se anuncia en #voice-status (aria-live="assertive") para
+// que un lector de pantalla narre cada paso sin que el huésped tenga que mirar.
+const VOICE_MAX_MS = 8000;
+let voiceRecorder  = null;
+let voiceChunks    = [];
+let voiceAutoStop  = null;
+
+function voiceAnnounce(msg) {
+  const el = document.getElementById('voice-status');
+  if (el) el.textContent = msg;
+}
+
+function toggleVoiceRecording() {
+  if (voiceRecorder && voiceRecorder.state === 'recording') stopVoiceRecording();
+  else startVoiceRecording();
+}
+
+async function startVoiceRecording() {
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+    showToast(t('toastVoiceUnsupported'), 'error');
+    voiceAnnounce(t('toastVoiceUnsupported'));
+    return;
+  }
+  const btn = document.getElementById('voice-btn');
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    voiceChunks = [];
+    voiceRecorder = new MediaRecorder(stream);
+    voiceRecorder.ondataavailable = e => { if (e.data.size) voiceChunks.push(e.data); };
+    voiceRecorder.onstop = () => {
+      stream.getTracks().forEach(track => track.stop());
+      sendVoiceCommand(new Blob(voiceChunks, { type: voiceRecorder.mimeType || 'audio/webm' }));
+    };
+    voiceRecorder.start();
+    btn?.classList.add('recording');
+    btn?.setAttribute('aria-pressed', 'true');
+    voiceAnnounce(t('voiceListening'));
+    voiceAutoStop = setTimeout(stopVoiceRecording, VOICE_MAX_MS);
+  } catch (err) {
+    console.error('[VOZ]', err);
+    showToast(t('toastVoiceMicDenied'), 'error');
+    voiceAnnounce(t('toastVoiceMicDenied'));
+  }
+}
+
+function stopVoiceRecording() {
+  if (!voiceRecorder || voiceRecorder.state !== 'recording') return;
+  clearTimeout(voiceAutoStop);
+  const btn = document.getElementById('voice-btn');
+  btn?.classList.remove('recording');
+  btn?.classList.add('processing');
+  btn?.setAttribute('aria-pressed', 'false');
+  voiceAnnounce(t('voiceProcessing'));
+  voiceRecorder.stop();
+}
+
+async function sendVoiceCommand(blob) {
+  const btn = document.getElementById('voice-btn');
+  try {
+    const res = await fetch(`${API}/room/${app.token}/voice-command`, {
+      method:  'POST',
+      headers: { 'Content-Type': blob.type || 'audio/webm' },
+      body:    blob,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = data.error || t('toastCmdFail');
+      showToast(msg, 'error');
+      voiceAnnounce(msg);
+      return;
+    }
+    if (!data.entendido) {
+      const msg = data.mensaje || t('voiceNotUnderstood');
+      showToast(msg, '');
+      voiceAnnounce(msg);
+      return;
+    }
+    applyVoiceCommand(data.device, data.command);
+    showToast(data.accion, 'success');
+    voiceAnnounce(data.accion);
+  } catch (err) {
+    console.error('[VOZ]', err);
+    showToast(t('toastCmdFail'), 'error');
+    voiceAnnounce(t('toastCmdFail'));
+  } finally {
+    btn?.classList.remove('processing');
+  }
+}
+
+// Refleja en la UI el comando que el servidor ya ejecutó por voz (sin volver a
+// llamar a /command — el servidor lo hizo como parte de /voice-command).
+function applyVoiceCommand(device, command) {
+  if (!app.devices[device]) return;
+  if (Object.prototype.hasOwnProperty.call(command, 'control')) {
+    if (command.control === 'stop') stopCurtainAnim(device);
+    else animateCurtainTo(device, command.control === 'open' ? 100 : 0);
+  } else {
+    Object.assign(app.devices[device], command);
+    updateCard(device);
   }
 }
 
@@ -1238,6 +1358,11 @@ function initNav() {
     const dark = document.body.classList.contains('theme-dark');
     setTheme(dark ? 'light' : 'dark');
   });
+
+  // Control por voz: un toque para empezar a grabar, otro para enviar
+  // (toggle en vez de "mantener presionado" — más fiable con lectores de pantalla,
+  // que activan botones con un toque discreto y no con gestos de pulsación sostenida).
+  document.getElementById('voice-btn')?.addEventListener('click', toggleVoiceRecording);
 }
 
 // ── ÍCONOS PERSONALIZADOS ─────────────────────────────────────────────────────

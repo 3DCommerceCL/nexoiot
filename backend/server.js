@@ -30,6 +30,7 @@ const informes      = require('./informes');
 const huespedes     = require('./huespedes');
 const checkinPrevio = require('./checkin-previo');
 const encuestas     = require('./encuestas');
+const voz           = require('./voz');
 
 const app       = express();
 const PORT        = process.env.PORT      || 3000;
@@ -84,6 +85,16 @@ const publicLimiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Demasiadas solicitudes. Espera un momento.' },
   keyGenerator: req => `${req.ip}:${req.params.slug || ''}`,
+});
+
+// Límite más estricto para control por voz — cada llamada transcribe audio vía API
+// paga (Whisper), a diferencia de casi todos los demás endpoints que no tienen costo variable.
+const voiceLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados comandos de voz seguidos. Espera un momento.' },
 });
 
 // ── DISPONIBILIDAD: cache en memoria con TTL de 60 s ─────────────────────────
@@ -501,6 +512,49 @@ app.post('/api/room/:token/command', async (req, res) => {
   try {
     await tuya.sendCommand(devConfig.deviceId, tuyaCmds);
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al ejecutar el comando', detail: err.message });
+  }
+});
+
+// ── API: POST /api/room/:token/voice-command ───────────────────────────────────
+// Control por voz pensado primero para huéspedes no videntes: recibe audio, lo
+// transcribe (Whisper) y lo interpreta como comando de dispositivo de la habitación.
+app.post('/api/room/:token/voice-command', voiceLimiter, express.raw({ type: 'audio/*', limit: '10mb' }), async (req, res) => {
+  const result = rooms.getRoomByToken(req.params.token);
+  if (!result) {
+    return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
+  }
+
+  if (!Buffer.isBuffer(req.body) || !req.body.length) {
+    return res.status(400).json({ error: 'No se recibió audio' });
+  }
+
+  let texto;
+  try {
+    texto = await voz.transcribir(req.body, req.headers['content-type']);
+  } catch (err) {
+    return res.status(502).json({ error: 'No se pudo transcribir el audio', detail: err.message });
+  }
+  if (texto === null) {
+    return res.status(503).json({ error: 'Control por voz no configurado todavía (falta OPENAI_API_KEY)', code: 'VOICE_NOT_CONFIGURED' });
+  }
+
+  const { room } = result;
+  const interpretado = voz.interpretar(texto, room.devices);
+  if (!interpretado) {
+    return res.json({ transcript: texto, entendido: false, mensaje: 'No identifiqué un comando válido. Intenta de nuevo, por ejemplo: "abre la cortina" o "enciende la luz".' });
+  }
+
+  const devConfig = room.devices[interpretado.device];
+  const tuyaCmds = commandToTuya(devConfig.type, interpretado.command);
+  if (tuyaCmds.length === 0) {
+    return res.json({ transcript: texto, entendido: false, mensaje: 'Comando no soportado para este dispositivo.' });
+  }
+
+  try {
+    await tuya.sendCommand(devConfig.deviceId, tuyaCmds);
+    res.json({ transcript: texto, entendido: true, accion: interpretado.descripcion, device: interpretado.device, command: interpretado.command });
   } catch (err) {
     res.status(500).json({ error: 'Error al ejecutar el comando', detail: err.message });
   }
