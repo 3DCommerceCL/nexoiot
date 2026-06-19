@@ -752,6 +752,7 @@ function categoriaControlHtml(room) {
 function buildRoomCard(room) {
   const planBadge = `<span class="badge badge-plan">${PLAN_LABELS[room.plan] || 'Base'}</span>`;
   const categoriaBadge = categoriaControlHtml(room);
+  const hkRow = housekeepingControlHtml(room);
   if (room.guest) {
     const co = checkoutInfo(room.guest.checkout);
     // Badges de idioma y accesibilidad del huésped (solo cuando no son los predeterminados)
@@ -767,6 +768,7 @@ function buildRoomCard(room) {
         <span class="rc-num">${room.name}</span>
       </div>
       <div class="rc-badges"><span class="badge badge-floor">${dt('floor', { n: room.floor })}</span>${planBadge}${categoriaBadge}${langBadge}${a11yBadge}${dndBadge}</div>
+      ${hkRow}
       <div class="rc-guest">${room.guest.guestName}</div>
       <div class="rc-checkout ${co.urgency}">${co.urgency === 'today' ? '⚠️' : '🗓'} ${co.label}</div>
       <div class="rc-footer">
@@ -781,6 +783,7 @@ function buildRoomCard(room) {
       <span class="rc-num">${room.name}</span>
     </div>
     <div class="rc-badges"><span class="badge badge-available">${dt('badgeAvailable')}</span>${planBadge}${categoriaBadge}</div>
+    ${hkRow}
     <div class="rc-empty">${dt('noGuest', { n: room.floor })}</div>
     <button class="btn btn-sm btn-outline-teal" style="margin-top:auto" onclick="openNewStayModal('${room.id}')">${dt('assignStay')}</button>
   </div>`;
@@ -840,8 +843,8 @@ const viewTitle = view =>
   ({
     overview: dt('navOverview'), rooms: dt('navRooms'), settings: dt('navSettings'), calendar: 'Calendario',
     channels: 'Canales OTA', booking: 'Motor de Reservas', pagos: 'Pagos', categorias: 'Categorías',
-    reservaslist: 'Reservas', housekeeping: 'Housekeeping', servicios: 'Servicios',
-    informes: 'Informes', huespedes: 'Huéspedes', mensajes: 'Mensajes',
+    reservaslist: 'Reservas', servicios: 'Servicios',
+    informes: 'Informes', mensajes: 'Mensajes',
     'grid-tarifas': 'Grid de tarifas',
   }[view] || view);
 
@@ -862,15 +865,14 @@ function navigate(view) {
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === `view-${view}`));
   $('page-title').textContent = viewTitle(view);
   $('content').classList.toggle('cal-active', view === 'calendar');
-  if (view === 'overview') renderRooms('overview');
-  if (view === 'rooms') renderRooms('rooms', state.filter);
+  if (view === 'overview') { loadHousekeeping(); renderRooms('overview'); }
+  if (view === 'rooms') { loadHousekeeping(); renderRooms('rooms', state.filter); }
   if (view === 'calendar') initCalendar();
   if (view === 'channels') loadCanales();
   if (view === 'booking') loadBookingConfig();
   if (view === 'pagos') loadTransacciones();
   if (view === 'categorias') loadCategorias();
   if (view === 'reservaslist') loadReservasLista();
-  if (view === 'housekeeping') loadHousekeeping();
   if (view === 'servicios') loadServicios();
   if (view === 'informes') {
     if (!$('inf-desde').value) {
@@ -880,7 +882,6 @@ function navigate(view) {
     }
     loadInformes();
   }
-  if (view === 'huespedes') $('hu-results').innerHTML = '<div class="form-note">Escribe un nombre, email o teléfono para buscar.</div>';
   if (view === 'mensajes') loadMensajesLog();
   if (view === 'grid-tarifas') loadGrid();
 }
@@ -2119,6 +2120,8 @@ async function gtEditarCelda(td) {
 }
 
 // ── HOUSEKEEPING (estado de limpieza por habitación) ─────────────────────────
+// Se muestra inline en cada tarjeta de habitación (bajo el selector de
+// categoría), no como vista propia — ver housekeepingControlHtml() más abajo.
 const HK_ESTADO_LABEL = { limpia: 'Limpia', sucia: 'Sucia', en_proceso: 'En proceso', inspeccion: 'Inspección' };
 let housekeepingCache = [];
 
@@ -2126,36 +2129,28 @@ async function loadHousekeeping() {
   if (!HOTEL_ID) return;
   try {
     housekeepingCache = await apiFetch(`/admin/housekeeping?hotel=${encodeURIComponent(HOTEL_ID)}`);
-    renderHousekeeping();
+    if (state.view === 'overview' || state.view === 'rooms') renderRooms(state.view, state.filter);
   } catch (err) {
     showToast(err.message, 'error');
   }
 }
 
-function renderHousekeeping() {
-  const filtro = $('hk-estado-filter').value;
-  const byRoom = new Map(housekeepingCache.map(h => [h.room_id, h]));
-  const list = rooms.filter(r => {
-    const estado = byRoom.get(r.id)?.estado || 'limpia';
-    return !filtro || estado === filtro;
-  });
-
-  $('hk-grid').innerHTML = list.map(r => {
-    const hk = byRoom.get(r.id);
-    const estado = hk?.estado || 'limpia';
-    return `
-    <div class="hk-card">
-      <div class="hk-card-top">
-        <span class="hk-room-name">${r.name}</span>
-        <span class="hk-badge ${estado}">${HK_ESTADO_LABEL[estado]}</span>
-      </div>
-      <select class="hk-estado-select" data-room="${r.id}">
-        ${Object.entries(HK_ESTADO_LABEL).map(([k, v]) => `<option value="${k}" ${k === estado ? 'selected' : ''}>${v}</option>`).join('')}
-      </select>
-      <input type="text" class="hk-notas-input" data-room="${r.id}" placeholder="Notas…" value="${(hk?.notas || '').replace(/"/g, '&quot;')}">
+function housekeepingControlHtml(room) {
+  const hk = housekeepingCache.find(h => h.room_id === room.id);
+  const estado = hk?.estado || 'limpia';
+  const opts = Object.entries(HK_ESTADO_LABEL)
+    .map(([k, v]) => `<option value="${k}" ${k === estado ? 'selected' : ''}>${v}</option>`).join('');
+  return `
+    <div class="rc-hk-row">
+      <span style="font-size:11px;opacity:.85">🧹</span>
+      <select class="hk-badge ${estado}" onclick="event.stopPropagation()" onchange="setHousekeepingInline('${room.id}', this.value)">${opts}</select>
     </div>`;
-  }).join('');
 }
+
+window.setHousekeepingInline = function(roomId, estado) {
+  const hk = housekeepingCache.find(h => h.room_id === roomId);
+  saveHousekeeping(roomId, estado, hk?.notas || '');
+};
 
 async function saveHousekeeping(roomId, estado, notas) {
   try {
@@ -2164,7 +2159,7 @@ async function saveHousekeeping(roomId, estado, notas) {
     });
     const idx = housekeepingCache.findIndex(h => h.room_id === roomId);
     if (idx >= 0) housekeepingCache[idx] = updated; else housekeepingCache.push(updated);
-    renderHousekeeping();
+    if (state.view === 'overview' || state.view === 'rooms') renderRooms(state.view, state.filter);
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -3111,32 +3106,6 @@ async function loadInformes() {
   }
 }
 
-// ── HUÉSPEDES (CRM básico) ────────────────────────────────────────────────────
-async function buscarHuespedes() {
-  const q = $('hu-search').value.trim();
-  if (q.length < 2) { $('hu-results').innerHTML = '<div class="form-note">Ingresa al menos 2 caracteres.</div>'; return; }
-  try {
-    const lista = await apiFetch(`/admin/huespedes?hotel=${encodeURIComponent(HOTEL_ID)}&q=${encodeURIComponent(q)}`);
-    if (!lista.length) { $('hu-results').innerHTML = '<div class="form-note">Sin resultados.</div>'; return; }
-    $('hu-results').innerHTML = lista.map(h => `
-      <div class="hu-card">
-        <div class="hu-card-top">
-          <span class="hu-nombre">${h.nombre}</span>
-          <span class="hu-meta">${h.totalEstadias} estadía${h.totalEstadias !== 1 ? 's' : ''} · última: ${h.ultimaEstadia}</span>
-        </div>
-        <div class="hu-meta">${h.email || ''} ${h.telefono || ''}</div>
-        ${h.reservas.map(r => `
-          <div class="hu-stay-row">
-            <span>${r.checkin} → ${r.checkout}</span>
-            <span>${r.room_id}</span>
-            <span>${r.status}</span>
-          </div>`).join('')}
-      </div>`).join('');
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-}
-
 // ── PAGOS (reporte hotel-wide — vista owner) ─────────────────────────────────
 const TRANS_TIPO_LABEL_PG   = { webpay: 'Tarjeta (Webpay)', mercadopago: 'Mercado Pago', efectivo: 'Efectivo', transferencia: 'Transferencia' };
 const TRANS_ESTADO_LABEL_PG = { pendiente: 'Pendiente', aprobado: 'Aprobado', rechazado: 'Rechazado', anulado: 'Anulado' };
@@ -3328,8 +3297,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('inf-filtrar').addEventListener('click', loadInformes);
-  $('hu-buscar').addEventListener('click', buscarHuespedes);
-  $('hu-search').addEventListener('keydown', e => { if (e.key === 'Enter') buscarHuespedes(); });
 
   // Pagos
   $('pg-filtrar').addEventListener('click', loadTransacciones);
@@ -3358,21 +3325,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Mensajes / registro de solicitudes
   $('msg-filtrar').addEventListener('click', loadMensajesLog);
   $('msg-estado').addEventListener('change', loadMensajesLog);
-
-  // Housekeeping
-  $('hk-estado-filter').addEventListener('change', renderHousekeeping);
-  $('hk-grid').addEventListener('change', e => {
-    if (!e.target.classList.contains('hk-estado-select')) return;
-    const roomId = e.target.dataset.room;
-    const notas  = $('hk-grid').querySelector(`.hk-notas-input[data-room="${roomId}"]`).value;
-    saveHousekeeping(roomId, e.target.value, notas);
-  });
-  $('hk-grid').addEventListener('blur', e => {
-    if (!e.target.classList.contains('hk-notas-input')) return;
-    const roomId = e.target.dataset.room;
-    const estado = $('hk-grid').querySelector(`.hk-estado-select[data-room="${roomId}"]`).value;
-    saveHousekeeping(roomId, estado, e.target.value);
-  }, true);
 
   applyDashLang();
   startClock();

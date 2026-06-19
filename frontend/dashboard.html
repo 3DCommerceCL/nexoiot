@@ -124,24 +124,12 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .dia-toggle{flex:1;text-align:center;padding:6px 0;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;user-select:none}
 .dia-toggle.active{background:var(--teal);color:#fff;border-color:var(--teal)}
 
-/* ── HOUSEKEEPING ── */
-.hk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-.hk-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px}
-.hk-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.hk-room-name{font-weight:600;font-size:13px;color:var(--text)}
+/* ── HOUSEKEEPING (inline en tarjeta de habitación, ver .rc-hk-row) ── */
 .hk-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap}
 .hk-badge.limpia{background:var(--teal-l);color:var(--teal)}
 .hk-badge.sucia{background:rgba(192,57,43,.12);color:var(--alert)}
 .hk-badge.en_proceso{background:var(--warn-l);color:var(--warn)}
 .hk-badge.inspeccion{background:rgba(37,99,235,.12);color:#2563eb}
-.hk-card select,.hk-card input{width:100%;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:12px;font-family:var(--font);margin-bottom:6px}
-
-/* ── HUÉSPEDES (CRM) ── */
-.hu-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
-.hu-card-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
-.hu-nombre{font-weight:600;font-size:14px}
-.hu-meta{font-size:11px;color:var(--text2)}
-.hu-stay-row{display:flex;gap:10px;font-size:11px;color:var(--text2);padding:4px 0;border-top:1px solid var(--border)}
 .room-search:focus{outline:none;border-color:var(--teal)}
 .no-results{font-size:12px;color:var(--text2);padding:20px 2px;text-align:center}
 
@@ -169,6 +157,8 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .badge-floor{background:rgba(139,143,168,.15);color:var(--text2)}
 .badge-available{background:rgba(139,143,168,.12);color:var(--text2)}
 .room-card .badge{background:rgba(255,255,255,.20);color:#fff}
+.rc-hk-row{display:flex;align-items:center;gap:6px}
+.rc-hk-row select{border:none;cursor:pointer;font-family:var(--font);font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px}
 .rc-guest{font-size:13px;font-weight:500;color:#fff}
 .rc-checkout{font-size:11px;font-weight:500;display:flex;align-items:center;gap:4px}
 .rc-checkout.today{color:#FFB3B3}
@@ -418,12 +408,18 @@ select.form-input option{background:var(--card);color:var(--text)}
 #view-calendar.active{display:flex}
 #fc-container{flex:1;overflow:hidden;padding:0;min-height:400px}
 /* Toolbar de FullCalendar: usar colores del proyecto */
-.fc .fc-toolbar{background:var(--header-grad);padding:10px 16px;border-radius:10px 10px 0 0;flex-wrap:wrap;gap:6px}
-.fc .fc-toolbar-title{color:#fff;font-size:14px;font-weight:600;font-family:var(--font)}
+.fc .fc-toolbar{background:var(--header-grad);padding:12px 18px;border-radius:14px 14px 0 0;flex-wrap:wrap;gap:6px}
+.fc .fc-toolbar-title{color:#fff;font-size:15px;font-weight:700;font-family:var(--font);letter-spacing:.2px}
 .fc .fc-button{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:11px;font-weight:600;font-family:var(--font);text-transform:none;padding:5px 10px;border-radius:6px}
 .fc .fc-button:hover,.fc .fc-button:focus{background:rgba(255,255,255,.28);box-shadow:none}
 .fc .fc-button-active,.fc .fc-button-primary:not(:disabled).fc-button-active{background:rgba(255,255,255,.35);box-shadow:none}
 .fc .fc-button:disabled{opacity:.4}
+/* Prev/Next como flechas simples, no botones-píldora — más cerca del diseño deseado */
+.fc .fc-prev-button,.fc .fc-next-button{background:transparent;border:none;font-size:16px;padding:4px 8px}
+.fc .fc-prev-button:hover,.fc .fc-next-button:hover{background:rgba(255,255,255,.18);box-shadow:none}
+#fc-container{border-radius:14px;overflow:hidden;box-shadow:0 3px 14px rgba(16,24,40,.10)}
+/* Cursor tipo mano sobre las celdas vacías del timeline — son clickeables para crear una reserva */
+.fc-resource-timeline .fc-timeline-lane{cursor:pointer}
 /* Recurso (habitación) en el sidebar del calendario */
 .fc .fc-resource-timeline-divider{background:var(--border)}
 .fc .fc-datagrid-cell-main{font-size:12px;font-weight:600;color:var(--text)}
@@ -500,10 +496,6 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">📋</span>
       <span class="nav-label">Reservas</span>
     </div>
-    <div class="nav-item" data-view="housekeeping">
-      <span class="nav-icon">🧹</span>
-      <span class="nav-label">Housekeeping</span>
-    </div>
     <div class="nav-item" data-view="servicios" data-role="owner">
       <span class="nav-icon">🛎️</span>
       <span class="nav-label">Servicios</span>
@@ -515,10 +507,6 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="nav-item" data-view="informes" data-role="owner">
       <span class="nav-icon">📊</span>
       <span class="nav-label">Informes</span>
-    </div>
-    <div class="nav-item" data-view="huespedes">
-      <span class="nav-icon">👤</span>
-      <span class="nav-label">Huéspedes</span>
     </div>
     <div class="nav-item" data-view="mensajes">
       <span class="nav-icon">💬</span>
@@ -648,20 +636,6 @@ select.form-input option{background:var(--card);color:var(--text)}
       </table>
     </div>
 
-    <!-- VIEW: HOUSEKEEPING -->
-    <div class="view" id="view-housekeeping">
-      <div class="rl-filters">
-        <select id="hk-estado-filter">
-          <option value="">Todos los estados</option>
-          <option value="limpia">Limpia</option>
-          <option value="sucia">Sucia</option>
-          <option value="en_proceso">En proceso</option>
-          <option value="inspeccion">Inspección</option>
-        </select>
-      </div>
-      <div class="hk-grid" id="hk-grid"></div>
-    </div>
-
     <!-- VIEW: SERVICIOS DEL HOTEL (directorio + upsell, owner) -->
     <div class="view" id="view-servicios">
       <div class="sec-header" style="margin-bottom:10px">
@@ -697,15 +671,6 @@ select.form-input option{background:var(--card);color:var(--text)}
         <button class="btn btn-outline btn-sm" id="inf-filtrar">Calcular</button>
       </div>
       <div class="kpi-grid" id="inf-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px"></div>
-    </div>
-
-    <!-- VIEW: HUÉSPEDES (CRM básico) -->
-    <div class="view" id="view-huespedes">
-      <div class="rl-filters">
-        <input type="search" id="hu-search" placeholder="Buscar por nombre, email o teléfono…">
-        <button class="btn btn-outline btn-sm" id="hu-buscar">Buscar</button>
-      </div>
-      <div id="hu-results"></div>
     </div>
 
     <!-- VIEW: MENSAJES (bandeja de pendientes + registro/log completo con fecha y hora) -->
