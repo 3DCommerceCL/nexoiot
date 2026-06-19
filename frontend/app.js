@@ -215,6 +215,32 @@ const I18N = {
     voiceNotUnderstood: 'No identifiqué un comando. Intenta de nuevo, por ejemplo: abre la cortina.',
     toastVoiceUnsupported: 'El control por voz no es compatible con este navegador',
     toastVoiceMicDenied: 'No se pudo acceder al micrófono. Revisa los permisos.',
+    reportProblemBtn: 'Reportar un problema con este dispositivo',
+    reportTitle: 'Reportar un problema',
+    reportIntroDesc: 'Vas a reportar un problema con: {device}. Recepción recibirá tu reporte de inmediato.',
+    reportBackBtn: 'Atrás',
+    reportContinueBtn: 'Continuar',
+    reportSendBtn: 'Enviar',
+    reportOptionsTitle: '¿Cuál es el problema?',
+    reportNoOptionToast: 'Elige una opción antes de enviar',
+    reportOtherTitle: 'Cuéntanos qué pasa',
+    reportOtherPlaceholder: 'Describe el problema (opcional)',
+    reportOptOtra: 'Otra',
+    reportOptNoEnciende: 'No enciende',
+    reportOptNoApaga: 'No se apaga',
+    reportOptNoIntensidad: 'No cambia la intensidad',
+    reportOptNoTemperatura: 'No cambia la temperatura de color',
+    reportOptNoColores: 'No cambia de colores',
+    reportOptNoAbre: 'No abre',
+    reportOptNoCierra: 'No cierra',
+    reportOptNoPara: 'No se detiene (Parar no funciona)',
+    reportOptSeMueveSola: 'Se mueve sola',
+    reportOptCanalNoResponde: 'Un canal no responde',
+    reportOptNingunCanalResponde: 'Ningún canal responde',
+    reportOptNoTemperaturaAC: 'No cambia la temperatura',
+    reportOptNoEnfriaCalienta: 'No enfría ni calienta aunque esté encendido',
+    themeActivateDark: 'Activar modo oscuro',
+    themeDeactivateDark: 'Desactivar modo oscuro',
     voiceOn: 'Asistente activo (Amazon Echo)',
     voiceOff: 'Modo privado — solo control por app',
     bathAutoNote: ' · Programada para encenderse automáticamente si hay alguien dentro',
@@ -361,6 +387,32 @@ const I18N = {
     voiceNotUnderstood: 'I didn\'t recognize a command. Try again, for example: open the curtain.',
     toastVoiceUnsupported: 'Voice control isn\'t supported on this browser',
     toastVoiceMicDenied: 'Couldn\'t access the microphone. Check your permissions.',
+    reportProblemBtn: 'Report a problem with this device',
+    reportTitle: 'Report a problem',
+    reportIntroDesc: 'You\'re about to report a problem with: {device}. The front desk will receive your report right away.',
+    reportBackBtn: 'Back',
+    reportContinueBtn: 'Continue',
+    reportSendBtn: 'Send',
+    reportOptionsTitle: 'What\'s the problem?',
+    reportNoOptionToast: 'Choose an option before sending',
+    reportOtherTitle: 'Tell us what\'s happening',
+    reportOtherPlaceholder: 'Describe the problem (optional)',
+    reportOptOtra: 'Other',
+    reportOptNoEnciende: 'Doesn\'t turn on',
+    reportOptNoApaga: 'Doesn\'t turn off',
+    reportOptNoIntensidad: 'Brightness won\'t change',
+    reportOptNoTemperatura: 'Color temperature won\'t change',
+    reportOptNoColores: 'Colors won\'t change',
+    reportOptNoAbre: 'Won\'t open',
+    reportOptNoCierra: 'Won\'t close',
+    reportOptNoPara: 'Won\'t stop (Stop doesn\'t work)',
+    reportOptSeMueveSola: 'Moves by itself',
+    reportOptCanalNoResponde: 'One channel doesn\'t respond',
+    reportOptNingunCanalResponde: 'No channel responds',
+    reportOptNoTemperaturaAC: 'Temperature won\'t change',
+    reportOptNoEnfriaCalienta: 'Doesn\'t cool or heat even though it\'s on',
+    themeActivateDark: 'Turn on dark mode',
+    themeDeactivateDark: 'Turn off dark mode',
     voiceOn: 'Assistant active (Amazon Echo)',
     voiceOff: 'Private mode — app control only',
     bathAutoNote: ' · Set to turn on automatically when someone is inside',
@@ -507,6 +559,32 @@ const I18N = {
     voiceNotUnderstood: 'Não identifiquei um comando. Tente de novo, por exemplo: abra a cortina.',
     toastVoiceUnsupported: 'O controle por voz não é compatível com este navegador',
     toastVoiceMicDenied: 'Não foi possível acessar o microfone. Verifique as permissões.',
+    reportProblemBtn: 'Reportar um problema com este dispositivo',
+    reportTitle: 'Reportar um problema',
+    reportIntroDesc: 'Você vai reportar um problema com: {device}. A recepção receberá seu reporte imediatamente.',
+    reportBackBtn: 'Voltar',
+    reportContinueBtn: 'Continuar',
+    reportSendBtn: 'Enviar',
+    reportOptionsTitle: 'Qual é o problema?',
+    reportNoOptionToast: 'Escolha uma opção antes de enviar',
+    reportOtherTitle: 'Conte o que está acontecendo',
+    reportOtherPlaceholder: 'Descreva o problema (opcional)',
+    reportOptOtra: 'Outro',
+    reportOptNoEnciende: 'Não liga',
+    reportOptNoApaga: 'Não desliga',
+    reportOptNoIntensidad: 'A intensidade não muda',
+    reportOptNoTemperatura: 'A temperatura de cor não muda',
+    reportOptNoColores: 'As cores não mudam',
+    reportOptNoAbre: 'Não abre',
+    reportOptNoCierra: 'Não fecha',
+    reportOptNoPara: 'Não para (Parar não funciona)',
+    reportOptSeMueveSola: 'Se move sozinha',
+    reportOptCanalNoResponde: 'Um canal não responde',
+    reportOptNingunCanalResponde: 'Nenhum canal responde',
+    reportOptNoTemperaturaAC: 'A temperatura não muda',
+    reportOptNoEnfriaCalienta: 'Não esfria nem esquenta mesmo ligado',
+    themeActivateDark: 'Ativar modo escuro',
+    themeDeactivateDark: 'Desativar modo escuro',
     voiceOn: 'Assistente ativo (Amazon Echo)',
     voiceOff: 'Modo privado — controle apenas pelo app',
     bathAutoNote: ' · Programada para acender automaticamente se houver alguém dentro',
@@ -943,6 +1021,7 @@ function renderApp(data) {
 
   // Delegación de eventos para la vista de Escenas
   document.getElementById('scenes-grid').addEventListener('click', handleSceneGridClick);
+  document.getElementById('scenes-grid').addEventListener('keydown', handleSceneGridKeydown);
   document.getElementById('scene-new-btn').addEventListener('click', openSceneModal);
   document.getElementById('scene-modal-cancel').addEventListener('click', closeSceneModal);
   document.getElementById('scene-modal-save').addEventListener('click', saveNewScene);
@@ -1124,6 +1203,117 @@ function sendServiceRequestWithNote(type) {
   sendServiceRequest(type, note);
 }
 
+// ── REPORTAR PROBLEMA DE DISPOSITIVO ─────────────────────────────────────────
+// Asistente de 3 pasos (intro → opciones → "otra") que termina enviando una
+// solicitud tipo 'maintenance' con el dispositivo y el motivo en la nota —
+// reutiliza el mismo pipeline de solicitudes que ya ve recepción en Mensajes,
+// sin necesitar un endpoint ni un tipo de solicitud nuevos.
+const REPORT_OPTIONS = {
+  light:      ['noEnciende', 'noApaga', 'noIntensidad', 'noTemperatura'],
+  light_rgb:  ['noEnciende', 'noApaga', 'noIntensidad', 'noColores'],
+  curtain:    ['noAbre', 'noCierra', 'noPara', 'seMueveSola'],
+  switch:     ['noEnciende', 'noApaga'],
+  switch_3ch: ['canalNoResponde', 'ningunCanalResponde'],
+  ac:         ['noEnciende', 'noApaga', 'noTemperaturaAC', 'noEnfriaCalienta'],
+};
+const REPORT_OPTION_LABELS = {
+  noEnciende: 'reportOptNoEnciende', noApaga: 'reportOptNoApaga',
+  noIntensidad: 'reportOptNoIntensidad', noTemperatura: 'reportOptNoTemperatura',
+  noColores: 'reportOptNoColores', noAbre: 'reportOptNoAbre', noCierra: 'reportOptNoCierra',
+  noPara: 'reportOptNoPara', seMueveSola: 'reportOptSeMueveSola',
+  canalNoResponde: 'reportOptCanalNoResponde', ningunCanalResponde: 'reportOptNingunCanalResponde',
+  noTemperaturaAC: 'reportOptNoTemperaturaAC', noEnfriaCalienta: 'reportOptNoEnfriaCalienta',
+};
+
+let reportState = null; // { key, step, option, otherText }
+
+function openReportModal(key) {
+  reportState = { key, step: 'intro', option: null, otherText: '' };
+  renderReportModal();
+  document.getElementById('report-modal-overlay').classList.remove('hidden');
+}
+
+function closeReportModal() {
+  document.getElementById('report-modal-overlay').classList.add('hidden');
+  reportState = null;
+}
+
+function renderReportModal() {
+  if (!reportState) return;
+  const { key, step, option } = reportState;
+  const cfg   = app.config[key] || {};
+  const label = devLabel(key, cfg);
+  const card  = document.getElementById('report-modal-card');
+
+  if (step === 'intro') {
+    card.innerHTML = `
+      <div class="onboarding-ico">⚠️</div>
+      <h2>${t('reportTitle')}</h2>
+      <p class="scene-modal-desc">${t('reportIntroDesc', { device: label })}</p>
+      <div class="scene-modal-actions">
+        <button class="support-btn" id="report-modal-back">${t('reportBackBtn')}</button>
+        <button class="support-btn" id="report-modal-next">${t('reportContinueBtn')}</button>
+      </div>`;
+    document.getElementById('report-modal-back').onclick = closeReportModal;
+    document.getElementById('report-modal-next').onclick = () => { reportState.step = 'options'; renderReportModal(); };
+    return;
+  }
+
+  if (step === 'options') {
+    const optKeys = REPORT_OPTIONS[cfg.type] || REPORT_OPTIONS.light;
+    const optsHtml = optKeys
+      .map(k => `<button type="button" class="report-option ${option === k ? 'active' : ''}" data-opt="${k}">${t(REPORT_OPTION_LABELS[k])}</button>`)
+      .concat(`<button type="button" class="report-option ${option === 'otra' ? 'active' : ''}" data-opt="otra">${t('reportOptOtra')}</button>`)
+      .join('');
+
+    card.innerHTML = `
+      <div class="onboarding-ico">⚠️</div>
+      <h2>${t('reportOptionsTitle')}</h2>
+      <div class="report-options" id="report-options-list">${optsHtml}</div>
+      <div class="scene-modal-actions">
+        <button class="support-btn" id="report-modal-back">${t('reportBackBtn')}</button>
+        <button class="support-btn" id="report-modal-send">${t('reportSendBtn')}</button>
+      </div>`;
+
+    document.getElementById('report-options-list').querySelectorAll('.report-option').forEach(btn => {
+      btn.onclick = () => { reportState.option = btn.dataset.opt; renderReportModal(); };
+    });
+    document.getElementById('report-modal-back').onclick = () => { reportState.step = 'intro'; renderReportModal(); };
+    document.getElementById('report-modal-send').onclick = () => {
+      if (!reportState.option) { showToast(t('reportNoOptionToast'), 'error'); return; }
+      if (reportState.option === 'otra') { reportState.step = 'other'; renderReportModal(); return; }
+      submitReport();
+    };
+    return;
+  }
+
+  if (step === 'other') {
+    card.innerHTML = `
+      <div class="onboarding-ico">⚠️</div>
+      <h2>${t('reportOtherTitle')}</h2>
+      <textarea class="report-other-textarea" id="report-other-text" placeholder="${t('reportOtherPlaceholder')}" rows="4"></textarea>
+      <div class="scene-modal-actions">
+        <button class="support-btn" id="report-modal-back">${t('reportBackBtn')}</button>
+        <button class="support-btn" id="report-modal-send">${t('reportSendBtn')}</button>
+      </div>`;
+    document.getElementById('report-modal-back').onclick = () => { reportState.step = 'options'; renderReportModal(); };
+    document.getElementById('report-modal-send').onclick = () => {
+      reportState.otherText = document.getElementById('report-other-text').value.trim();
+      submitReport();
+    };
+  }
+}
+
+function submitReport() {
+  const { key, option, otherText } = reportState;
+  const label = devLabel(key, app.config[key] || {});
+  const detail = option === 'otra'
+    ? (otherText ? `${t('reportOptOtra')}: ${otherText}` : t('reportOptOtra'))
+    : t(REPORT_OPTION_LABELS[option]);
+  sendServiceRequest('maintenance', `${label} — ${detail}`);
+  closeReportModal();
+}
+
 function setA11y(mode) {
   if (mode === app.a11y) return;
   app.a11y = mode;
@@ -1152,7 +1342,12 @@ function applyTheme() {
   }
   document.body.classList.toggle('theme-dark', dark);
   const btn = document.getElementById('theme-toggle-btn');
-  if (btn) btn.textContent = dark ? '☀️' : '🌙';
+  if (btn) {
+    btn.textContent = dark ? '☀️' : '🌙';
+    const label = dark ? t('themeDeactivateDark') : t('themeActivateDark');
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+  }
 }
 
 function setTheme(mode) {
@@ -1386,6 +1581,10 @@ function favBtn(key) {
   return `<button type="button" class="fav-btn ${active ? 'active' : ''}" data-key="${key}" data-action="toggle-favorite" aria-label="${t('favToggle')}">${active ? '★' : '☆'}</button>`;
 }
 
+function reportBtn(key) {
+  return `<button type="button" class="report-btn" data-key="${key}" data-action="report-problem" aria-label="${t('reportProblemBtn')}">⚠️</button>`;
+}
+
 function saveFavorites() {
   try { localStorage.setItem(`nexo_favs_${app.token || 'static'}`, JSON.stringify(app.favorites)); } catch {}
 }
@@ -1494,7 +1693,10 @@ function buildCard(key) {
 
 function buildOfflineCard(key, cfg) {
   return `<div class="device-card offline" id="card-${key}">
-    <div class="card-head"><div class="card-ico-name"><span class="card-ico">⚠️</span><span class="card-label">${devLabel(key, cfg)}</span></div></div>
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-ico">⚠️</span><span class="card-label">${devLabel(key, cfg)}</span></div>
+      <div class="card-head-actions">${reportBtn(key)}</div>
+    </div>
     <div class="offline-label">${t('offlineDevice')}</div>
   </div>`;
 }
@@ -1516,6 +1718,7 @@ function buildLightCard(key) {
       </div>
       <div class="card-head-actions">
         ${favBtn(key)}
+        ${reportBtn(key)}
         <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
       </div>
     </div>
@@ -1568,6 +1771,7 @@ function buildLEDCard(key) {
       </div>
       <div class="card-head-actions">
         ${favBtn(key)}
+        ${reportBtn(key)}
         <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
       </div>
     </div>
@@ -1609,7 +1813,10 @@ function buildCurtainCard(key) {
   return `<div class="device-card full-width" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${devLabel(key, cfg)}</span></div>
-      <span class="card-status" style="margin:0">${unlocked ? t('manualShort') : lbl}</span>
+      <div class="card-head-actions">
+        ${reportBtn(key)}
+        <span class="card-status" style="margin:0">${unlocked ? t('manualShort') : lbl}</span>
+      </div>
     </div>
     <div class="curtain-btns">
       <button class="curtain-btn" data-key="${key}" data-curtain="open" ${unlocked ? 'disabled' : ''}>${t('curtainOpenBtn')}</button>
@@ -1638,6 +1845,7 @@ function buildSwitchCard(key) {
       <div class="card-ico-name"><span class="card-ico">${on ? '🔌' : '⬜'}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
       <div class="card-head-actions">
         ${favBtn(key)}
+        ${reportBtn(key)}
         <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-switch"></div>
       </div>
     </div>
@@ -1668,7 +1876,7 @@ function buildSwitch3CHCard(key) {
   return `<div class="device-card full-width ${anyOn ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">${ico}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
-      <div class="card-head-actions">${favBtn(key)}</div>
+      <div class="card-head-actions">${favBtn(key)}${reportBtn(key)}</div>
     </div>
     ${rows}
     ${manualRow(key)}
@@ -1687,6 +1895,7 @@ function buildACCard(key) {
       <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">${devLabel(key, cfg)}</span></div>
       <div class="card-head-actions">
         ${favBtn(key)}
+        ${reportBtn(key)}
         <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-ac"></div>
       </div>
     </div>
@@ -2045,6 +2254,10 @@ function handlePlanGridInput(e) {
 
 // ── EVENT: CLICK EN EL GRID ───────────────────────────────────────────────────
 function handleGridClick(e) {
+  // Reportar un problema con el dispositivo
+  const reportBtnEl = e.target.closest('[data-action="report-problem"]');
+  if (reportBtnEl) { openReportModal(reportBtnEl.dataset.key); return; }
+
   // Marcar/desmarcar favorito (acceso directo)
   const favBtnEl = e.target.closest('[data-action="toggle-favorite"]');
   if (favBtnEl) {
@@ -2222,12 +2435,16 @@ function renderScenes() {
       : `<button class="scene-action-btn" data-scene-action="edit" data-scene="${scene.id}" title="${t('sceneEditTitle')}" aria-label="${t('sceneEditTitle')}">✏️</button>
          ${scene.hasOverride ? `<button class="scene-action-btn" data-scene-action="reset" data-scene="${scene.id}" title="${t('sceneResetTitle')}" aria-label="${t('sceneResetTitle')}">↺</button>` : ''}`;
 
-    return `<button class="scene-card" data-scene="${scene.id}" aria-label="${scene.title}">
+    // div, no button: el botón externo no puede contener los botones internos
+    // de editar/eliminar (✏️/🗑️/↺) — un <button> dentro de otro <button> es
+    // inválido en HTML5 y el navegador cierra el externo antes de tiempo,
+    // dejando ícono/título/descripción como hijos sueltos de la grilla.
+    return `<div class="scene-card" role="button" tabindex="0" data-scene="${scene.id}" aria-label="${scene.title}">
       <div class="scene-card-actions">${actions}</div>
       <span class="scene-card-ico">${scene.icon}</span>
       <span class="scene-card-title">${scene.title}</span>
       <span class="scene-card-desc">${scene.desc}</span>
-    </button>`;
+    </div>`;
   }).join('');
 }
 
@@ -2244,6 +2461,16 @@ function handleSceneGridClick(e) {
   }
   const card = e.target.closest('.scene-card');
   if (card) applyScene(card.dataset.scene);
+}
+
+// .scene-card ya no es un <button> nativo (ver renderScenes) — se restaura
+// la activación por teclado (Enter/Espacio) que el navegador daba gratis.
+function handleSceneGridKeydown(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const card = e.target.closest('.scene-card');
+  if (!card) return;
+  e.preventDefault();
+  applyScene(card.dataset.scene);
 }
 
 async function applyScene(sceneId) {

@@ -287,6 +287,28 @@ body {
 .scene-modal-actions .support-btn { flex: 1; justify-content: center; }
 #scene-modal-cancel { background: var(--card2); color: var(--text2); }
 
+/* ── MODAL: REPORTAR PROBLEMA DE DISPOSITIVO ─────────────────────────────── */
+.report-options {
+  display: flex; flex-direction: column; gap: 8px;
+  margin-bottom: 16px; max-height: 280px; overflow-y: auto;
+}
+.report-option {
+  width: 100%; text-align: left; padding: 11px 14px;
+  border-radius: var(--rsm); border: 1.5px solid var(--border);
+  background: var(--card2); color: var(--text);
+  font-size: 13px; font-family: var(--font); cursor: pointer;
+  transition: all .15s; -webkit-tap-highlight-color: transparent;
+}
+.report-option.active { border-color: var(--teal); background: var(--teal-l); font-weight: 600; }
+.report-other-textarea {
+  width: 100%; padding: 10px 12px; margin-bottom: 16px;
+  border-radius: var(--rsm); border: 1px solid var(--border);
+  background: var(--card2); color: var(--text);
+  font-size: 13px; font-family: var(--font); outline: none; resize: vertical; min-height: 90px;
+}
+.report-other-textarea:focus { border-color: var(--teal); }
+#report-modal-back { background: var(--card2); color: var(--text2); }
+
 /* ── SECTION LABEL ────────────────────────────────────────────────────────── */
 .section-label {
   font-size: 11px; font-weight: 700; text-transform: uppercase;
@@ -356,6 +378,12 @@ body {
 }
 .fav-btn:active { transform: scale(1.15); }
 .fav-btn.active { color: #FFD66B; }
+.report-btn {
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-size: 16px; line-height: 1; color: rgba(255,255,255,.55);
+  transition: color .2s, transform .15s;
+}
+.report-btn:active { transform: scale(1.15); }
 .card-ico-name  { display: flex; align-items: center; gap: 10px; }
 .card-ico {
   width: 36px; height: 36px; border-radius: 10px;
