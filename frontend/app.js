@@ -1146,6 +1146,12 @@ function renderApp(data) {
   grid.addEventListener('click',  handleGridClick);
   grid.addEventListener('input',  handleGridInput);
   grid.addEventListener('change', handleGridInput);
+  // La TV vive dentro de Controles inteligentes (no es un dispositivo Tuya
+  // real, es un placeholder) — reusa el mismo manejador que las demás
+  // funciones del plan, así que también se enlaza acá.
+  grid.addEventListener('click',  handlePlanGridClick);
+  grid.addEventListener('input',  handlePlanGridInput);
+  grid.addEventListener('change', handlePlanGridInput);
 
   // Delegación de eventos para la barra de favoritos
   document.getElementById('favorites-bar')?.addEventListener('click', handleFavBarClick);
@@ -1841,19 +1847,19 @@ const TUTORIAL_STEPS = [
   },
   {
     view: 'room',
-    selector: () => document.querySelector('#device-grid .curtain-btn[data-curtain="open"]'),
+    selector: () => document.querySelector('#device-grid [data-curtain="open"]'),
     titleKey: 'tutCurtainOpenTitle',
     descKey:  'tutCurtainOpenDesc',
   },
   {
     view: 'room',
-    selector: () => document.querySelector('#device-grid .curtain-btn[data-curtain="stop"]'),
+    selector: () => document.querySelector('#device-grid [data-curtain="stop"]'),
     titleKey: 'tutCurtainStopTitle',
     descKey:  'tutCurtainStopDesc',
   },
   {
     view: 'room',
-    selector: () => document.querySelector('#device-grid .curtain-btn[data-curtain="close"]'),
+    selector: () => document.querySelector('#device-grid [data-curtain="close"]'),
     titleKey: 'tutCurtainCloseTitle',
     descKey:  'tutCurtainCloseDesc',
   },
@@ -2141,10 +2147,10 @@ function renderGrid() {
         <span class="support-card-ico">🛎️</span>
         <p>${t('noDevicesMsg')}</p>
         <button class="support-btn" onclick="switchView('support')">${t('noDevicesBtn')}</button>
-      </div>`;
+      </div>` + buildTVCard();
     return;
   }
-  grid.innerHTML = keys.map(buildCard).join('');
+  grid.innerHTML = keys.map(buildCard).join('') + buildTVCard();
 }
 
 function updateCard(key) {
@@ -2299,9 +2305,9 @@ function buildCurtainCard(key) {
     </div>
     <div class="curtain-vcontrol">
       <div class="curtain-vbtns">
-        <button class="curtain-vbtn" data-key="${key}" data-curtain="open" ${unlocked ? 'disabled' : ''}>▲ ${t('curtainOpenBtn')}</button>
-        <button class="curtain-vbtn stop-vbtn" data-key="${key}" data-curtain="stop" ${unlocked ? 'disabled' : ''}>⏹ ${t('curtainStopBtn')}</button>
-        <button class="curtain-vbtn" data-key="${key}" data-curtain="close" ${unlocked ? 'disabled' : ''}>▼ ${t('curtainCloseBtn')}</button>
+        <button class="curtain-vbtn" data-key="${key}" data-curtain="open" ${unlocked ? 'disabled' : ''}>${t('curtainOpenBtn')}</button>
+        <button class="curtain-vbtn stop-vbtn" data-key="${key}" data-curtain="stop" ${unlocked ? 'disabled' : ''}>${t('curtainStopBtn')}</button>
+        <button class="curtain-vbtn" data-key="${key}" data-curtain="close" ${unlocked ? 'disabled' : ''}>${t('curtainCloseBtn')}</button>
       </div>
       <div class="curtain-vslider-wrap">
         <div class="curtain-vtrack">
@@ -2428,7 +2434,6 @@ const PLAN_FEATURES_INFO = {
 function renderPlanGrid() {
   const grid = document.getElementById('plan-grid');
   grid.innerHTML = [
-    buildTVCard(),
     buildFeatureCard('voice',    PLAN_FEATURES_INFO.voice,    buildVoiceCard),
     buildFeatureCard('bathroom', PLAN_FEATURES_INFO.bathroom, buildBathroomCard),
     buildFeatureCard('bidet',    PLAN_FEATURES_INFO.bidet,    buildBidetCard),
