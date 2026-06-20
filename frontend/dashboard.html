@@ -520,6 +520,10 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">📜</span>
       <span class="nav-label">Log</span>
     </div>
+    <div class="nav-item" data-view="crm">
+      <span class="nav-icon">👥</span>
+      <span class="nav-label">CRM</span>
+    </div>
     <div class="nav-item" data-view="mensajes">
       <span class="nav-icon">💬</span>
       <span class="nav-label">Mensajes</span>
@@ -713,6 +717,18 @@ select.form-input option{background:var(--card);color:var(--text)}
       </div>
       <div class="rl-count" id="log-count"></div>
       <div class="activity-log" id="log-list" style="max-height:none"></div>
+    </div>
+
+    <!-- VIEW: CRM (buscador de huéspedes + historial + pack sugerido) -->
+    <div class="view" id="view-crm">
+      <div class="form-note hidden" id="crm-demo-banner" style="background:#fff7e6;border:1px solid #f5c451;border-radius:8px;padding:10px 14px;margin-bottom:14px;color:#7a5b00">
+        Estás viendo datos de ejemplo — aparecerán huéspedes reales aquí en cuanto haya estadías registradas.
+      </div>
+      <div class="rl-filters">
+        <input type="search" id="crm-search" placeholder="Buscar por nombre, email o teléfono…">
+      </div>
+      <div class="rl-count" id="crm-count"></div>
+      <div id="crm-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
     </div>
 
     <!-- VIEW: MENSAJES (bandeja de pendientes + registro/log completo con fecha y hora) -->
@@ -1378,6 +1394,16 @@ select.form-input option{background:var(--card);color:var(--text)}
       <button class="modal-close" onclick="closeModal('modal-schedule')">✕</button>
     </div>
     <div id="schedule-modal-body" style="padding:0 24px 20px"></div>
+  </div>
+</div>
+
+<div class="modal-overlay hidden" id="modal-huesped">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">👤 <span id="huesped-modal-nombre"></span></div>
+      <button class="modal-close" onclick="closeModal('modal-huesped')">✕</button>
+    </div>
+    <div id="huesped-modal-body" style="padding:0 24px 20px"></div>
   </div>
 </div>
 

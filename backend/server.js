@@ -1766,9 +1766,15 @@ app.get('/api/admin/informes/rendimiento', requireAuth('owner'), (req, res) => {
 // ?hotel=&q= — buscador transversal de huéspedes (nombre/email/teléfono) con historial.
 app.get('/api/admin/huespedes', requireAuth('owner', 'recepcion'), (req, res) => {
   const { hotel, q } = req.query;
-  if (!hotel || !q || q.trim().length < 2) return res.status(400).json({ error: 'Requeridos: hotel, q (mínimo 2 caracteres)' });
+  if (!hotel) return res.status(400).json({ error: 'Requerido: hotel' });
   if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
-  res.json(huespedes.buscar(hotel, q));
+
+  if (q && q.trim().length >= 2) {
+    return res.json({ demo: false, huespedes: huespedes.buscar(hotel, q) });
+  }
+  const top = huespedes.listarTop(hotel);
+  if (!top.length) return res.json({ demo: true, huespedes: huespedes.DATOS_DEMO });
+  res.json({ demo: false, huespedes: top });
 });
 
 // ── ADMIN: GET /api/admin/servicios ───────────────────────────────────────────

@@ -890,6 +890,7 @@ function navigate(view) {
     loadInformes();
   }
   if (view === 'log') loadLogMaestro();
+  if (view === 'crm') loadCRM();
   if (view === 'mensajes') loadMensajesLog();
   if (view === 'grid-tarifas') loadGrid();
 }
@@ -2314,6 +2315,67 @@ function renderReservasLista() {
     </tr>`;
   }).join('');
 }
+
+// ── CRM (buscador de huéspedes + historial + pack sugerido) ─────────────────
+let crmCache = [];
+const PACK_BADGE_CLASS = { vip: 'badge-active', fidelidad: 'badge-active', reactivacion: 'badge-plan' };
+
+async function loadCRM(q) {
+  if (!HOTEL_ID) return;
+  $('crm-list').innerHTML = `<div class="form-note" style="padding:14px">${dt('loadingDevices')}</div>`;
+  try {
+    const qs = q && q.trim().length >= 2 ? `&q=${encodeURIComponent(q.trim())}` : '';
+    const res = await apiFetch(`/admin/huespedes?hotel=${encodeURIComponent(HOTEL_ID)}${qs}`);
+    crmCache = res.huespedes;
+    $('crm-demo-banner').classList.toggle('hidden', !res.demo);
+    renderCRMList();
+  } catch (err) {
+    $('crm-list').innerHTML = `<div class="form-note">${dt('loadDevError', { e: err.message })}</div>`;
+  }
+}
+
+function renderCRMList() {
+  $('crm-count').textContent = `${crmCache.length} huésped${crmCache.length !== 1 ? 'es' : ''}`;
+  if (!crmCache.length) {
+    $('crm-list').innerHTML = '<div class="form-note" style="padding:14px">Sin huéspedes que coincidan con la búsqueda.</div>';
+    return;
+  }
+  $('crm-list').innerHTML = crmCache.map((g, i) => `
+    <div class="analytics-card" style="cursor:pointer" onclick="openHuespedModal(${i})">
+      <div style="font-weight:600;margin-bottom:4px">${g.nombre}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px">${g.email || g.telefono || ''}</div>
+      <div style="font-size:12px;color:var(--text2)">${g.totalEstadias} estadía${g.totalEstadias !== 1 ? 's' : ''} · última: ${g.ultimaEstadia ? g.ultimaEstadia.slice(0, 10) : '—'}</div>
+      ${g.packSugerido ? `<span class="badge ${PACK_BADGE_CLASS[g.packSugerido.id] || 'badge-active'}" style="margin-top:8px;display:inline-block">${g.packSugerido.label}</span>` : ''}
+    </div>`).join('');
+}
+
+window.openHuespedModal = function(i) {
+  const g = crmCache[i];
+  $('huesped-modal-nombre').textContent = g.nombre;
+  const packHtml = g.packSugerido
+    ? `<div class="analytics-card" style="margin-bottom:14px">
+        <div style="font-weight:600">${g.packSugerido.label}</div>
+        <div style="font-size:12px;color:var(--text2)">${g.packSugerido.desc}</div>
+      </div>`
+    : '';
+  const filas = g.reservas.map(r => {
+    const room = rooms.find(rm => rm.id === r.room_id);
+    return `<tr>
+      <td><span class="badge ${r.status === 'cancelled' ? 'badge-error' : 'badge-active'}">${RL_STATUS_LABEL[r.status] || r.status}</span></td>
+      <td>${room?.name || r.room_id}</td>
+      <td>${(r.checkin || '').slice(0, 10)}</td>
+      <td>${(r.checkout || '').slice(0, 10)}</td>
+    </tr>`;
+  }).join('');
+  $('huesped-modal-body').innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px">${g.email || ''} ${g.telefono ? '· ' + g.telefono : ''}</div>
+    ${packHtml}
+    <table class="rl-table">
+      <thead><tr><th>Estado</th><th>Habitación</th><th>Check-in</th><th>Check-out</th></tr></thead>
+      <tbody>${filas}</tbody>
+    </table>`;
+  $('modal-huesped').classList.remove('hidden');
+};
 
 // ── GRID DE TARIFAS (planilla habitación/categoría × fecha) ──────────────────
 let gtDesde = new Date().toISOString().slice(0, 10);
@@ -3784,6 +3846,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('inf-filtrar').addEventListener('click', loadInformes);
   $('log-filtrar').addEventListener('click', loadLogMaestro);
+
+  let crmSearchTimer = null;
+  $('crm-search').addEventListener('input', () => {
+    clearTimeout(crmSearchTimer);
+    crmSearchTimer = setTimeout(() => loadCRM($('crm-search').value), 350);
+  });
 
   // Pagos
   $('pg-filtrar').addEventListener('click', loadTransacciones);
