@@ -21,6 +21,7 @@ const categorias    = require('./categorias');
 const bookingConfig = require('./booking-config');
 const facturacionConfig = require('./facturacion-config');
 const facturacion       = require('./facturacion');
+const programados       = require('./programados');
 const pagos         = require('./pagos');
 const transacciones = require('./transacciones');
 const auth          = require('./auth');
@@ -533,6 +534,94 @@ app.post('/api/room/:token/command', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Error al ejecutar el comando', detail: err.message });
   }
+});
+
+// ── API: POST/GET /api/room/:token/schedule ───────────────────────────────────
+// Programar un comando de dispositivo para una fecha/hora futura (ej. encender
+// la estufa antes de llegar). La ejecución real la hace ejecutarComandosProgramados().
+app.post('/api/room/:token/schedule', async (req, res) => {
+  const result = rooms.getRoomByToken(req.params.token);
+  if (!result) return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
+  const { room, entry } = result;
+
+  const { device, command, ejecutarEn } = req.body;
+  if (!device || !command || !ejecutarEn) {
+    return res.status(400).json({ error: 'Faltan campos: device, command, ejecutarEn' });
+  }
+  const devConfig = room.devices[device];
+  if (!devConfig) return res.status(404).json({ error: `Dispositivo "${device}" no existe en esta habitación` });
+  if (commandToTuya(devConfig.type, command).length === 0) {
+    return res.status(400).json({ error: 'Comando no reconocido para este tipo de dispositivo' });
+  }
+
+  try {
+    const c = programados.crear({
+      hotelId: room.hotelId, roomId: entry.roomId, deviceKey: device, comando: command,
+      ejecutarEn, origen: 'huesped', creadoPor: req.params.token,
+    });
+    res.status(201).json(c);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/room/:token/schedule', (req, res) => {
+  const result = rooms.getRoomByToken(req.params.token);
+  if (!result) return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
+  res.json(programados.listarPorRoom(result.entry.roomId));
+});
+
+app.delete('/api/room/:token/schedule/:id', (req, res) => {
+  const result = rooms.getRoomByToken(req.params.token);
+  if (!result) return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
+  const c = programados.getById(req.params.id);
+  if (!c || c.room_id !== result.entry.roomId) return res.status(404).json({ error: 'No encontrado' });
+  const ok = programados.cancelar(req.params.id);
+  if (!ok) return res.status(400).json({ error: 'Ya no se puede cancelar (ya se ejecutó o fue cancelado)' });
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST/GET /api/admin/rooms/:roomId/schedule ─────────────────────────
+app.post('/api/admin/rooms/:roomId/schedule', requireAuth('owner', 'recepcion'), (req, res) => {
+  const room = rooms.getRooms()[req.params.roomId];
+  if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
+  if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+
+  const { device, command, ejecutarEn } = req.body;
+  if (!device || !command || !ejecutarEn) {
+    return res.status(400).json({ error: 'Faltan campos: device, command, ejecutarEn' });
+  }
+  const devConfig = room.devices[device];
+  if (!devConfig) return res.status(404).json({ error: `Dispositivo "${device}" no existe en esta habitación` });
+  if (commandToTuya(devConfig.type, command).length === 0) {
+    return res.status(400).json({ error: 'Comando no reconocido para este tipo de dispositivo' });
+  }
+
+  try {
+    const c = programados.crear({
+      hotelId: room.hotelId, roomId: req.params.roomId, deviceKey: device, comando: command,
+      ejecutarEn, origen: 'staff', creadoPor: req.user.id,
+    });
+    res.status(201).json(c);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/rooms/:roomId/schedule', requireAuth('owner', 'recepcion'), (req, res) => {
+  const room = rooms.getRooms()[req.params.roomId];
+  if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
+  if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(programados.listarPorRoom(req.params.roomId));
+});
+
+app.delete('/api/admin/schedule/:id', requireAuth('owner', 'recepcion'), (req, res) => {
+  const c = programados.getById(req.params.id);
+  if (!c) return res.status(404).json({ error: 'No encontrado' });
+  if (!assertHotelAccess(req, c.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const ok = programados.cancelar(req.params.id);
+  if (!ok) return res.status(400).json({ error: 'Ya no se puede cancelar (ya se ejecutó o fue cancelado)' });
+  res.json({ success: true });
 });
 
 // ── API: POST /api/room/:token/voice-command ───────────────────────────────────
@@ -1991,4 +2080,30 @@ app.listen(PORT, () => {
   // de cron externo) — corre poco después de arrancar y luego cada 24h.
   setTimeout(() => encuestas.enviarPendientes().catch(err => console.error('[encuestas] sweep falló:', err.message)), 30_000);
   setInterval(() => encuestas.enviarPendientes().catch(err => console.error('[encuestas] sweep falló:', err.message)), 24 * 60 * 60 * 1000);
+
+  // Comandos programados (ej. encender la estufa antes de que llegue el
+  // huésped): barrido cada minuto en proceso, mismo patrón que las encuestas.
+  setInterval(() => ejecutarComandosProgramados().catch(err => console.error('[programados] sweep falló:', err.message)), 60 * 1000);
 });
+
+async function ejecutarComandosProgramados() {
+  const vencidos = programados.obtenerPendientesVencidos(new Date().toISOString());
+  for (const c of vencidos) {
+    const atrasoMin = (Date.now() - new Date(c.ejecutar_en).getTime()) / 60000;
+    if (atrasoMin > 15) {
+      programados.marcarFallido(c.id, 'Expiró sin ejecutarse (servidor no disponible a esa hora)');
+      continue;
+    }
+    const room = rooms.getRooms()[c.room_id];
+    const dev  = room?.devices[c.device_key];
+    if (!dev) { programados.marcarFallido(c.id, 'Dispositivo ya no existe'); continue; }
+    try {
+      const tuyaCmds = commandToTuya(dev.type, JSON.parse(c.comando));
+      await tuya.sendCommand(dev.deviceId, tuyaCmds);
+      programados.marcarEjecutado(c.id);
+      rooms.addActivity(c.room_id, 'scheduled_command', dev.label);
+    } catch (err) {
+      programados.marcarFallido(c.id, err.message);
+    }
+  }
+}

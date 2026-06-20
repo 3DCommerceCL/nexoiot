@@ -243,6 +243,17 @@ const I18N = {
     reportOptNoEnfriaCalienta: 'No enfría ni calienta aunque esté encendido',
     themeActivateDark: 'Activar modo oscuro',
     themeDeactivateDark: 'Desactivar modo oscuro',
+    scheduleBtn: 'Programar',
+    scheduleTitle: 'Programar',
+    scheduleDesc: 'Elige cuándo se debe encender o apagar: {device}.',
+    scheduleTurnOn: 'Encender',
+    scheduleTurnOff: 'Apagar',
+    scheduleSendBtn: 'Programar',
+    scheduleNoDateError: 'Elige una fecha y hora.',
+    scheduleNonePending: 'Sin programaciones pendientes.',
+    scheduleCancelBtn: 'Cancelar programación',
+    toastScheduleSaved: 'Programado correctamente',
+    toastScheduleCancelled: 'Programación cancelada',
     voiceOn: 'Asistente activo (Amazon Echo)',
     voiceOff: 'Modo privado — solo control por app',
     bathAutoNote: ' · Programada para encenderse automáticamente si hay alguien dentro',
@@ -417,6 +428,17 @@ const I18N = {
     reportOptNoEnfriaCalienta: 'Doesn\'t cool or heat even though it\'s on',
     themeActivateDark: 'Turn on dark mode',
     themeDeactivateDark: 'Turn off dark mode',
+    scheduleBtn: 'Schedule',
+    scheduleTitle: 'Schedule',
+    scheduleDesc: 'Choose when it should turn on or off: {device}.',
+    scheduleTurnOn: 'Turn on',
+    scheduleTurnOff: 'Turn off',
+    scheduleSendBtn: 'Schedule',
+    scheduleNoDateError: 'Pick a date and time.',
+    scheduleNonePending: 'No scheduled commands pending.',
+    scheduleCancelBtn: 'Cancel scheduled command',
+    toastScheduleSaved: 'Scheduled successfully',
+    toastScheduleCancelled: 'Scheduled command cancelled',
     voiceOn: 'Assistant active (Amazon Echo)',
     voiceOff: 'Private mode — app control only',
     bathAutoNote: ' · Set to turn on automatically when someone is inside',
@@ -591,6 +613,17 @@ const I18N = {
     reportOptNoEnfriaCalienta: 'Não esfria nem esquenta mesmo ligado',
     themeActivateDark: 'Ativar modo escuro',
     themeDeactivateDark: 'Desativar modo escuro',
+    scheduleBtn: 'Programar',
+    scheduleTitle: 'Programar',
+    scheduleDesc: 'Escolha quando deve ligar ou desligar: {device}.',
+    scheduleTurnOn: 'Ligar',
+    scheduleTurnOff: 'Desligar',
+    scheduleSendBtn: 'Programar',
+    scheduleNoDateError: 'Escolha uma data e hora.',
+    scheduleNonePending: 'Sem agendamentos pendentes.',
+    scheduleCancelBtn: 'Cancelar agendamento',
+    toastScheduleSaved: 'Agendado com sucesso',
+    toastScheduleCancelled: 'Agendamento cancelado',
     voiceOn: 'Assistente ativo (Amazon Echo)',
     voiceOff: 'Modo privado — controle apenas pelo app',
     bathAutoNote: ' · Programada para acender automaticamente se houver alguém dentro',
@@ -1320,6 +1353,113 @@ function submitReport() {
   closeReportModal();
 }
 
+// ── PROGRAMAR ENCENDIDO/APAGADO (enchufe inteligente) ────────────────────────
+let scheduleState = null; // { key, ch }
+
+function openScheduleModal(key, ch) {
+  scheduleState = { key, ch };
+  renderScheduleModal();
+  document.getElementById('schedule-modal-overlay').classList.remove('hidden');
+}
+
+function closeScheduleModal() {
+  document.getElementById('schedule-modal-overlay').classList.add('hidden');
+  scheduleState = null;
+}
+
+async function renderScheduleModal() {
+  if (!scheduleState) return;
+  const { key, ch } = scheduleState;
+  const cfg   = app.config[key] || {};
+  const label = (cfg.channels && cfg.channels[ch]) || devLabel(key, cfg);
+  const card  = document.getElementById('schedule-modal-card');
+
+  const now = new Date(Date.now() + 5 * 60000); // mínimo 5 min en el futuro
+  const minLocal = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+  card.innerHTML = `
+    <div class="onboarding-ico">🕐</div>
+    <h2>${t('scheduleTitle')}</h2>
+    <p class="scene-modal-desc">${t('scheduleDesc', { device: label })}</p>
+    <input type="datetime-local" class="scene-name-input" id="schedule-datetime" min="${minLocal}">
+    <div class="report-options" id="schedule-onoff">
+      <button type="button" class="report-option active" data-onoff="true">${t('scheduleTurnOn')}</button>
+      <button type="button" class="report-option" data-onoff="false">${t('scheduleTurnOff')}</button>
+    </div>
+    <div class="form-error" id="schedule-error" style="color:#E5484D;font-size:12px;margin-bottom:10px"></div>
+    <div class="scene-modal-actions">
+      <button class="support-btn" id="schedule-modal-back">${t('reportBackBtn')}</button>
+      <button class="support-btn" id="schedule-modal-send">${t('scheduleSendBtn')}</button>
+    </div>
+    <div id="schedule-pending-list" style="margin-top:16px"></div>`;
+
+  let onoff = 'true';
+  document.querySelectorAll('#schedule-onoff .report-option').forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll('#schedule-onoff .report-option').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onoff = btn.dataset.onoff;
+    };
+  });
+  document.getElementById('schedule-modal-back').onclick = closeScheduleModal;
+  document.getElementById('schedule-modal-send').onclick = () => submitSchedule(onoff);
+
+  loadPendingSchedules(key, ch);
+}
+
+async function submitSchedule(onoff) {
+  const { key, ch } = scheduleState;
+  const dt = document.getElementById('schedule-datetime').value;
+  if (!dt) { document.getElementById('schedule-error').textContent = t('scheduleNoDateError'); return; }
+
+  const command = { [`ch${ch + 1}`]: onoff === 'true' };
+  try {
+    const res = await fetch(`${API}/room/${app.token}/schedule`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ device: key, command, ejecutarEn: new Date(dt).toISOString() }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    document.getElementById('schedule-datetime').value = '';
+    showToast(t('toastScheduleSaved'), 'success');
+    loadPendingSchedules(key, ch);
+  } catch (err) {
+    document.getElementById('schedule-error').textContent = err.message;
+  }
+}
+
+async function loadPendingSchedules(key, ch) {
+  const list = document.getElementById('schedule-pending-list');
+  if (!list) return;
+  try {
+    const res = await fetch(`${API}/room/${app.token}/schedule`);
+    const all = await res.json();
+    const propios = (Array.isArray(all) ? all : []).filter(c => c.device_key === key && JSON.parse(c.comando)[`ch${ch + 1}`] !== undefined);
+    if (!propios.length) { list.innerHTML = `<div class="scenes-hint">${t('scheduleNonePending')}</div>`; return; }
+    list.innerHTML = propios.map(c => {
+      const on = JSON.parse(c.comando)[`ch${ch + 1}`];
+      const fecha = new Date(c.ejecutar_en).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+      return `<div class="ch-row">
+        <span class="ch-label">${on ? t('scheduleTurnOn') : t('scheduleTurnOff')} · ${fecha}</span>
+        <button type="button" class="report-btn" onclick="cancelSchedule('${c.id}')" aria-label="${t('scheduleCancelBtn')}">✕</button>
+      </div>`;
+    }).join('');
+  } catch {
+    list.innerHTML = '';
+  }
+}
+
+window.cancelSchedule = async function(id) {
+  try {
+    await fetch(`${API}/room/${app.token}/schedule/${id}`, { method: 'DELETE' });
+    showToast(t('toastScheduleCancelled'), '');
+    loadPendingSchedules(scheduleState.key, scheduleState.ch);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
 function setA11y(mode) {
   if (mode === app.a11y) return;
   app.a11y = mode;
@@ -1888,7 +2028,10 @@ function buildSwitch3CHCard(key) {
   const rows = chs.map((label, i) => `
     <div class="ch-row">
       <span class="ch-label">${label}</span>
-      <div class="toggle ${vals[i] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch${i + 1}"></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button type="button" class="report-btn" data-action="schedule-channel" data-key="${key}" data-ch="${i}" aria-label="${t('scheduleBtn')}">🕐</button>
+        <div class="toggle ${vals[i] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch${i + 1}"></div>
+      </div>
     </div>`).join('');
 
   const ico = chs.length <= 2 ? '🔌' : '⚡';
@@ -2277,6 +2420,10 @@ function handleGridClick(e) {
   // Reportar un problema con el dispositivo
   const reportBtnEl = e.target.closest('[data-action="report-problem"]');
   if (reportBtnEl) { openReportModal(reportBtnEl.dataset.key); return; }
+
+  // Programar encendido/apagado de un canal del enchufe inteligente
+  const scheduleBtnEl = e.target.closest('[data-action="schedule-channel"]');
+  if (scheduleBtnEl) { openScheduleModal(scheduleBtnEl.dataset.key, parseInt(scheduleBtnEl.dataset.ch, 10)); return; }
 
   // Marcar/desmarcar favorito (acceso directo)
   const favBtnEl = e.target.closest('[data-action="toggle-favorite"]');

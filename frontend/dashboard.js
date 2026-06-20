@@ -1362,16 +1362,23 @@ function channelFuncionControlHtml(key, i, label) {
   return `<select class="form-input" style="font-size:10px;padding:3px 6px;height:auto;width:auto" onclick="event.stopPropagation()" onchange="setChannelFuncion('${key}', ${i}, this.value)">${opts.join('')}</select>`;
 }
 
+let scheduleOpenPanel = null; // "${key}-${i}" del panel de programación abierto, o null
+
 function buildMultiSwitchCard(key, dev, ico) {
   const labels = dev.channels || ['Canal 1', 'Canal 2', 'Canal 3'];
   const chKeys = ['ch1', 'ch2', 'ch3'].slice(0, labels.length);
   const manual = !!dev.state.manual;
   const rows = chKeys.map((ch, i) => {
     const on = dev.state[ch];
+    const panelId = `${key}-${i}`;
     return `<div style="display:flex;align-items:center;justify-content:space-between;${i ? 'margin-top:8px' : ''}">
       ${channelFuncionControlHtml(key, i, labels[i])}
-      <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleMultiSwitch('${key}','${ch}', ${!on})"></div>
-    </div>`;
+      <div style="display:flex;align-items:center;gap:8px">
+        <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();toggleSchedulePanel('${panelId}')">🕐</button>
+        <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleMultiSwitch('${key}','${ch}', ${!on})"></div>
+      </div>
+    </div>
+    ${buildSchedulePanel(panelId)}`;
   }).join('');
   return `<div class="dev-card">
     <div class="dev-card-head">
@@ -1381,6 +1388,75 @@ function buildMultiSwitchCard(key, dev, ico) {
     ${buildManualRow(key, manual)}
   </div>`;
 }
+
+function buildSchedulePanel(panelId) {
+  if (scheduleOpenPanel !== panelId) return '';
+  return `<div class="cobro-manual-form" style="margin-top:6px">
+      <input class="form-input" type="datetime-local" id="sched-dt-${panelId}" style="max-width:200px">
+      <select class="form-input" id="sched-onoff-${panelId}" style="max-width:110px">
+        <option value="true">Encender</option>
+        <option value="false">Apagar</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();confirmSchedule('${panelId}')">Programar</button>
+    </div>
+    <div id="sched-list-${panelId}" style="margin-bottom:8px"></div>`;
+}
+
+window.toggleSchedulePanel = function(panelId) {
+  scheduleOpenPanel = scheduleOpenPanel === panelId ? null : panelId;
+  renderDevGrid();
+  if (scheduleOpenPanel === panelId) loadSchedulePanel(panelId);
+};
+
+async function loadSchedulePanel(panelId) {
+  const idx = parseInt(panelId.slice(panelId.lastIndexOf('-') + 1), 10);
+  const key = panelId.slice(0, panelId.lastIndexOf('-'));
+  const listEl = document.getElementById(`sched-list-${panelId}`);
+  if (!listEl) return;
+  try {
+    const lista = await apiFetch(`/admin/rooms/${state.currentRoom.id}/schedule`);
+    const propios = lista.filter(c => c.device_key === key && JSON.parse(c.comando)[`ch${idx + 1}`] !== undefined);
+    if (!propios.length) { listEl.innerHTML = '<div class="form-note">Sin programaciones pendientes.</div>'; return; }
+    listEl.innerHTML = propios.map(c => {
+      const on = JSON.parse(c.comando)[`ch${idx + 1}`];
+      const fecha = new Date(c.ejecutar_en).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
+      return `<div class="mapping-row" style="margin-bottom:4px">
+        <span class="mapping-ota" style="flex:1">${on ? 'Encender' : 'Apagar'} · ${fecha}</span>
+        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();cancelSchedulePanel('${c.id}','${panelId}')">Cancelar</button>
+      </div>`;
+    }).join('');
+  } catch {
+    listEl.innerHTML = '';
+  }
+}
+
+window.confirmSchedule = async function(panelId) {
+  const idx = parseInt(panelId.slice(panelId.lastIndexOf('-') + 1), 10);
+  const key = panelId.slice(0, panelId.lastIndexOf('-'));
+  const dt = document.getElementById(`sched-dt-${panelId}`).value;
+  if (!dt) { showToast('Elige una fecha y hora.', 'error'); return; }
+  const onoff = document.getElementById(`sched-onoff-${panelId}`).value === 'true';
+  try {
+    await apiFetch(`/admin/rooms/${state.currentRoom.id}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify({ device: key, command: { [`ch${idx + 1}`]: onoff }, ejecutarEn: new Date(dt).toISOString() }),
+    });
+    showToast('Programado correctamente', 'success');
+    loadSchedulePanel(panelId);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.cancelSchedulePanel = async function(id, panelId) {
+  try {
+    await apiFetch(`/admin/schedule/${id}`, { method: 'DELETE' });
+    showToast('Programación cancelada', '');
+    loadSchedulePanel(panelId);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
 
 function buildSwitchCard(key, dev, ico) {
   const on = dev.state.on;

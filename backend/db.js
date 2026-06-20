@@ -124,6 +124,23 @@ db.exec(`
     updated_at        TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS comandos_programados (
+    id           TEXT PRIMARY KEY,
+    hotel_id     TEXT NOT NULL,
+    room_id      TEXT NOT NULL,
+    device_key   TEXT NOT NULL,
+    comando      TEXT NOT NULL,
+    ejecutar_en  TEXT NOT NULL,
+    origen       TEXT NOT NULL,
+    creado_por   TEXT,
+    estado       TEXT NOT NULL DEFAULT 'pendiente',
+    error        TEXT,
+    created_at   TEXT NOT NULL,
+    ejecutado_at TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_prog_estado ON comandos_programados(estado, ejecutar_en);
+  CREATE INDEX IF NOT EXISTS idx_prog_room   ON comandos_programados(room_id);
+
   CREATE TABLE IF NOT EXISTS facturacion_config (
     hotel_id        TEXT PRIMARY KEY,
     tupana_api_url  TEXT,
