@@ -428,10 +428,13 @@ app.get('/api/room/:token', async (req, res) => {
     };
   });
 
+  const hotelInfo = rooms.getHotels()[room.hotelId] || {};
+
   res.json({
     roomId:    entry.roomId,
     roomName:  room.name,
-    hotelName: room.hotel || process.env.HOTEL_NAME || 'Nexo IoT',
+    hotelName:  room.hotel || process.env.HOTEL_NAME || 'Nexo IoT',
+    hotelPhone: hotelInfo.phone || process.env.HOTEL_PHONE || null,
     guestName: entry.guestName,
     checkin:   entry.checkin,
     checkout:  entry.checkout,
@@ -890,26 +893,32 @@ app.post('/api/admin/reservas/:id/pago/webpay', requireAuth('owner', 'recepcion'
 // No requiere autenticación — es el return URL público de Webpay.
 app.all('/api/pagos/webpay-return', express.urlencoded({ extended: true }), async (req, res) => {
   const p = { ...req.query, ...req.body };
-  const { token_ws, TBK_TOKEN, TBK_ORDEN_COMPRA } = p;
+  const { token_ws, TBK_TOKEN, TBK_ORDEN_COMPRA, slug } = p;
+
+  // Si viene `slug` es un pago iniciado desde el motor de reservas directo
+  // (público) — el regreso va al widget, no al dashboard de administración.
+  const volverA = (hotelId, estado, reservaId) => slug
+    ? `/reservar/${slug}?pago=${estado}&reserva=${reservaId || ''}`
+    : `/dashboard.html?hotel=${hotelId || ''}&pago=${estado}&reserva=${reservaId || ''}`;
 
   if (TBK_TOKEN && !token_ws) {
     const trans = transacciones.getByBuyOrder(TBK_ORDEN_COMPRA);
     if (trans) transacciones.updateEstado(trans.id, 'rechazado', { motivo: 'cancelado_por_usuario' });
-    return res.redirect(`/dashboard.html?hotel=${trans?.hotel_id || ''}&pago=cancelado&reserva=${trans?.reserva_id || ''}`);
+    return res.redirect(volverA(trans?.hotel_id, 'cancelado', trans?.reserva_id));
   }
-  if (!token_ws) return res.redirect('/dashboard.html?pago=error');
+  if (!token_ws) return res.redirect(volverA(null, 'error'));
 
   try {
     const response = await pagos.confirmarWebpay(token_ws);
     const trans = transacciones.getByTokenWs(token_ws);
-    if (!trans) return res.redirect('/dashboard.html?pago=error');
+    if (!trans) return res.redirect(volverA(null, 'error'));
 
     const aprobado = response.response_code === 0;
     transacciones.updateEstado(trans.id, aprobado ? 'aprobado' : 'rechazado', response);
-    res.redirect(`/dashboard.html?hotel=${trans.hotel_id}&pago=${aprobado ? 'aprobado' : 'rechazado'}&reserva=${trans.reserva_id || ''}`);
+    res.redirect(volverA(trans.hotel_id, aprobado ? 'aprobado' : 'rechazado', trans.reserva_id));
   } catch (err) {
     console.error('[webpay] Error en return:', err.message);
-    res.redirect('/dashboard.html?pago=error');
+    res.redirect(volverA(null, 'error'));
   }
 });
 
@@ -1311,6 +1320,31 @@ app.post('/api/public/hotels/:slug/reservas', publicLimiter, async (req, res) =>
     checkout: nueva.checkout,
     mensaje:  'Reserva confirmada.',
   });
+});
+
+// ── PUBLIC: POST /api/public/hotels/:slug/reservas/:id/pago/webpay ───────────
+// Pago online desde el motor de reservas directo (mismo helper que usa el cobro
+// admin en /api/admin/reservas/:id/pago/webpay, sin requerir sesión).
+app.post('/api/public/hotels/:slug/reservas/:id/pago/webpay', publicLimiter, async (req, res) => {
+  const { slug, id } = req.params;
+  const reserva = reservas.getById(id);
+  if (!reserva || reserva.hotel_id !== slug) {
+    return res.status(404).json({ error: 'Reserva no encontrada' });
+  }
+  const { montoCLP } = req.body;
+  if (!montoCLP || montoCLP < 1) return res.status(400).json({ error: 'Monto inválido' });
+
+  const returnUrl = `${HOTEL_URL}/api/pagos/webpay-return?slug=${slug}`;
+  try {
+    const { token, url, buyOrder, sessionId } = await pagos.iniciarWebpay(montoCLP, returnUrl);
+    transacciones.createTransaccion({
+      reservaId: reserva.id, hotelId: slug, tipo: 'webpay',
+      montoCLP, tokenWs: token, buyOrder, sessionId, guestName: reserva.guest_name,
+    });
+    res.json({ url, token });
+  } catch (err) {
+    res.status(500).json({ error: 'Error iniciando pago Webpay', detail: err.message });
+  }
 });
 
 // ── PUBLIC: GET /api/public/reservas/:id/precheckin ───────────────────────────

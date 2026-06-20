@@ -790,6 +790,10 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
   -webkit-tap-highlight-color: transparent;
 }
 .support-btn:hover, .support-btn:active { background: var(--teal-d); }
+.support-link-sm {
+  font-size: 12px; color: var(--text2); text-decoration: underline;
+  -webkit-tap-highlight-color: transparent;
+}
 
 /* ── FOOTER ───────────────────────────────────────────────────────────────── */
 .app-footer {

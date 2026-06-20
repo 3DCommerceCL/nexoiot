@@ -47,6 +47,18 @@ async function init() {
   $('btn-volver-datos').addEventListener('click', () => goStep(3));
   $('btn-confirmar').addEventListener('click', confirmarReserva);
   $('pago-llegar').addEventListener('click', () => selPago('llegar'));
+  $('pago-webpay').addEventListener('click', () => {
+    if (!$('pago-webpay').classList.contains('disabled')) selPago('webpay');
+  });
+
+  // Si venimos de vuelta de Transbank (Webpay redirige acá con ?pago=&reserva=),
+  // saltar directo al resultado en vez de iniciar el flujo desde el paso 1.
+  const params = new URLSearchParams(window.location.search);
+  const pago = params.get('pago');
+  if (pago) {
+    renderResultadoPago(pago, params.get('reserva'));
+    goStep(5);
+  }
 }
 
 function applyConfig(cfg) {
@@ -151,6 +163,16 @@ function continuar() {
     $('e3').textContent = 'Email inválido.';
     return;
   }
+
+  // Sin tarifa configurada para esta habitación/fechas no hay un monto cierto
+  // que cobrar — Webpay se deshabilita y solo queda "pagar al llegar".
+  const sinTarifa = !selRoom?.precioTotal;
+  $('pago-webpay').classList.toggle('disabled', sinTarifa);
+  $('pago-webpay').querySelector('.be-pago-desc').textContent = sinTarifa
+    ? 'No disponible: este hotel aún no configuró tarifa para esta habitación.'
+    : 'Tarjeta de crédito, débito o redes vía Transbank.';
+  if (sinTarifa && pagoOpt === 'webpay') selPago('llegar');
+
   goStep(4);
 }
 
@@ -158,6 +180,7 @@ function continuar() {
 function selPago(opt) {
   pagoOpt = opt;
   $('pago-llegar').classList.toggle('sel', opt === 'llegar');
+  $('pago-webpay').classList.toggle('sel', opt === 'webpay');
 }
 
 async function confirmarReserva() {
@@ -174,6 +197,14 @@ async function confirmarReserva() {
       guestPhone: $('be-phone').value.trim() || undefined,
       checkin, checkout,
     });
+
+    if (pagoOpt === 'webpay' && selRoom.precioTotal) {
+      const montoCLP = Math.round(selRoom.precioTotal.clp_referencial);
+      const pago = await post(`/public/hotels/${SLUG}/reservas/${result.id}/pago/webpay`, { montoCLP });
+      window.location.href = pago.url; // navega a Transbank — el regreso lo maneja init()
+      return;
+    }
+
     renderConfirmacion(result);
     goStep(5);
   } catch (err) {
@@ -194,10 +225,26 @@ function renderConfirmacion(result) {
     ['Check-out',  fmt(checkout)],
     ['Noches',     noches],
     ['Huésped',    $('be-name').value.trim()],
-    ['Pago',       'Al llegar'],
+    ['Pago',       pagoOpt === 'webpay' ? 'Pagado online (Webpay)' : 'Al llegar'],
   ].map(([l, v]) =>
     `<div class="be-summary-row"><span class="be-summary-label">${l}</span><span class="be-summary-value">${v}</span></div>`
   ).join('');
+}
+
+// Resultado al volver desde Transbank (?pago=aprobado|rechazado|cancelado|error).
+function renderResultadoPago(pago, reservaId) {
+  const ESTADOS = {
+    aprobado:  { icon: '✅', title: '¡Pago aprobado!', sub: 'Tu reserva quedó confirmada y pagada. Guarda tu número de reserva:' },
+    rechazado: { icon: '❌', title: 'Pago rechazado', sub: 'Tu reserva se creó, pero el pago no se concretó. Puedes pagar al llegar al hotel.' },
+    cancelado: { icon: '⚠️', title: 'Pago cancelado', sub: 'Cancelaste el pago. Tu reserva se creó y puedes pagar al llegar al hotel.' },
+    error:     { icon: '⚠️', title: 'No pudimos confirmar el pago', sub: 'Si el cargo se realizó, contacta directamente al hotel con tu número de reserva.' },
+  };
+  const e = ESTADOS[pago] || ESTADOS.error;
+  $('conf-icon').textContent = e.icon;
+  $('conf-title').textContent = e.title;
+  $('conf-sub').textContent = e.sub;
+  $('conf-id').textContent = reservaId || '';
+  $('conf-summary').innerHTML = '';
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────

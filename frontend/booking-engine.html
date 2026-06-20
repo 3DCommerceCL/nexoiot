@@ -166,11 +166,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
           <div class="be-pago-desc">Sin cargo ahora. Pagas en el hotel al hacer check-in.</div>
         </div>
       </div>
-      <div class="be-pago disabled" id="pago-webpay">
+      <div class="be-pago" id="pago-webpay">
         <span class="be-pago-icon">💳</span>
         <div>
-          <div class="be-pago-title">Pagar con Transbank Webpay</div>
-          <div class="be-pago-desc">Próximamente disponible.</div>
+          <div class="be-pago-title">Pagar ahora con Webpay</div>
+          <div class="be-pago-desc">Tarjeta de crédito, débito o redes vía Transbank.</div>
         </div>
       </div>
       <div class="be-cancel-policy" id="be-policy"></div>
@@ -183,9 +183,9 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
   <!-- STEP 5: Confirmación -->
   <div id="s5" class="hidden">
     <div class="be-card" style="text-align:center">
-      <div class="be-confirm-icon">✅</div>
-      <div class="be-title">¡Reserva confirmada!</div>
-      <p class="be-sub">Guarda tu número de reserva:</p>
+      <div class="be-confirm-icon" id="conf-icon">✅</div>
+      <div class="be-title" id="conf-title">¡Reserva confirmada!</div>
+      <p class="be-sub" id="conf-sub">Guarda tu número de reserva:</p>
       <div class="be-confirm-id" id="conf-id"></div>
       <div class="be-summary" id="conf-summary"></div>
       <p style="font-size:12px;color:var(--text2)">¿Dudas? Contacta directamente al hotel.</p>

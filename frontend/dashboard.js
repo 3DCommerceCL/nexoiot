@@ -12,6 +12,13 @@ let HOTEL_ID = null; // se fija tras login: hotelId de la sesión (owner/recepci
 let currentRol = null; // 'superadmin' | 'owner' | 'recepcion', fijado tras login
 const isOwnerOrSuper = () => currentRol === 'owner' || currentRol === 'superadmin';
 
+// Canales OTA: el código (channel-manager.js, canales.js, esta misma vista) está
+// completo y funciona en modo simulación, pero certificarse con SiteMinder es un
+// proceso externo de semanas — mientras tanto se gatea la UI para no mostrarle a
+// un hotel prospecto una sección de integración sin canales reales conectados.
+// Para reactivarla cuando llegue la certificación, cambiar esto a `true`.
+const OTA_ENABLED = false;
+
 const $ = id => document.getElementById(id);
 
 // ── IDIOMA DEL PANEL (recepcionista) ──────────────────────────────────────────
@@ -868,7 +875,7 @@ function navigate(view) {
   if (view === 'overview') { loadHousekeeping(); renderRooms('overview'); }
   if (view === 'rooms') { loadHousekeeping(); renderRooms('rooms', state.filter); }
   if (view === 'calendar') initCalendar();
-  if (view === 'channels') loadCanales();
+  if (view === 'channels') { OTA_ENABLED ? loadCanales() : renderChannelsComingSoon(); }
   if (view === 'booking') loadBookingConfig();
   if (view === 'pagos') loadTransacciones();
   if (view === 'categorias') loadCategorias();
@@ -2335,6 +2342,16 @@ function syncAge(iso) {
   if (diff < 3600000) return `hace ${Math.round(diff / 60000)} min`;
   if (diff < 86400000) return `hace ${Math.round(diff / 3600000)} h`;
   return `hace ${Math.round(diff / 86400000)} d`;
+}
+
+function renderChannelsComingSoon() {
+  $('canal-grid').innerHTML = `
+    <div class="coming-soon-card">
+      <span class="coming-soon-ico">🔗</span>
+      <h3>Próximamente</h3>
+      <p>La integración con canales OTA (Booking, Airbnb, Expedia) estará disponible próximamente.
+      Mientras tanto, gestiona reservas manualmente desde el Calendario o recibe reservas directas desde tu Motor de Reservas.</p>
+    </div>`;
 }
 
 async function loadCanales() {

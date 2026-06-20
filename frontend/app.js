@@ -191,7 +191,9 @@ const I18N = {
     a11yVisionNote: 'Texto y controles más grandes, con mayor contraste, para personas con baja visión. El botón de micrófono (esquina inferior derecha) crece y se vuelve la forma principal de controlar la habitación por voz.',
     a11yHearingNote: 'Avisos visuales destacados y de mayor duración en lugar de señales sonoras.',
     supportQuestion: '¿Necesitas ayuda con tu habitación o tienes alguna duda?',
-    callReception: '📞 Llamar a recepción',
+    callReception: '💬 Escribir a recepción (WhatsApp)',
+    callReceptionTel: '📞 Prefiero llamar por teléfono',
+    callReceptionWaMsg: 'Hola, soy huésped de la habitación {room} en {hotel} y necesito ayuda.',
     callReceptionMsg: 'Para contactar a recepción, marca el interno 0 desde el teléfono de tu habitación o acércate a recepción.',
     checkoutMsg: 'Para el check-out, por favor dirígete a recepción o llama al interno del hotel.',
     manualNote: 'Control manual activado — usa el interruptor físico de la habitación. Desactívalo para volver a controlarlo desde la app.',
@@ -363,7 +365,9 @@ const I18N = {
     a11yVisionNote: 'Larger text and controls with higher contrast for low-vision guests. The microphone button (bottom-right corner) grows and becomes the main way to control the room by voice.',
     a11yHearingNote: 'Prominent, longer-lasting visual alerts instead of sound cues.',
     supportQuestion: 'Need help with your room or have any questions?',
-    callReception: '📞 Call the front desk',
+    callReception: '💬 Message the front desk (WhatsApp)',
+    callReceptionTel: '📞 I\'d rather call by phone',
+    callReceptionWaMsg: 'Hi, I\'m a guest in room {room} at {hotel} and I need help.',
     callReceptionMsg: 'To contact the front desk, dial extension 0 from your room phone or stop by the reception.',
     checkoutMsg: 'For check-out, please go to the front desk or call the hotel extension.',
     manualNote: 'Manual control enabled — use the physical switch in the room. Turn it off to control from the app again.',
@@ -535,7 +539,9 @@ const I18N = {
     a11yVisionNote: 'Texto e controles maiores, com mais contraste, para pessoas com baixa visão. O botão de microfone (canto inferior direito) cresce e passa a ser a forma principal de controlar o quarto por voz.',
     a11yHearingNote: 'Avisos visuais destacados e mais duradouros em vez de sinais sonoros.',
     supportQuestion: 'Precisa de ajuda com seu quarto ou tem alguma dúvida?',
-    callReception: '📞 Ligar para a recepção',
+    callReception: '💬 Mensagem para a recepção (WhatsApp)',
+    callReceptionTel: '📞 Prefiro ligar por telefone',
+    callReceptionWaMsg: 'Olá, sou hóspede do quarto {room} no {hotel} e preciso de ajuda.',
     callReceptionMsg: 'Para falar com a recepção, disque o ramal 0 do telefone do quarto ou vá até a recepção.',
     checkoutMsg: 'Para o check-out, dirija-se à recepção ou ligue para o ramal do hotel.',
     manualNote: 'Controle manual ativado — use o interruptor físico do quarto. Desative para voltar a controlar pelo app.',
@@ -1497,9 +1503,23 @@ function initNav() {
     });
   });
 
-  // Botón de soporte: llamar a recepción
-  document.getElementById('call-reception-btn')?.addEventListener('click', () => {
-    alert(t('callReceptionMsg'));
+  // Botón de soporte: contactar a recepción — WhatsApp como vía principal
+  // (mismo canal que ya usa recepción para responder desde el Centro de
+  // Mensajes), con llamada telefónica real como respaldo. Si el hotel no
+  // configuró un teléfono, se degrada al mensaje genérico de siempre.
+  document.getElementById('call-reception-btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const phone = app.data?.hotelPhone;
+    if (!phone) { alert(t('callReceptionMsg')); return; }
+    const digits = phone.replace(/[^0-9]/g, '');
+    const msg = t('callReceptionWaMsg', { room: app.data?.roomName || '', hotel: app.data?.hotelName || '' });
+    window.open(`https://wa.me/${digits}?text=${encodeURIComponent(msg)}`, '_blank');
+  });
+  document.getElementById('call-reception-tel')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const phone = app.data?.hotelPhone;
+    if (!phone) { alert(t('callReceptionMsg')); return; }
+    window.location.href = `tel:${phone}`;
   });
 
   // No molestar y solicitudes de servicio
