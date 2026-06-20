@@ -124,6 +124,46 @@ db.exec(`
     updated_at        TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS facturacion_config (
+    hotel_id        TEXT PRIMARY KEY,
+    tupana_api_url  TEXT,
+    tupana_api_key  TEXT,
+    rut_emisor      TEXT,
+    razon_social    TEXT,
+    giro            TEXT,
+    ambiente        TEXT NOT NULL DEFAULT 'cert',
+    activo          INTEGER NOT NULL DEFAULT 0,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS documentos_tributarios (
+    id              TEXT PRIMARY KEY,
+    hotel_id        TEXT NOT NULL,
+    reserva_id      TEXT,
+    tipo            TEXT NOT NULL,
+    numero_folio    INTEGER,
+    rut_receptor    TEXT,
+    razon_social    TEXT,
+    giro_receptor   TEXT,
+    monto_neto      REAL NOT NULL,
+    iva             REAL,
+    monto_total     REAL NOT NULL,
+    uf_valor        REAL,
+    monto_uf        REAL,
+    descripcion     TEXT NOT NULL,
+    pdf_url         TEXT,
+    track_id        TEXT,
+    sii_estado      TEXT NOT NULL DEFAULT 'pendiente',
+    sii_glosa       TEXT,
+    anulado_por     TEXT,
+    emitido_at      TEXT,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_docs_hotel   ON documentos_tributarios(hotel_id, emitido_at);
+  CREATE INDEX IF NOT EXISTS idx_docs_reserva ON documentos_tributarios(reserva_id);
+
   CREATE TABLE IF NOT EXISTS transacciones (
     id               TEXT PRIMARY KEY,
     reserva_id       TEXT,

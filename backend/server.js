@@ -19,6 +19,8 @@ const tarifas       = require('./tarifas');
 const tarifasDia    = require('./tarifas-dia');
 const categorias    = require('./categorias');
 const bookingConfig = require('./booking-config');
+const facturacionConfig = require('./facturacion-config');
+const facturacion       = require('./facturacion');
 const pagos         = require('./pagos');
 const transacciones = require('./transacciones');
 const auth          = require('./auth');
@@ -1699,6 +1701,103 @@ app.put('/api/admin/booking-config/:hotelId', requireAuth('owner'), (req, res) =
   if (!assertHotelAccess(req, req.params.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
   const cfg = bookingConfig.upsertConfig(req.params.hotelId, req.body);
   res.json(cfg);
+});
+
+// ── ADMIN: GET/PUT /api/admin/facturacion-config/:hotelId ────────────────────
+// Credenciales Tupana del hotel — nunca se devuelve tupana_api_key en el GET,
+// solo si está configurada o no (el formulario del dashboard no necesita verla
+// de vuelta, solo permitir reemplazarla).
+app.get('/api/admin/facturacion-config/:hotelId', requireAuth('owner'), (req, res) => {
+  if (!assertHotelAccess(req, req.params.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const cfg = facturacionConfig.getConfig(req.params.hotelId);
+  res.json({ ...cfg, tupana_api_key: undefined, tieneApiKey: !!cfg.tupana_api_key });
+});
+
+app.put('/api/admin/facturacion-config/:hotelId', requireAuth('owner'), (req, res) => {
+  if (!assertHotelAccess(req, req.params.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const { rut_emisor } = req.body;
+  if (rut_emisor && !verificacionRut.validarRUT(rut_emisor)) {
+    return res.status(400).json({ error: 'RUT emisor inválido' });
+  }
+  const cfg = facturacionConfig.upsertConfig(req.params.hotelId, req.body);
+  res.json({ ...cfg, tupana_api_key: undefined, tieneApiKey: !!cfg.tupana_api_key });
+});
+
+// ── ADMIN: POST /api/admin/reservas/:id/boleta ────────────────────────────────
+app.post('/api/admin/reservas/:id/boleta', requireAuth('owner', 'recepcion'), async (req, res) => {
+  const reserva = reservas.getById(req.params.id);
+  if (!reserva) return res.status(404).json({ error: 'Reserva no encontrada' });
+  if (!assertHotelAccess(req, reserva.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const { montoTotal, descripcion } = req.body;
+  if (!montoTotal || montoTotal < 1) return res.status(400).json({ error: 'montoTotal requerido en CLP' });
+
+  const noches = Math.round((new Date(reserva.checkout) - new Date(reserva.checkin)) / 86400000);
+  const desc = descripcion || `Alojamiento ${noches} noche${noches !== 1 ? 's' : ''} — ${reserva.guest_name}`;
+  try {
+    const doc = await facturacion.emitirBoleta(reserva.hotel_id, reserva.id, desc, montoTotal);
+    res.status(201).json(doc);
+  } catch (err) {
+    console.error('[facturacion] Error boleta:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── ADMIN: POST /api/admin/reservas/:id/factura ───────────────────────────────
+app.post('/api/admin/reservas/:id/factura', requireAuth('owner', 'recepcion'), async (req, res) => {
+  const reserva = reservas.getById(req.params.id);
+  if (!reserva) return res.status(404).json({ error: 'Reserva no encontrada' });
+  if (!assertHotelAccess(req, reserva.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const { rutEmpresa, razonSocial, giro, direccion, montoNeto, descripcion } = req.body;
+  if (!rutEmpresa || !razonSocial || !giro || !montoNeto) {
+    return res.status(400).json({ error: 'Requeridos: rutEmpresa, razonSocial, giro, montoNeto' });
+  }
+  if (!verificacionRut.validarRUT(rutEmpresa)) {
+    return res.status(400).json({ error: 'RUT inválido' });
+  }
+
+  const noches = Math.round((new Date(reserva.checkout) - new Date(reserva.checkin)) / 86400000);
+  const desc = descripcion || `Alojamiento ${noches} noche${noches !== 1 ? 's' : ''} — ${reserva.guest_name}`;
+  try {
+    const doc = await facturacion.emitirFactura(
+      reserva.hotel_id, reserva.id, desc, montoNeto,
+      { rut: rutEmpresa, razonSocial, giro, direccion }
+    );
+    res.status(201).json(doc);
+  } catch (err) {
+    console.error('[facturacion] Error factura:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── ADMIN: GET /api/admin/documentos ──────────────────────────────────────────
+app.get('/api/admin/documentos', requireAuth('owner', 'recepcion'), (req, res) => {
+  const { hotel, desde, hasta, tipo } = req.query;
+  if (!hotel) return res.status(400).json({ error: 'hotel requerido' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(facturacion.listarDocumentos(hotel, { desde, hasta, tipo }));
+});
+
+// ── ADMIN: DELETE /api/admin/documentos/:id ───────────────────────────────────
+// Anula el documento emitiendo una nota de crédito. No borra el registro.
+app.delete('/api/admin/documentos/:id', requireAuth('owner'), async (req, res) => {
+  const doc = facturacion.getDocumento(req.params.id);
+  if (!doc) return res.status(404).json({ error: 'Documento no encontrado' });
+  if (!assertHotelAccess(req, doc.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  try {
+    const result = await facturacion.anularDocumento(req.params.id, req.body?.motivo);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── ADMIN: GET /api/admin/documentos/:id/pdf ──────────────────────────────────
+app.get('/api/admin/documentos/:id/pdf', requireAuth('owner', 'recepcion'), (req, res) => {
+  const doc = facturacion.getDocumento(req.params.id);
+  if (!doc) return res.status(404).json({ error: 'Documento no encontrado' });
+  if (!assertHotelAccess(req, doc.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (!doc.pdf_url) return res.status(404).json({ error: 'PDF no disponible (documento simulado o pendiente)' });
+  res.redirect(doc.pdf_url);
 });
 
 // ── WEBHOOK: POST /api/webhook/reserva/:canalId ───────────────────────────────

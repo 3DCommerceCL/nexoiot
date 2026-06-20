@@ -878,6 +878,7 @@ function navigate(view) {
   if (view === 'channels') { OTA_ENABLED ? loadCanales() : renderChannelsComingSoon(); }
   if (view === 'booking') loadBookingConfig();
   if (view === 'pagos') loadTransacciones();
+  if (view === 'facturacion') { loadFacturacionConfig(); loadDocumentos(); }
   if (view === 'categorias') loadCategorias();
   if (view === 'reservaslist') loadReservasLista();
   if (view === 'servicios') loadServicios();
@@ -1914,6 +1915,10 @@ function openReservaModal(reserva = null, prefill = {}) {
   $('rv-cobros-section').classList.toggle('hidden', isNew);
   if (!isNew) renderCobrosSection(reserva);
 
+  // Facturación (solo en edición)
+  $('rv-facturacion-section').classList.toggle('hidden', isNew);
+  if (!isNew) renderFacturacionSection(reserva);
+
   // Check-in previo (solo en edición)
   $('rv-precheckin-section').classList.toggle('hidden', isNew);
   if (!isNew) loadPrecheckinStatus(reserva);
@@ -2304,6 +2309,82 @@ async function registrarPagoManual(reservaId) {
     await loadReservaTransacciones(reservaId);
   } catch (err) {
     $('rv-cobro-error').textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── FACTURACIÓN (boleta/factura desde el modal de reserva) ──────────────────
+const DOC_TIPO_LABEL_RV = { boleta: 'Boleta', factura: 'Factura', nota_credito: 'Nota de crédito' };
+
+function renderFacturacionSection(reserva) {
+  $('rv-factura-error').textContent = '';
+  $('rv-factura-form').classList.add('hidden');
+  ['rv-fact-rut', 'rv-fact-razon', 'rv-fact-giro', 'rv-fact-neto'].forEach(id => $(id).value = '');
+
+  $('rv-emitir-boleta').onclick = () => emitirBoletaUI(reserva.id);
+  $('rv-emitir-factura').onclick = () => $('rv-factura-form').classList.toggle('hidden');
+  $('rv-factura-confirm').onclick = () => emitirFacturaUI(reserva.id);
+
+  loadDocumentosReserva(reserva.id);
+}
+
+async function loadDocumentosReserva(reservaId) {
+  try {
+    const lista = await apiFetch(`/admin/documentos?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    renderDocumentosReserva(lista.filter(d => d.reserva_id === reservaId));
+  } catch {
+    $('rv-documentos-list').innerHTML = '';
+  }
+}
+
+function renderDocumentosReserva(lista) {
+  if (!lista.length) { $('rv-documentos-list').innerHTML = '<div class="form-note">Sin documentos emitidos todavía.</div>'; return; }
+  $('rv-documentos-list').innerHTML = lista.map(d => `
+    <div class="trans-row">
+      <span class="trans-tipo">${DOC_TIPO_LABEL_RV[d.tipo] || d.tipo}${d.numero_folio ? ' #' + d.numero_folio : ''}</span>
+      <span class="trans-monto">$${Math.round(d.monto_total).toLocaleString('es-CL')} CLP</span>
+      <span class="trans-badge ${d.sii_estado === 'rechazado' ? 'rechazado' : 'aprobado'}">${d.sii_estado}</span>
+      <span class="trans-date">${new Date(d.created_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}</span>
+    </div>`).join('');
+}
+
+async function emitirBoletaUI(reservaId) {
+  const montoCLP = getMonto();
+  if (!montoCLP) return;
+  const btn = $('rv-emitir-boleta');
+  btn.disabled = true;
+  try {
+    await apiFetch(`/admin/reservas/${reservaId}/boleta`, { method: 'POST', body: JSON.stringify({ montoTotal: montoCLP }) });
+    showToast('Boleta emitida', 'success');
+    await loadDocumentosReserva(reservaId);
+  } catch (err) {
+    $('rv-factura-error').textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function emitirFacturaUI(reservaId) {
+  const rutEmpresa = $('rv-fact-rut').value.trim();
+  const razonSocial = $('rv-fact-razon').value.trim();
+  const giro = $('rv-fact-giro').value.trim();
+  const montoNeto = parseInt($('rv-fact-neto').value, 10);
+  if (!rutEmpresa || !razonSocial || !giro || !montoNeto || montoNeto < 1) {
+    $('rv-factura-error').textContent = 'Completa RUT, razón social, giro y monto neto.';
+    return;
+  }
+  const btn = $('rv-factura-confirm');
+  btn.disabled = true;
+  try {
+    await apiFetch(`/admin/reservas/${reservaId}/factura`, {
+      method: 'POST', body: JSON.stringify({ rutEmpresa, razonSocial, giro, montoNeto }),
+    });
+    $('rv-factura-form').classList.add('hidden');
+    showToast('Factura emitida', 'success');
+    await loadDocumentosReserva(reservaId);
+  } catch (err) {
+    $('rv-factura-error').textContent = err.message;
   } finally {
     btn.disabled = false;
   }
@@ -3188,6 +3269,95 @@ function renderPagosList(lista) {
     </div>`).join('');
 }
 
+// ── FACTURACIÓN SII (Tupana) ──────────────────────────────────────────────────
+async function loadFacturacionConfig() {
+  if (!HOTEL_ID) return;
+  $('fc-save-err').textContent = '';
+  try {
+    const cfg = await apiFetch(`/admin/facturacion-config/${HOTEL_ID}`);
+    $('fc-activo').checked = !!cfg.activo;
+    $('fc-url').value      = cfg.tupana_api_url || '';
+    $('fc-key').value      = '';
+    $('fc-key-status').textContent = cfg.tieneApiKey ? 'API key configurada (oculta).' : 'Sin API key configurada — modo simulado.';
+    $('fc-rut').value      = cfg.rut_emisor || '';
+    $('fc-ambiente').value = cfg.ambiente || 'cert';
+    $('fc-razon').value    = cfg.razon_social || '';
+    $('fc-giro').value     = cfg.giro || '';
+  } catch (err) {
+    showToast('Error cargando configuración: ' + err.message, 'error');
+  }
+}
+
+async function saveFacturacionConfig() {
+  if (!HOTEL_ID) return;
+  $('fc-save-err').textContent = '';
+  const body = {
+    activo:         $('fc-activo').checked ? 1 : 0,
+    tupana_api_url: $('fc-url').value.trim() || null,
+    rut_emisor:     $('fc-rut').value.trim() || null,
+    ambiente:       $('fc-ambiente').value,
+    razon_social:   $('fc-razon').value.trim() || null,
+    giro:           $('fc-giro').value.trim() || null,
+  };
+  if ($('fc-key').value.trim()) body.tupana_api_key = $('fc-key').value.trim();
+  try {
+    await apiFetch(`/admin/facturacion-config/${HOTEL_ID}`, { method: 'PUT', body: JSON.stringify(body) });
+    showToast('Configuración de facturación guardada', 'success');
+    loadFacturacionConfig();
+  } catch (err) {
+    $('fc-save-err').textContent = err.message;
+  }
+}
+
+const DOC_TIPO_LABEL  = { boleta: 'Boleta', factura: 'Factura', nota_credito: 'Nota de crédito' };
+const DOC_ESTADO_LABEL = { simulado: 'Simulado', pendiente: 'Pendiente SII', aceptado: 'Aceptado', rechazado: 'Rechazado' };
+
+async function loadDocumentos() {
+  if (!HOTEL_ID) return;
+  const desde = $('fc-desde').value;
+  const hasta = $('fc-hasta').value;
+  const tipo  = $('fc-tipo-filtro').value;
+  let qs = `?hotel=${encodeURIComponent(HOTEL_ID)}`;
+  if (desde) qs += `&desde=${desde}`;
+  if (hasta) qs += `&hasta=${hasta}`;
+  if (tipo)  qs += `&tipo=${tipo}`;
+
+  try {
+    const lista = await apiFetch(`/admin/documentos${qs}`);
+    renderDocumentos(lista);
+  } catch (err) {
+    $('fc-doc-list').innerHTML = `<div class="form-note">Error: ${err.message}</div>`;
+  }
+}
+
+function renderDocumentos(lista) {
+  if (!lista.length) {
+    $('fc-doc-list').innerHTML = '<div class="form-note">Sin documentos emitidos en este rango.</div>';
+    return;
+  }
+  $('fc-doc-list').innerHTML = lista.map(d => `
+    <div class="mapping-row" style="margin-bottom:6px">
+      <span class="mapping-room" style="width:110px;flex:none">${DOC_TIPO_LABEL[d.tipo] || d.tipo}</span>
+      <span class="mapping-ota" style="flex:1">Folio ${d.numero_folio || '—'} · ${d.razon_social || 'Boleta'} · $${Math.round(d.monto_total).toLocaleString('es-CL')} CLP</span>
+      <span class="badge ${d.sii_estado === 'aceptado' ? 'badge-active' : d.sii_estado === 'rechazado' ? 'badge-error' : ''}" style="margin-right:8px">${DOC_ESTADO_LABEL[d.sii_estado] || d.sii_estado}</span>
+      ${d.pdf_url ? `<a href="${API_URL}/admin/documentos/${d.id}/pdf" target="_blank" class="btn btn-outline btn-sm" style="margin-right:6px">PDF</a>` : ''}
+      ${!d.anulado_por && d.tipo !== 'nota_credito' ? `<button class="btn btn-outline btn-sm" onclick="anularDocumentoUI('${d.id}')">Anular</button>` : ''}
+      <span style="font-size:10px;color:var(--text3);white-space:nowrap;margin-left:6px">${new Date(d.created_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}</span>
+    </div>`).join('');
+}
+
+window.anularDocumentoUI = async function(docId) {
+  const motivo = window.prompt('Motivo de la anulación (se emite como nota de crédito):');
+  if (motivo === null) return;
+  try {
+    await apiFetch(`/admin/documentos/${docId}`, { method: 'DELETE', body: JSON.stringify({ motivo }) });
+    showToast('Documento anulado (nota de crédito emitida)', 'success');
+    loadDocumentos();
+  } catch (err) {
+    showToast('Error al anular: ' + err.message, 'error');
+  }
+};
+
 function startClock() {
   const update = () => {
     const n = new Date();
@@ -3317,6 +3487,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Pagos
   $('pg-filtrar').addEventListener('click', loadTransacciones);
+
+  // Facturación SII
+  $('fc-save').addEventListener('click', saveFacturacionConfig);
+  $('fc-filtrar').addEventListener('click', loadDocumentos);
 
   // Categorías de habitación
   $('btn-add-categoria').addEventListener('click', openAddCategoriaModal);

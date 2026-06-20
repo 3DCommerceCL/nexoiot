@@ -523,6 +523,10 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">💳</span>
       <span class="nav-label">Pagos</span>
     </div>
+    <div class="nav-item" data-view="facturacion" data-role="owner">
+      <span class="nav-icon">🧾</span>
+      <span class="nav-label">Facturación</span>
+    </div>
     <div class="nav-item" data-view="settings">
       <span class="nav-icon">⚙️</span>
       <span class="nav-label" data-i18n="navSettings">Configuración</span>
@@ -786,6 +790,74 @@ select.form-input option{background:var(--card);color:var(--text)}
       </div>
     </div>
 
+    <!-- VIEW: FACTURACIÓN SII (solo owner/superadmin) -->
+    <div class="view" id="view-facturacion">
+      <div class="analytics-card" style="margin-bottom:14px">
+        <div class="sec-header" style="margin-bottom:10px">
+          <span class="sec-title">Credenciales Tupana</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:6px;cursor:pointer">
+              <input type="checkbox" id="fc-activo"> Activo
+            </label>
+            <button class="btn btn-primary btn-sm" id="fc-save">Guardar</button>
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px">
+          Los documentos se emiten bajo el RUT y razón social de tu hotel, nunca de NexoSmart.
+          Sin credenciales activas, los botones de boleta/factura quedan en modo simulado (no se envían al SII de verdad).
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group full">
+            <label class="form-label">URL API Tupana</label>
+            <input class="form-input" id="fc-url" placeholder="https://api.tupana.cl/v1">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">API Key Tupana</label>
+            <input class="form-input" id="fc-key" type="password" placeholder="Dejar en blanco para no cambiarla">
+            <div style="font-size:11px;color:var(--text2);margin-top:4px" id="fc-key-status"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">RUT emisor (tu hotel)</label>
+            <input class="form-input" id="fc-rut" placeholder="76.123.456-7">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ambiente</label>
+            <select class="form-input" id="fc-ambiente">
+              <option value="cert">Certificación (pruebas)</option>
+              <option value="prod">Producción</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Razón social</label>
+            <input class="form-input" id="fc-razon" placeholder="Hotel Pacífico Suites SpA">
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Giro</label>
+            <input class="form-input" id="fc-giro" placeholder="Servicios de alojamiento turístico">
+          </div>
+        </div>
+        <div class="form-error" id="fc-save-err"></div>
+      </div>
+
+      <div class="analytics-card">
+        <div class="sec-header" style="margin-bottom:10px">
+          <span class="sec-title">Documentos emitidos</span>
+        </div>
+        <div class="canal-filter">
+          <input class="form-input" id="fc-desde" type="date" style="max-width:160px">
+          <input class="form-input" id="fc-hasta" type="date" style="max-width:160px">
+          <select class="form-input" id="fc-tipo-filtro" style="max-width:160px">
+            <option value="">Todos los tipos</option>
+            <option value="boleta">Boleta</option>
+            <option value="factura">Factura</option>
+            <option value="nota_credito">Nota de crédito</option>
+          </select>
+          <button class="btn btn-outline btn-sm" id="fc-filtrar">Filtrar</button>
+        </div>
+        <div id="fc-doc-list"></div>
+      </div>
+    </div>
+
     <!-- VIEW: SETTINGS -->
     <div class="view" id="view-settings">
       <div class="settings-panel" style="max-width:480px">
@@ -912,6 +984,23 @@ select.form-input option{background:var(--card);color:var(--text)}
         </div>
         <div class="form-error" id="rv-cobro-error"></div>
         <div id="rv-transacciones-list"></div>
+      </div>
+
+      <div class="modal-section hidden" id="rv-facturacion-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <div class="modal-section-title">Facturación</div>
+        <div class="cobros-acciones">
+          <button class="btn btn-outline btn-sm" id="rv-emitir-boleta">🧾 Emitir boleta</button>
+          <button class="btn btn-outline btn-sm" id="rv-emitir-factura">📄 Emitir factura</button>
+        </div>
+        <div class="cobro-manual-form hidden" id="rv-factura-form">
+          <input class="form-input" id="rv-fact-rut" type="text" placeholder="RUT empresa (76.123.456-7)">
+          <input class="form-input" id="rv-fact-razon" type="text" placeholder="Razón social">
+          <input class="form-input" id="rv-fact-giro" type="text" placeholder="Giro">
+          <input class="form-input" id="rv-fact-neto" type="number" min="1" placeholder="Monto neto (CLP, sin IVA)">
+          <button class="btn btn-primary btn-sm" id="rv-factura-confirm">Emitir</button>
+        </div>
+        <div class="form-error" id="rv-factura-error"></div>
+        <div id="rv-documentos-list"></div>
       </div>
     </div>
   </div>
