@@ -516,6 +516,10 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">📊</span>
       <span class="nav-label">Informes</span>
     </div>
+    <div class="nav-item" data-view="log" data-role="owner">
+      <span class="nav-icon">📜</span>
+      <span class="nav-label">Log</span>
+    </div>
     <div class="nav-item" data-view="mensajes">
       <span class="nav-icon">💬</span>
       <span class="nav-label">Mensajes</span>
@@ -684,6 +688,30 @@ select.form-input option{background:var(--card);color:var(--text)}
         <button class="btn btn-outline btn-sm" id="inf-filtrar">Calcular</button>
       </div>
       <div class="kpi-grid" id="inf-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px"></div>
+    </div>
+
+    <!-- VIEW: LOG MAESTRO (owner) -->
+    <div class="view" id="view-log">
+      <div class="rl-filters">
+        <input type="search" id="log-search" placeholder="Buscar…">
+        <select id="log-room"><option value="">Todas las habitaciones</option></select>
+        <select id="log-type">
+          <option value="">Todos los eventos</option>
+          <option value="checkin">Check-in</option>
+          <option value="checkout">Check-out</option>
+          <option value="prefs_changed">Preferencias</option>
+          <option value="service_request">Solicitud de servicio</option>
+          <option value="request_resolved">Solicitud resuelta</option>
+          <option value="scene_off">Apagado masivo</option>
+          <option value="door_alarm">Alarma de puerta</option>
+          <option value="scheduled_command">Comando programado</option>
+        </select>
+        <input type="date" id="log-desde">
+        <input type="date" id="log-hasta">
+        <button class="btn btn-outline btn-sm" id="log-filtrar">Filtrar</button>
+      </div>
+      <div class="rl-count" id="log-count"></div>
+      <div class="activity-log" id="log-list" style="max-height:none"></div>
     </div>
 
     <!-- VIEW: MENSAJES (bandeja de pendientes + registro/log completo con fecha y hora) -->

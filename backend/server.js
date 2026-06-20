@@ -870,6 +870,14 @@ app.get('/api/admin/rooms/:roomId/activity', requireAuth('owner', 'recepcion'), 
   res.json(rooms.listActivity(req.params.roomId));
 });
 
+// ── ADMIN: GET /api/admin/hotels/:hotelId/activity ─────────────────────────────
+// Log maestro: actividad de TODAS las habitaciones del hotel, con filtros.
+app.get('/api/admin/hotels/:hotelId/activity', requireAuth('owner'), (req, res) => {
+  if (!assertHotelAccess(req, req.params.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const { room, type, desde, hasta, q } = req.query;
+  res.json(rooms.listActivityByHotel(req.params.hotelId, { roomId: room, type, desde, hasta, q }));
+});
+
 // ── ADMIN: GET /api/admin/hotels ──────────────────────────────────────────────
 app.get('/api/admin/hotels', requireAuth('superadmin'), (req, res) => {
   const hotels = rooms.getHotels();

@@ -163,6 +163,29 @@ function listActivity(roomId, limit = 20) {
     .slice(0, limit);
 }
 
+// Log maestro: junta la actividad de todas las habitaciones de un hotel (en
+// vez de una sola, como listActivity) — para la vista "Log" del dashboard.
+function listActivityByHotel(hotelId, { roomId, type, desde, hasta, q } = {}) {
+  const allRooms = getRooms();
+  const roomIds = Object.entries(allRooms)
+    .filter(([id, r]) => r.hotelId === hotelId && (!roomId || id === roomId))
+    .map(([id]) => id);
+
+  let log = getActivityLog().filter(a => roomIds.includes(a.roomId));
+  if (type)  log = log.filter(a => a.type === type);
+  if (desde) log = log.filter(a => a.at >= desde);
+  if (hasta) log = log.filter(a => a.at <= hasta + 'T23:59:59Z');
+  if (q) {
+    const ql = q.toLowerCase();
+    log = log.filter(a => (a.detail || '').toLowerCase().includes(ql) || a.roomId.toLowerCase().includes(ql));
+  }
+
+  return log
+    .map(a => ({ ...a, roomName: allRooms[a.roomId]?.name || a.roomId }))
+    .sort((a, b) => new Date(b.at) - new Date(a.at))
+    .slice(0, 500);
+}
+
 // ── IDIOMA Y ACCESIBILIDAD DEL HUÉSPED ───────────────────────────────────────
 const GUEST_LANGS          = ['es', 'en', 'pt'];
 const ACCESSIBILITY_MODES  = ['none', 'vision', 'hearing'];
@@ -449,4 +472,4 @@ function resolveRequest(id) {
   }
 })();
 
-module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity, setManualUnlock, setDeviceChannelLabel, setRoomCategoria, saveScene, deleteScene };
+module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity, listActivityByHotel, setManualUnlock, setDeviceChannelLabel, setRoomCategoria, saveScene, deleteScene };

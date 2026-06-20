@@ -113,6 +113,8 @@ const DT = {
     activityServiceRequest: 'Solicitud de servicio',
     activityRequestResolved: 'Solicitud resuelta',
     activitySceneOff: 'Apagado masivo de dispositivos',
+    activityDoorAlarm: 'Alarma de puerta',
+    activityScheduledCommand: 'Comando programado',
     newStayTitle: 'Nueva estadía',
     newStaySub: 'Asignar habitación y generar QR de acceso',
     prefsSection: 'Preferencias del huésped',
@@ -237,6 +239,8 @@ const DT = {
     activityServiceRequest: 'Service request',
     activityRequestResolved: 'Request resolved',
     activitySceneOff: 'Bulk device shutdown',
+    activityDoorAlarm: 'Door alarm',
+    activityScheduledCommand: 'Scheduled command',
     newStayTitle: 'New stay',
     newStaySub: 'Assign a room and generate the access QR',
     prefsSection: 'Guest preferences',
@@ -361,6 +365,8 @@ const DT = {
     activityServiceRequest: 'Solicitação de serviço',
     activityRequestResolved: 'Solicitação resolvida',
     activitySceneOff: 'Desligamento em massa de dispositivos',
+    activityDoorAlarm: 'Alarme de porta',
+    activityScheduledCommand: 'Comando agendado',
     newStayTitle: 'Nova estadia',
     newStaySub: 'Atribuir quarto e gerar QR de acesso',
     prefsSection: 'Preferências do hóspede',
@@ -890,6 +896,7 @@ function navigate(view) {
     }
     loadInformes();
   }
+  if (view === 'log') loadLogMaestro();
   if (view === 'mensajes') loadMensajesLog();
   if (view === 'grid-tarifas') loadGrid();
 }
@@ -1702,10 +1709,12 @@ window.toggleAllowManualUnlock = async function(key) {
 const ACTIVITY_ICONS = {
   checkin: '🟢', checkout: '🔴', prefs_changed: '⚙️',
   service_request: '🛎', request_resolved: '✅', scene_off: '🔌',
+  door_alarm: '🚨', scheduled_command: '🕐',
 };
 const ACTIVITY_LABELS = {
   checkin: 'activityCheckin', checkout: 'activityCheckout', prefs_changed: 'activityPrefsChanged',
   service_request: 'activityServiceRequest', request_resolved: 'activityRequestResolved', scene_off: 'activitySceneOff',
+  door_alarm: 'activityDoorAlarm', scheduled_command: 'activityScheduledCommand',
 };
 
 function activityDetailText(item) {
@@ -1738,6 +1747,48 @@ async function renderActivitySection(room) {
     }).join('');
   } catch (err) {
     $('activity-log').innerHTML = `<div class="form-note">${dt('loadDevError', { e: err.message })}</div>`;
+  }
+}
+
+// ── LOG MAESTRO (actividad de todas las habitaciones del hotel) ─────────────
+function populateLogRoomFilter() {
+  const sel = $('log-room');
+  if (sel.options.length > 1) return; // ya poblado
+  rooms.forEach(r => sel.insertAdjacentHTML('beforeend', `<option value="${r.id}">${r.name}</option>`));
+}
+
+async function loadLogMaestro() {
+  populateLogRoomFilter();
+  const params = new URLSearchParams();
+  if ($('log-search').value.trim()) params.set('q', $('log-search').value.trim());
+  if ($('log-room').value) params.set('room', $('log-room').value);
+  if ($('log-type').value) params.set('type', $('log-type').value);
+  if ($('log-desde').value) params.set('desde', $('log-desde').value);
+  if ($('log-hasta').value) params.set('hasta', $('log-hasta').value);
+
+  $('log-list').innerHTML = `<div class="form-note" style="padding:14px">${dt('loadingDevices')}</div>`;
+  try {
+    const log = await apiFetch(`/admin/hotels/${HOTEL_ID}/activity?${params.toString()}`);
+    $('log-count').textContent = `${log.length} evento${log.length !== 1 ? 's' : ''}`;
+    if (!log.length) {
+      $('log-list').innerHTML = `<div class="form-note" style="padding:14px">${dt('activityEmpty')}</div>`;
+      return;
+    }
+    const locale = LOCALES[dashLang] || 'es-CL';
+    $('log-list').innerHTML = log.map(item => {
+      const when = new Date(item.at).toLocaleString(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+      const detail = activityDetailText(item);
+      return `<div class="activity-item">
+        <span class="activity-ico">${ACTIVITY_ICONS[item.type] || '•'}</span>
+        <div class="activity-body">
+          <div class="activity-text">${dt(ACTIVITY_LABELS[item.type] || item.type)} · <span style="color:var(--text2)">${item.roomName}</span></div>
+          ${detail ? `<div class="activity-detail">${detail}</div>` : ''}
+        </div>
+        <div class="activity-time">${when}</div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    $('log-list').innerHTML = `<div class="form-note">${dt('loadDevError', { e: err.message })}</div>`;
   }
 }
 
@@ -3714,6 +3765,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   $('inf-filtrar').addEventListener('click', loadInformes);
+  $('log-filtrar').addEventListener('click', loadLogMaestro);
 
   // Pagos
   $('pg-filtrar').addEventListener('click', loadTransacciones);
