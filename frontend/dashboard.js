@@ -1383,11 +1383,14 @@ function channelFuncionControlHtml(key, i, label) {
   return `<select class="form-input" style="font-size:10px;padding:3px 6px;height:auto;width:auto" onclick="event.stopPropagation()" onchange="setChannelFuncion('${key}', ${i}, this.value)">${opts.join('')}</select>`;
 }
 
+// Cada canal del enchufe inteligente controla una función distinta (🔥 Estufa,
+// 🌸 Aromatizador, etc.) — se muestra como su propia tarjeta independiente, en
+// vez de agrupar varios canales con filas dentro de una sola tarjeta "Enchufe".
 function buildMultiSwitchCard(key, dev, ico) {
   const labels = dev.channels || ['Canal 1', 'Canal 2', 'Canal 3'];
   const chKeys = ['ch1', 'ch2', 'ch3'].slice(0, labels.length);
   const manual = !!dev.state.manual;
-  const rows = chKeys.map((ch, i) => {
+  return chKeys.map((ch, i) => {
     const on = dev.state[ch];
     const panelId = `${key}-${i}`;
     registerSchedule(panelId, labels[i], [
@@ -1395,24 +1398,17 @@ function buildMultiSwitchCard(key, dev, ico) {
     ], v => [{ dev: key, cmd: { [`ch${i + 1}`]: v === 'true' } }],
     v => [{ dev: key, cmd: { [`ch${i + 1}`]: v !== 'true' } }],
     c => { try { return JSON.parse(c.pasos_inicio).some(s => s.dev === key && `ch${i + 1}` in s.cmd); } catch { return false; } });
-    return `<div style="display:flex;align-items:center;justify-content:space-between;${i ? 'margin-top:8px' : ''}">
-      ${channelFuncionControlHtml(key, i, labels[i])}
-      <div style="display:flex;align-items:center;gap:8px">
-        ${scheduleBtnHtml(panelId)}
-        <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleMultiSwitch('${key}','${ch}', ${!on})"></div>
+    return `<div class="dev-card">
+      <div class="dev-card-head">
+        <div class="dev-card-name">${channelFuncionControlHtml(key, i, labels[i])}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${scheduleBtnHtml(panelId)}
+          <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleMultiSwitch('${key}','${ch}', ${!on})"></div>
+        </div>
       </div>
+      ${buildManualRow(key, manual)}
     </div>`;
   }).join('');
-  // Con un solo canal el enchufe controla una única función — el encabezado
-  // "Enchufe USB" es redundante con la fila de abajo, así que se omite.
-  const header = labels.length === 1 ? '' : `<div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
-    </div>`;
-  return `<div class="dev-card">
-    ${header}
-    ${rows}
-    ${buildManualRow(key, manual)}
-  </div>`;
 }
 
 // ── PROGRAMACIÓN DE DISPOSITIVOS (rango horario + repetición) ────────────────

@@ -122,6 +122,7 @@ const I18N = {
     toastDndOff: 'No molestar desactivado',
     toastDoorAlarmOn: 'Aviso de puerta activado',
     toastDoorAlarmOff: 'Aviso de puerta desactivado',
+    toastAcAutoOff: 'Ventana abierta detectada: el aire acondicionado se apagó automáticamente',
     onbTitle: '¡Bienvenido!',
     onbScenes: 'Activa tus aparatos inteligentes desde aquí',
     onbSettings: 'Cambia idioma y accesibilidad desde Ajustes',
@@ -332,6 +333,7 @@ const I18N = {
     toastDndOff: 'Do Not Disturb off',
     toastDoorAlarmOn: 'Door alert turned on',
     toastDoorAlarmOff: 'Door alert turned off',
+    toastAcAutoOff: 'Open window detected: the AC turned off automatically',
     onbTitle: 'Welcome!',
     onbScenes: 'Control your smart devices from here',
     onbSettings: 'Change language and accessibility from Settings',
@@ -542,6 +544,7 @@ const I18N = {
     toastDndOff: 'Não perturbe desativado',
     toastDoorAlarmOn: 'Aviso de porta ativado',
     toastDoorAlarmOff: 'Aviso de porta desativado',
+    toastAcAutoOff: 'Janela aberta detectada: o ar-condicionado desligou automaticamente',
     onbTitle: 'Bem-vindo!',
     onbScenes: 'Controle seus dispositivos inteligentes a partir daqui',
     onbSettings: 'Altere idioma e acessibilidade em Configurações',
@@ -2157,6 +2160,18 @@ function renderGrid() {
 }
 
 function updateCard(key) {
+  const cfg = app.config[key];
+  // El enchufe inteligente se reparte en varias tarjetas (una por canal/función)
+  // — hay que refrescarlas todas, no solo una, porque comparten estado (ej.
+  // "Modo manual" es del dispositivo completo, no de un canal en particular).
+  if (cfg && cfg.type === 'switch_3ch') {
+    const chs = cfg.channels || ['Canal 1', 'Canal 2', 'Canal 3'];
+    chs.forEach((label, i) => {
+      const el = document.getElementById(`card-${key}-${i}`);
+      if (el) el.outerHTML = buildSwitchChannelCard(key, i, label);
+    });
+    return;
+  }
   const el = document.getElementById(`card-${key}`);
   if (el) el.outerHTML = buildCard(key);
 }
@@ -2347,53 +2362,32 @@ function buildSwitchCard(key) {
 }
 
 // ── SWITCH MULTI-CANAL (2 o 3 canales) ───────────────────────────────────────
+// El enchufe inteligente es el mecanismo, no el aparato — cada canal controla
+// una función distinta (🔥 Estufa, 🌸 Aromatizador, etc.), así que cada uno se
+// muestra como su propia tarjeta independiente (ícono+nombre+toggle), igual
+// que un switch normal, en vez de agruparlos en una sola tarjeta con filas.
 function buildSwitch3CHCard(key) {
-  const s    = app.devices[key] || {};
-  const cfg  = app.config[key];
-  // Usar los canales definidos en config; si no hay, asumir 3
-  const chs  = cfg.channels || ['Canal 1', 'Canal 2', 'Canal 3'];
+  const cfg = app.config[key];
+  const chs = cfg.channels || ['Canal 1', 'Canal 2', 'Canal 3'];
+  return chs.map((label, i) => buildSwitchChannelCard(key, i, label)).join('');
+}
+
+function buildSwitchChannelCard(key, i, label) {
+  const s = app.devices[key] || {};
   const vals = [s.ch1, s.ch2, s.ch3];
   const manual = !!app._manual[key];
-  const anyOn = !manual && vals.slice(0, chs.length).some(Boolean);
-
-  // Un solo canal: el enchufe controla una única función (ej. 🔥 Estufa) — se
-  // muestra como una tarjeta simple de ícono+nombre+toggle, igual que un switch
-  // normal, sin el encabezado "Enchufe" que solo tenía sentido con varios canales.
-  if (chs.length === 1) {
-    const on = !manual && vals[0];
-    return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
-      <div class="card-head">
-        <div class="card-ico-name"><span class="card-label">${chs[0]}</span></div>
-        <div class="card-head-actions">
-          ${favBtn(key)}
-          ${reportBtn(key)}
-          <button type="button" class="report-btn" onclick="event.stopPropagation();scheduleChannel('${key}', 0)" aria-label="${t('scheduleBtn')}">🕐</button>
-          <div class="toggle ${vals[0] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch1"></div>
-        </div>
-      </div>
-      <div class="card-status ${on ? 'on' : ''}">${manual ? t('manualMode') : (vals[0] ? t('onM') : t('offM'))}</div>
-      ${manualRow(key)}
-    </div>`;
-  }
-
-  // Generar una fila por cada canal definido (no siempre 3)
-  const rows = chs.map((label, i) => `
-    <div class="ch-row">
-      <span class="ch-label">${label}</span>
-      <div style="display:flex;align-items:center;gap:10px">
+  const on = !manual && vals[i];
+  return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}-${i}">
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-label">${label}</span></div>
+      <div class="card-head-actions">
+        ${favBtn(key)}
+        ${reportBtn(key)}
         <button type="button" class="report-btn" onclick="event.stopPropagation();scheduleChannel('${key}', ${i})" aria-label="${t('scheduleBtn')}">🕐</button>
         <div class="toggle ${vals[i] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch${i + 1}"></div>
       </div>
-    </div>`).join('');
-
-  const ico = chs.length <= 2 ? '🔌' : '⚡';
-
-  return `<div class="device-card full-width ${anyOn ? 'on' : ''}" id="card-${key}">
-    <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">${ico}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
-      <div class="card-head-actions">${favBtn(key)}${reportBtn(key)}</div>
     </div>
-    ${rows}
+    <div class="card-status ${on ? 'on' : ''}">${manual ? t('manualMode') : (vals[i] ? t('onM') : t('offM'))}</div>
     ${manualRow(key)}
   </div>`;
 }
@@ -2732,7 +2726,14 @@ function handlePlanGridClick(e) {
 
   const winTog = e.target.closest('[data-action="window-toggle"]');
   if (winTog) {
-    app._placeholder.climate.windowOpen = !app._placeholder.climate.windowOpen;
+    const s = app._placeholder.climate;
+    s.windowOpen = !s.windowOpen;
+    if (s.windowOpen && s.autoOff && s.acOn) {
+      s.acOn = false;
+      renderClimateView();
+      showToast(t('toastAcAutoOff'), '');
+      return;
+    }
     renderClimateView();
     showPreviewToast();
     return;
