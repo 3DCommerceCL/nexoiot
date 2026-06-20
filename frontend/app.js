@@ -257,6 +257,7 @@ const I18N = {
     scheduleBtn: 'Programar',
     scheduleTitle: 'Programar',
     scheduleDesc: 'Elige cuándo se debe encender o apagar: {device}.',
+    scheduleDescScene: 'Elige cuándo activar esta escena: {device}.',
     scheduleTurnOn: 'Encender',
     scheduleTurnOff: 'Apagar',
     scheduleSendBtn: 'Programar',
@@ -466,6 +467,7 @@ const I18N = {
     scheduleBtn: 'Schedule',
     scheduleTitle: 'Schedule',
     scheduleDesc: 'Choose when it should turn on or off: {device}.',
+    scheduleDescScene: 'Choose when to activate this scene: {device}.',
     scheduleTurnOn: 'Turn on',
     scheduleTurnOff: 'Turn off',
     scheduleSendBtn: 'Schedule',
@@ -675,6 +677,7 @@ const I18N = {
     scheduleBtn: 'Programar',
     scheduleTitle: 'Programar',
     scheduleDesc: 'Escolha quando deve ligar ou desligar: {device}.',
+    scheduleDescScene: 'Escolha quando ativar esta cena: {device}.',
     scheduleTurnOn: 'Ligar',
     scheduleTurnOff: 'Desligar',
     scheduleSendBtn: 'Programar',
@@ -1595,7 +1598,7 @@ function renderScheduleModal() {
   card.innerHTML = `
     <div class="onboarding-ico">🕐</div>
     <h2>${t('scheduleTitle')}</h2>
-    <p class="scene-modal-desc">${t('scheduleDesc', { device: descripcion })}</p>
+    <p class="scene-modal-desc">${t(choices ? 'scheduleDesc' : 'scheduleDescScene', { device: descripcion })}</p>
     ${choicesHtml}
     <label class="schedule-label">${t('scheduleFrom')}</label>
     <input type="time" class="scene-name-input" id="schedule-time-start" value="${scheduleState.horaInicio}">
