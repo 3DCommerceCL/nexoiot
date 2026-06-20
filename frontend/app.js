@@ -207,6 +207,11 @@ const I18N = {
     callReceptionTel: '📞 Prefiero llamar por teléfono',
     callReceptionWaMsg: 'Hola, soy huésped de la habitación {room} en {hotel} y necesito ayuda.',
     callReceptionMsg: 'Para contactar a recepción, marca el interno 0 desde el teléfono de tu habitación o acércate a recepción.',
+    callReceptionCitofono: '📞 Usar el citófono',
+    callReceptionCitofonoMsg: 'Usa el citófono de tu habitación para comunicarte con recepción.',
+    callReceptionBajar: '🚶 Bajar a recepción',
+    callReceptionBajarMsg: 'Acércate a recepción, están atentos para ayudarte.',
+    callReceptionOtra: '💬 Contactar a recepción',
     checkoutMsg: 'Para el check-out, por favor dirígete a recepción o llama al interno del hotel.',
     manualNote: 'Control manual activado — usa el interruptor físico de la habitación. Desactívalo para volver a controlarlo desde la app.',
     unlockNoteOn: 'Motor desbloqueado — mueve la cortina con la mano. Bloquéalo para volver a controlarla desde la app.',
@@ -224,11 +229,6 @@ const I18N = {
     toastScene: 'Escena aplicada',
     toastSceneFail: 'Algunos comandos fallaron',
     toastPreview: 'Vista previa — función no conectada a un dispositivo real',
-    voiceListening: 'Escuchando… toca el micrófono otra vez para enviar',
-    voiceProcessing: 'Procesando tu comando…',
-    voiceNotUnderstood: 'No identifiqué un comando. Intenta de nuevo, por ejemplo: abre la cortina.',
-    toastVoiceUnsupported: 'El control por voz no es compatible con este navegador',
-    toastVoiceMicDenied: 'No se pudo acceder al micrófono. Revisa los permisos.',
     reportProblemBtn: 'Reportar un problema con este dispositivo',
     reportTitle: 'Reportar un problema',
     reportIntroDesc: 'Vas a reportar un problema con: {device}. Recepción recibirá tu reporte de inmediato.',
@@ -280,8 +280,6 @@ const I18N = {
     scheduleCancelBtn: 'Cancelar programación',
     toastScheduleSaved: 'Programado correctamente',
     toastScheduleCancelled: 'Programación cancelada',
-    voiceOn: 'Asistente activo (Amazon Echo)',
-    voiceOff: 'Modo privado — solo control por app',
     bathAutoNote: ' · Programada para encenderse automáticamente si hay alguien dentro',
     bathManualNote: 'Control manual activado — luz fija en cálido, ahora se enciende/apaga con el interruptor físico del baño.',
     acSection: 'Aire Acondicionado',
@@ -418,6 +416,11 @@ const I18N = {
     callReceptionTel: '📞 I\'d rather call by phone',
     callReceptionWaMsg: 'Hi, I\'m a guest in room {room} at {hotel} and I need help.',
     callReceptionMsg: 'To contact the front desk, dial extension 0 from your room phone or stop by the reception.',
+    callReceptionCitofono: '📞 Use the room intercom',
+    callReceptionCitofonoMsg: 'Use your room intercom to reach the front desk.',
+    callReceptionBajar: '🚶 Stop by the front desk',
+    callReceptionBajarMsg: 'Come down to the front desk, we\'re ready to help.',
+    callReceptionOtra: '💬 Contact the front desk',
     checkoutMsg: 'For check-out, please go to the front desk or call the hotel extension.',
     manualNote: 'Manual control enabled — use the physical switch in the room. Turn it off to control from the app again.',
     unlockNoteOn: 'Motor unlocked — move the curtain by hand. Lock it to control it from the app again.',
@@ -491,8 +494,6 @@ const I18N = {
     scheduleCancelBtn: 'Cancel scheduled command',
     toastScheduleSaved: 'Scheduled successfully',
     toastScheduleCancelled: 'Scheduled command cancelled',
-    voiceOn: 'Assistant active (Amazon Echo)',
-    voiceOff: 'Private mode — app control only',
     bathAutoNote: ' · Set to turn on automatically when someone is inside',
     bathManualNote: 'Manual control enabled — light set to warm, now controlled by the physical bathroom switch.',
     acSection: 'Air Conditioning',
@@ -629,6 +630,11 @@ const I18N = {
     callReceptionTel: '📞 Prefiro ligar por telefone',
     callReceptionWaMsg: 'Olá, sou hóspede do quarto {room} no {hotel} e preciso de ajuda.',
     callReceptionMsg: 'Para falar com a recepção, disque o ramal 0 do telefone do quarto ou vá até a recepção.',
+    callReceptionCitofono: '📞 Usar o interfone',
+    callReceptionCitofonoMsg: 'Use o interfone do seu quarto para falar com a recepção.',
+    callReceptionBajar: '🚶 Ir até a recepção',
+    callReceptionBajarMsg: 'Vá até a recepção, estamos prontos para ajudar.',
+    callReceptionOtra: '💬 Contatar a recepção',
     checkoutMsg: 'Para o check-out, dirija-se à recepção ou ligue para o ramal do hotel.',
     manualNote: 'Controle manual ativado — use o interruptor físico do quarto. Desative para voltar a controlar pelo app.',
     unlockNoteOn: 'Motor destravado — mova a cortina com a mão. Trave para voltar a controlá-la pelo app.',
@@ -702,8 +708,6 @@ const I18N = {
     scheduleCancelBtn: 'Cancelar agendamento',
     toastScheduleSaved: 'Agendado com sucesso',
     toastScheduleCancelled: 'Agendamento cancelado',
-    voiceOn: 'Assistente ativo (Amazon Echo)',
-    voiceOff: 'Modo privado — controle apenas pelo app',
     bathAutoNote: ' · Programada para acender automaticamente se houver alguém dentro',
     bathManualNote: 'Controle manual ativado — luz fixa em tom quente, agora liga/desliga pelo interruptor físico do banheiro.',
     acSection: 'Ar-Condicionado',
@@ -927,111 +931,6 @@ async function curtainControl(key, ctrl) {
   }
 }
 
-// ── CONTROL POR VOZ ────────────────────────────────────────────────────────
-// Pensado primero como vía principal de control para huéspedes no videntes.
-// Toggle (no "mantener presionado"): un toque inicia la grabación, otro la
-// envía. El estado se anuncia en #voice-status (aria-live="assertive") para
-// que un lector de pantalla narre cada paso sin que el huésped tenga que mirar.
-const VOICE_MAX_MS = 8000;
-let voiceRecorder  = null;
-let voiceChunks    = [];
-let voiceAutoStop  = null;
-
-function voiceAnnounce(msg) {
-  const el = document.getElementById('voice-status');
-  if (el) el.textContent = msg;
-}
-
-function toggleVoiceRecording() {
-  if (voiceRecorder && voiceRecorder.state === 'recording') stopVoiceRecording();
-  else startVoiceRecording();
-}
-
-async function startVoiceRecording() {
-  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-    showToast(t('toastVoiceUnsupported'), 'error');
-    voiceAnnounce(t('toastVoiceUnsupported'));
-    return;
-  }
-  const btn = document.getElementById('voice-btn');
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    voiceChunks = [];
-    voiceRecorder = new MediaRecorder(stream);
-    voiceRecorder.ondataavailable = e => { if (e.data.size) voiceChunks.push(e.data); };
-    voiceRecorder.onstop = () => {
-      stream.getTracks().forEach(track => track.stop());
-      sendVoiceCommand(new Blob(voiceChunks, { type: voiceRecorder.mimeType || 'audio/webm' }));
-    };
-    voiceRecorder.start();
-    btn?.classList.add('recording');
-    btn?.setAttribute('aria-pressed', 'true');
-    voiceAnnounce(t('voiceListening'));
-    voiceAutoStop = setTimeout(stopVoiceRecording, VOICE_MAX_MS);
-  } catch (err) {
-    console.error('[VOZ]', err);
-    showToast(t('toastVoiceMicDenied'), 'error');
-    voiceAnnounce(t('toastVoiceMicDenied'));
-  }
-}
-
-function stopVoiceRecording() {
-  if (!voiceRecorder || voiceRecorder.state !== 'recording') return;
-  clearTimeout(voiceAutoStop);
-  const btn = document.getElementById('voice-btn');
-  btn?.classList.remove('recording');
-  btn?.classList.add('processing');
-  btn?.setAttribute('aria-pressed', 'false');
-  voiceAnnounce(t('voiceProcessing'));
-  voiceRecorder.stop();
-}
-
-async function sendVoiceCommand(blob) {
-  const btn = document.getElementById('voice-btn');
-  try {
-    const res = await fetch(`${API}/room/${app.token}/voice-command`, {
-      method:  'POST',
-      headers: { 'Content-Type': blob.type || 'audio/webm' },
-      body:    blob,
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const msg = data.error || t('toastCmdFail');
-      showToast(msg, 'error');
-      voiceAnnounce(msg);
-      return;
-    }
-    if (!data.entendido) {
-      const msg = data.mensaje || t('voiceNotUnderstood');
-      showToast(msg, '');
-      voiceAnnounce(msg);
-      return;
-    }
-    applyVoiceCommand(data.device, data.command);
-    showToast(data.accion, 'success');
-    voiceAnnounce(data.accion);
-  } catch (err) {
-    console.error('[VOZ]', err);
-    showToast(t('toastCmdFail'), 'error');
-    voiceAnnounce(t('toastCmdFail'));
-  } finally {
-    btn?.classList.remove('processing');
-  }
-}
-
-// Refleja en la UI el comando que el servidor ya ejecutó por voz (sin volver a
-// llamar a /command — el servidor lo hizo como parte de /voice-command).
-function applyVoiceCommand(device, command) {
-  if (!app.devices[device]) return;
-  if (Object.prototype.hasOwnProperty.call(command, 'control')) {
-    if (command.control === 'stop') stopCurtainAnim(device);
-    else animateCurtainTo(device, command.control === 'open' ? 100 : 0);
-  } else {
-    Object.assign(app.devices[device], command);
-    updateCard(device);
-  }
-}
-
 // ── COMANDO CON OPTIMISTIC UI ─────────────────────────────────────────────────
 async function doCmd(deviceKey, command) {
   const prev = { ...app.devices[deviceKey] };
@@ -1233,8 +1132,29 @@ function applyTexts() {
   document.querySelectorAll('[data-action="toggle-dnd"]').forEach(el => el.classList.toggle('on', app.dnd));
   document.querySelectorAll('[data-action="toggle-door-alarm"]').forEach(el => el.classList.toggle('on', app.doorAlarm));
   renderHomeServices();
+  applyContactMethod();
 
   renderPrefsRows();
+}
+
+// El método para contactar a recepción lo define cada hotel (whatsapp/citófono/
+// bajar a recepción/otro) — solo "whatsapp" usa el botón secundario de llamar
+// por teléfono, el resto son mensajes informativos sin acción externa.
+function applyContactMethod() {
+  const btn    = document.getElementById('call-reception-btn');
+  const telBtn = document.getElementById('call-reception-tel');
+  if (!btn) return;
+  const method = app.data?.contactMethod || 'whatsapp';
+  telBtn?.classList.toggle('hidden', method !== 'whatsapp');
+  if (method === 'whatsapp') {
+    btn.textContent = t('callReception');
+  } else if (method === 'citofono') {
+    btn.textContent = t('callReceptionCitofono');
+  } else if (method === 'bajar_recepcion') {
+    btn.textContent = t('callReceptionBajar');
+  } else {
+    btn.textContent = t('callReceptionOtra');
+  }
 }
 
 // ── SELECTORES DE IDIOMA Y ACCESIBILIDAD (vista Ajustes) ─────────────────────
@@ -1335,6 +1255,7 @@ function setLang(lang) {
   renderClimateView();
   renderScenes();
   renderHomeServices();
+  applyContactMethod();
   savePrefs({ lang });
 }
 
@@ -1958,6 +1879,10 @@ function initNav() {
   // configuró un teléfono, se degrada al mensaje genérico de siempre.
   document.getElementById('call-reception-btn')?.addEventListener('click', (e) => {
     e.preventDefault();
+    const method = app.data?.contactMethod || 'whatsapp';
+    if (method === 'citofono') { alert(t('callReceptionCitofonoMsg')); return; }
+    if (method === 'bajar_recepcion') { alert(t('callReceptionBajarMsg')); return; }
+    if (method === 'otro') { alert(app.data?.contactMessage || t('callReceptionMsg')); return; }
     const phone = app.data?.hotelPhone;
     if (!phone) { alert(t('callReceptionMsg')); return; }
     const digits = phone.replace(/[^0-9]/g, '');
@@ -2038,10 +1963,6 @@ function initNav() {
     setTheme(dark ? 'light' : 'dark');
   });
 
-  // Control por voz: un toque para empezar a grabar, otro para enviar
-  // (toggle en vez de "mantener presionado" — más fiable con lectores de pantalla,
-  // que activan botones con un toque discreto y no con gestos de pulsación sostenida).
-  document.getElementById('voice-btn')?.addEventListener('click', toggleVoiceRecording);
 }
 
 // ── ÍCONOS PERSONALIZADOS ─────────────────────────────────────────────────────
@@ -2422,7 +2343,6 @@ function buildACCard(key) {
 
 // ── FUNCIONES DEL PLAN (placeholders no conectados a dispositivos reales) ────
 const PLAN_FEATURES_INFO = {
-  voice:    { minPlan: 'premium' },
   bathroom: { minPlan: 'max_comfort' },
   bidet:    { minPlan: 'max_comfort' },
   rug:      { minPlan: 'max_comfort' },
@@ -2431,7 +2351,6 @@ const PLAN_FEATURES_INFO = {
 function renderPlanGrid() {
   const grid = document.getElementById('plan-grid');
   grid.innerHTML = [
-    buildFeatureCard('voice',    PLAN_FEATURES_INFO.voice,    buildVoiceCard),
     buildFeatureCard('bathroom', PLAN_FEATURES_INFO.bathroom, buildBathroomCard),
     buildFeatureCard('bidet',    PLAN_FEATURES_INFO.bidet,    buildBidetCard),
     buildFeatureCard('rug',      PLAN_FEATURES_INFO.rug,      buildRugCard),
@@ -2469,22 +2388,6 @@ function buildTVCard() {
       <div class="source-row">
         ${sources.map(src => `<button class="source-btn ${s.source === src.id ? 'active' : ''}" data-feature="tv" data-action="source" data-source="${src.id}">${src.label}</button>`).join('')}
       </div>` : ''}
-  </div>`;
-}
-
-// ── CONTROL POR VOZ (Echo) ────────────────────────────────────────────────────
-function buildVoiceCard() {
-  const s = app._placeholder.voice ?? (app._placeholder.voice = { on: true });
-  return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-voice">
-    <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">🔊</span><span class="card-label">${t('voiceTitle')}</span></div>
-      <div class="toggle ${s.on ? 'on' : ''}" data-feature="voice" data-action="toggle"></div>
-    </div>
-    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? t('voiceOn') : t('voiceOff')}</div>
-    <div class="feature-row">
-      <span class="feature-row-label"><span class="led-dot ${s.on ? 'on' : ''}"></span>${t('ledIndicator')}</span>
-      <span class="preview-tag">${s.on ? t('onM') : t('offM')}</span>
-    </div>
   </div>`;
 }
 
@@ -2614,7 +2517,7 @@ function renderClimateView() {
 
 // ── EVENTOS: FUNCIONES DEL PLAN (placeholders) ───────────────────────────────
 function rerenderFeature(key) {
-  const builders = { tv: buildTVCard, voice: buildVoiceCard, bathroom: buildBathroomCard, bidet: buildBidetCard, rug: buildRugCard };
+  const builders = { tv: buildTVCard, bathroom: buildBathroomCard, bidet: buildBidetCard, rug: buildRugCard };
   const el = document.getElementById(`feature-${key}`);
   if (el && builders[key]) el.outerHTML = builders[key]();
 }

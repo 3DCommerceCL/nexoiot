@@ -119,6 +119,14 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_tarifas_hotel ON tarifas(hotel_id, desde, hasta);
 
+  CREATE TABLE IF NOT EXISTS contacto_config (
+    hotel_id      TEXT PRIMARY KEY,
+    metodo        TEXT NOT NULL DEFAULT 'whatsapp',
+    mensaje_otro  TEXT,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS booking_config (
     hotel_id          TEXT PRIMARY KEY,
     titulo            TEXT,
@@ -251,11 +259,13 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_sesiones_usuario ON sesiones(usuario_id);
 
   CREATE TABLE IF NOT EXISTS housekeeping (
-    room_id    TEXT PRIMARY KEY,
-    hotel_id   TEXT NOT NULL,
-    estado     TEXT NOT NULL DEFAULT 'limpia',
-    notas      TEXT,
-    updated_at TEXT NOT NULL
+    room_id        TEXT PRIMARY KEY,
+    hotel_id       TEXT NOT NULL,
+    estado         TEXT NOT NULL DEFAULT 'limpia',
+    notas          TEXT,
+    usuario_id     TEXT,
+    usuario_nombre TEXT,
+    updated_at     TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_housekeeping_hotel ON housekeeping(hotel_id);
 
@@ -342,6 +352,8 @@ try { db.exec("ALTER TABLE tarifas ADD COLUMN derivada_modo TEXT"); } catch { /*
 try { db.exec('ALTER TABLE tarifas ADD COLUMN derivada_valor REAL'); } catch { /* ya existe */ }
 try { db.exec('ALTER TABLE tarifas ADD COLUMN dias_semana TEXT'); } catch { /* ya existe — NULL = todos los días, o CSV de 0(domingo)-6(sábado) */ }
 try { db.exec('ALTER TABLE booking_config ADD COLUMN link_resenas TEXT'); } catch { /* ya existe */ }
+try { db.exec('ALTER TABLE housekeeping ADD COLUMN usuario_id TEXT'); } catch { /* ya existe */ }
+try { db.exec('ALTER TABLE housekeeping ADD COLUMN usuario_nombre TEXT'); } catch { /* ya existe */ }
 
 console.log('[db] SQLite listo:', DB_PATH);
 module.exports = db;

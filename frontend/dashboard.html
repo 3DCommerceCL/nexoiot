@@ -705,6 +705,7 @@ select.form-input option{background:var(--card);color:var(--text)}
           <option value="scene_off">Apagado masivo</option>
           <option value="door_alarm">Alarma de puerta</option>
           <option value="scheduled_command">Comando programado</option>
+          <option value="housekeeping_changed">Aseo actualizado</option>
         </select>
         <input type="date" id="log-desde">
         <input type="date" id="log-hasta">
@@ -778,6 +779,30 @@ select.form-input option{background:var(--card);color:var(--text)}
           </div>
         </div>
         <div class="form-error" id="bk-save-err"></div>
+      </div>
+
+      <div class="analytics-card" style="margin-bottom:14px">
+        <div class="sec-header" style="margin-bottom:10px">
+          <span class="sec-title">Contacto con recepción</span>
+          <button class="btn btn-primary btn-sm" id="cc-save">Guardar</button>
+        </div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:12px">Cómo le ofrece la app al huésped contactar a recepción.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group full">
+            <label class="form-label">Método</label>
+            <select class="form-input" id="cc-metodo">
+              <option value="whatsapp">WhatsApp Business</option>
+              <option value="citofono">Usar el citófono de la habitación</option>
+              <option value="bajar_recepcion">Bajar a recepción en persona</option>
+              <option value="otro">Otro (mensaje personalizado)</option>
+            </select>
+          </div>
+          <div class="form-group full hidden" id="cc-otro-wrap">
+            <label class="form-label">Mensaje para el huésped</label>
+            <textarea class="form-input" id="cc-mensaje" rows="2" placeholder="Ej: Marca el 9 desde el teléfono de tu habitación."></textarea>
+          </div>
+        </div>
+        <div class="form-error" id="cc-save-err"></div>
       </div>
 
       <div class="analytics-card" style="margin-bottom:14px">
