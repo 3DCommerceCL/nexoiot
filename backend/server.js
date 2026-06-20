@@ -19,6 +19,7 @@ const tarifas       = require('./tarifas');
 const tarifasDia    = require('./tarifas-dia');
 const categorias    = require('./categorias');
 const bookingConfig = require('./booking-config');
+const contactoConfig = require('./contacto-config');
 const facturacionConfig = require('./facturacion-config');
 const facturacion       = require('./facturacion');
 const programados       = require('./programados');
@@ -138,9 +139,9 @@ function invalidarCacheDisponibilidad(slug) {
 // el QR/token es lo que la app y la vista de Habitaciones usan para saber que hay
 // alguien alojado. Generamos el token automáticamente al crear/confirmar la reserva,
 // y lo expiramos al cancelar/hacer checkout o al reprogramar fechas/habitación.
-function generarTokenParaReserva(reserva, telefono) {
+function generarTokenParaReserva(reserva, telefono, lang, accessibility) {
   try {
-    const token = rooms.generateToken(reserva.room_id, reserva.guest_name, reserva.checkin, reserva.checkout, telefono || reserva.guest_phone || '');
+    const token = rooms.generateToken(reserva.room_id, reserva.guest_name, reserva.checkin, reserva.checkout, telefono || reserva.guest_phone || '', lang, accessibility);
     reservas.updateReserva(reserva.id, { token });
     return token;
   } catch (err) {
@@ -165,6 +166,27 @@ async function actualizarUF() {
 }
 actualizarUF();
 setInterval(actualizarUF, 24 * 60 * 60 * 1000);
+
+// Migración: estadías creadas con el viejo botón "Asignar estadía" (que solo
+// generaba un token en tokens.json, sin pasar por reservas.js) no aparecen en
+// el calendario porque éste solo lee la tabla reservas — quedan habitaciones
+// que se ven ocupadas en la pestaña Habitaciones pero libres en Calendario.
+// Se les crea aquí la fila de reserva que les falta, vinculada al mismo token
+// ya activo, para que ambas vistas vuelvan a estar sincronizadas.
+(function migrarTokensSinReserva() {
+  const allRooms = rooms.getRooms();
+  let creadas = 0;
+  for (const t of rooms.listActiveTokens()) {
+    if (reservas.getByToken(t.token)) continue;
+    const hotelId = allRooms[t.roomId]?.hotelId;
+    if (!hotelId) continue;
+    reservas.createReserva(hotelId, t.roomId, t.guestName, t.checkin, t.checkout, {
+      guestPhone: t.phone, token: t.token, source: 'walk_in', status: 'checked_in',
+    });
+    creadas++;
+  }
+  if (creadas) console.log(`[reservas] Migración: ${creadas} estadía(s) sin reserva sincronizada(s) con el calendario`);
+})();
 
 // Logging (el token se oculta en los logs)
 app.use((req, _res, next) => {
@@ -433,12 +455,15 @@ app.get('/api/room/:token', async (req, res) => {
   });
 
   const hotelInfo = rooms.getHotels()[room.hotelId] || {};
+  const contacto  = contactoConfig.getConfig(room.hotelId);
 
   res.json({
     roomId:    entry.roomId,
     roomName:  room.name,
     hotelName:  room.hotel || process.env.HOTEL_NAME || 'Nexo IoT',
     hotelPhone: hotelInfo.phone || process.env.HOTEL_PHONE || null,
+    contactMethod:  contacto.metodo,
+    contactMessage: contacto.mensaje_otro || null,
     guestName: entry.guestName,
     checkin:   entry.checkin,
     checkout:  entry.checkout,
@@ -724,29 +749,6 @@ app.get('/api/tv/:roomId', (req, res) => {
   });
 });
 
-// ── ADMIN: POST /api/admin/token ──────────────────────────────────────────────
-app.post('/api/admin/token', requireAuth('owner', 'recepcion'), (req, res) => {
-  const { roomId, guestName, checkin, checkout, phone, lang, accessibility } = req.body;
-  if (!roomId || !guestName || !checkin || !checkout) {
-    return res.status(400).json({ error: 'Requeridos: roomId, guestName, checkin, checkout' });
-  }
-  const targetRoom = rooms.getRooms()[roomId];
-  if (!targetRoom) return res.status(404).json({ error: 'Habitación no encontrada' });
-  if (!assertHotelAccess(req, targetRoom.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
-  try {
-    const token = rooms.generateToken(roomId, guestName, checkin, checkout, phone, lang, accessibility);
-    res.json({
-      token,
-      url:       `${HOTEL_URL}/room/${token}`,
-      guestUrl:  `${FRONTEND_URL}/?token=${token}`,
-      roomId,
-      guestName,
-    });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
 // ── ADMIN: POST /api/admin/token/:token/prefs ─────────────────────────────────
 // Recepción cambia el idioma o la accesibilidad de una estadía activa.
 app.post('/api/admin/token/:token/prefs', requireAuth('owner', 'recepcion'), (req, res) => {
@@ -944,7 +946,7 @@ app.get('/api/admin/reservas', requireAuth('owner', 'recepcion'), (req, res) => 
 
 // ── ADMIN: POST /api/admin/reservas ──────────────────────────────────────────
 app.post('/api/admin/reservas', requireAuth('owner', 'recepcion'), (req, res) => {
-  const { hotelId, roomId, guestName, checkin, checkout, guestEmail, guestPhone, notes, plan, source } = req.body;
+  const { hotelId, roomId, guestName, checkin, checkout, guestEmail, guestPhone, notes, plan, source, lang, accessibility } = req.body;
   if (!hotelId || !roomId || !guestName || !checkin || !checkout) {
     return res.status(400).json({ error: 'Requeridos: hotelId, roomId, guestName, checkin, checkout' });
   }
@@ -957,7 +959,7 @@ app.post('/api/admin/reservas', requireAuth('owner', 'recepcion'), (req, res) =>
   }
   let r = reservas.createReserva(hotelId, roomId, guestName, checkin, checkout,
     { guestEmail, guestPhone, notes, plan, source });
-  generarTokenParaReserva(r, guestPhone);
+  generarTokenParaReserva(r, guestPhone, lang, accessibility);
   r = reservas.getById(r.id);
   invalidarCacheDisponibilidad(hotelId);
   cm.pushDisponibilidad(hotelId, roomId, checkin, checkout).catch(err =>
@@ -1818,7 +1820,9 @@ app.patch('/api/admin/housekeeping/:roomId', requireAuth('owner', 'recepcion'), 
   if (!hotelId || !estado) return res.status(400).json({ error: 'Requeridos: hotelId, estado' });
   if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
   if (!housekeeping.ESTADOS.includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
-  res.json(housekeeping.setEstado(req.params.roomId, hotelId, estado, notas));
+  const result = housekeeping.setEstado(req.params.roomId, hotelId, estado, notas, req.user.id, req.user.nombre);
+  rooms.addActivity(req.params.roomId, 'housekeeping_changed', `${estado} por ${req.user.nombre}`);
+  res.json(result);
 });
 
 // ── ADMIN: PATCH /api/admin/rooms/:roomId/categoria ───────────────────────────
@@ -1850,6 +1854,22 @@ app.put('/api/admin/booking-config/:hotelId', requireAuth('owner'), (req, res) =
   if (!assertHotelAccess(req, req.params.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
   const cfg = bookingConfig.upsertConfig(req.params.hotelId, req.body);
   res.json(cfg);
+});
+
+// ── ADMIN: GET/PUT /api/admin/contacto-config/:hotelId ────────────────────────
+app.get('/api/admin/contacto-config/:hotelId', requireAuth('owner'), (req, res) => {
+  if (!assertHotelAccess(req, req.params.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(contactoConfig.getConfig(req.params.hotelId));
+});
+
+app.put('/api/admin/contacto-config/:hotelId', requireAuth('owner'), (req, res) => {
+  if (!assertHotelAccess(req, req.params.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  try {
+    const cfg = contactoConfig.upsertConfig(req.params.hotelId, req.body);
+    res.json(cfg);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // ── ADMIN: GET/PUT /api/admin/facturacion-config/:hotelId ────────────────────

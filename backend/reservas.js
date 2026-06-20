@@ -55,6 +55,10 @@ function getById(id) {
   return db.prepare('SELECT * FROM reservas WHERE id = ?').get(id) || null;
 }
 
+function getByToken(token) {
+  return db.prepare('SELECT * FROM reservas WHERE token = ?').get(token) || null;
+}
+
 // Reservas que se solapan con el rango [from, to) — para el calendario
 function getByHotel(hotelId, from, to) {
   return db.prepare(`
@@ -86,4 +90,4 @@ function cancelReserva(id) {
   return r.changes > 0;
 }
 
-module.exports = { createReserva, getById, getByHotel, updateReserva, cancelReserva, checkDisponibilidad };
+module.exports = { createReserva, getById, getByToken, getByHotel, updateReserva, cancelReserva, checkDisponibilidad };

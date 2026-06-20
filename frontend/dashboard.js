@@ -115,6 +115,7 @@ const DT = {
     activitySceneOff: 'Apagado masivo de dispositivos',
     activityDoorAlarm: 'Alarma de puerta',
     activityScheduledCommand: 'Comando programado',
+    activityHousekeeping: 'Aseo actualizado',
     newStayTitle: 'Nueva estadía',
     newStaySub: 'Asignar habitación y generar QR de acceso',
     prefsSection: 'Preferencias del huésped',
@@ -158,9 +159,6 @@ const DT = {
     closeBtn: 'Cerrar',
     doorOpenB: 'Abierta',
     doorClosedB: 'Cerrada',
-    voiceOn: 'Asistente activo (Echo)',
-    voiceOff: 'Modo privado — solo app',
-    voiceDesc: 'Control con Amazon Echo. Disponible en el plan Premium.',
     bathDesc: 'Sensor de presencia + luz inteligente de baño. Incluido en Max Comfort.',
     bidetDesc: 'Bidé inteligente con asiento calefaccionado. Incluido en Max Comfort.',
     rugDesc: 'Alfombra con calefacción para pie de cama o baño. Incluida en Max Comfort.',
@@ -241,6 +239,7 @@ const DT = {
     activitySceneOff: 'Bulk device shutdown',
     activityDoorAlarm: 'Door alarm',
     activityScheduledCommand: 'Scheduled command',
+    activityHousekeeping: 'Housekeeping updated',
     newStayTitle: 'New stay',
     newStaySub: 'Assign a room and generate the access QR',
     prefsSection: 'Guest preferences',
@@ -284,9 +283,6 @@ const DT = {
     closeBtn: 'Close',
     doorOpenB: 'Open',
     doorClosedB: 'Closed',
-    voiceOn: 'Assistant active (Echo)',
-    voiceOff: 'Private mode — app only',
-    voiceDesc: 'Amazon Echo control. Available on the Premium plan.',
     bathDesc: 'Presence sensor + smart bathroom light. Included in Max Comfort.',
     bidetDesc: 'Smart bidet with heated seat. Included in Max Comfort.',
     rugDesc: 'Heated rug for bedside or bathroom. Included in Max Comfort.',
@@ -367,6 +363,7 @@ const DT = {
     activitySceneOff: 'Desligamento em massa de dispositivos',
     activityDoorAlarm: 'Alarme de porta',
     activityScheduledCommand: 'Comando agendado',
+    activityHousekeeping: 'Limpeza atualizada',
     newStayTitle: 'Nova estadia',
     newStaySub: 'Atribuir quarto e gerar QR de acesso',
     prefsSection: 'Preferências do hóspede',
@@ -410,9 +407,6 @@ const DT = {
     closeBtn: 'Fechar',
     doorOpenB: 'Aberta',
     doorClosedB: 'Fechada',
-    voiceOn: 'Assistente ativo (Echo)',
-    voiceOff: 'Modo privado — só app',
-    voiceDesc: 'Controle com Amazon Echo. Disponível no plano Premium.',
     bathDesc: 'Sensor de presença + luz inteligente no banheiro. Incluído no Max Comfort.',
     bidetDesc: 'Bidê inteligente com assento aquecido. Incluído no Max Comfort.',
     rugDesc: 'Tapete com aquecimento para beira da cama ou banheiro. Incluído no Max Comfort.',
@@ -433,7 +427,6 @@ const A11Y_MODES  = [['none', 'a11yNone'], ['vision', 'a11yVision'], ['hearing',
 
 // title/desc son claves del diccionario DT que se resuelven al renderizar.
 const PLAN_FEATURES_INFO = {
-  voice:    { icon: '🔊', title: 'voiceTitle',   desc: 'voiceDesc',   minPlan: 'premium',     badge: 'PREMIUM' },
   bathroom: { icon: '🚿', title: 'bathTitle',    desc: 'bathDesc',    minPlan: 'max_comfort', badge: 'MAX COMFORT' },
   bidet:    { icon: '🚽', title: 'bidetTitle',   desc: 'bidetDesc',   minPlan: 'max_comfort', badge: 'MAX COMFORT' },
   rug:      { icon: '🔥', title: 'rugTitle',     desc: 'rugDesc',     minPlan: 'max_comfort', badge: 'MAX COMFORT' },
@@ -882,7 +875,7 @@ function navigate(view) {
   if (view === 'rooms') { loadHousekeeping(); renderRooms('rooms', state.filter); }
   if (view === 'calendar') initCalendar();
   if (view === 'channels') { OTA_ENABLED ? loadCanales() : renderChannelsComingSoon(); }
-  if (view === 'booking') loadBookingConfig();
+  if (view === 'booking') { loadBookingConfig(); loadContactoConfig(); }
   if (view === 'pagos') loadTransacciones();
   if (view === 'facturacion') { loadFacturacionConfig(); loadDocumentos(); }
   if (view === 'categorias') loadCategorias();
@@ -941,7 +934,6 @@ window.openRoomModal = async function(roomId) {
     state.currentRoom = { id: room.id, token: room.guest.token, devices: data.devices, plan: room.plan || 'base' };
     state.placeholder = {
       tv:       { on: false, vol: 30, source: 'cable' },
-      voice:    { on: true },
       bathroom: { presence: false, lightOn: false, intensity: 60, colorTemp: 50, auto: true },
       bidet:    { on: false, heatedSeat: false, mode: null },
       rug:      { on: false, level: 'media' },
@@ -1005,7 +997,6 @@ function renderDevGrid() {
   const { devices, plan } = state.currentRoom;
   const cards = Object.entries(devices).map(([key, dev]) => buildDeviceCard(key, dev));
   cards.push(buildTVCard());
-  cards.push(buildFeatureCard('voice',    PLAN_FEATURES_INFO.voice,    buildVoiceCard,    plan));
   if (planLevel(plan) >= PLAN_TIERS.premium) {
     cards.push(buildACCard());
     cards.push(buildWindowCard());
@@ -1065,21 +1056,6 @@ function buildTVCard() {
       <div class="source-row">
         ${sources.map(src => `<button class="source-btn ${s.source === src.id ? 'active' : ''}" onclick="setFeatureVal('tv','source','${src.id}')">${src.label}</button>`).join('')}
       </div>
-    </div>
-  </div>`;
-}
-
-function buildVoiceCard() {
-  const s = state.placeholder.voice;
-  return `<div class="dev-card">
-    <div class="dev-card-head">
-      <div class="dev-card-name"><span class="dev-card-ico">🔊</span> ${dt('voiceTitle')}</div>
-      <div class="toggle-sw ${s.on ? 'on' : ''}" onclick="toggleFeature('voice')"></div>
-    </div>
-    <div class="dev-status ${s.on ? 'on-label' : ''}">${s.on ? dt('voiceOn') : dt('voiceOff')}</div>
-    <div class="feature-row">
-      <span class="feature-row-label"><span class="led-dot ${s.on ? 'on' : ''}"></span>${dt('ledIndicator')}</span>
-      <span class="preview-tag">${s.on ? dt('onM') : dt('offM')}</span>
     </div>
   </div>`;
 }
@@ -1709,12 +1685,12 @@ window.toggleAllowManualUnlock = async function(key) {
 const ACTIVITY_ICONS = {
   checkin: '🟢', checkout: '🔴', prefs_changed: '⚙️',
   service_request: '🛎', request_resolved: '✅', scene_off: '🔌',
-  door_alarm: '🚨', scheduled_command: '🕐',
+  door_alarm: '🚨', scheduled_command: '🕐', housekeeping_changed: '🧹',
 };
 const ACTIVITY_LABELS = {
   checkin: 'activityCheckin', checkout: 'activityCheckout', prefs_changed: 'activityPrefsChanged',
   service_request: 'activityServiceRequest', request_resolved: 'activityRequestResolved', scene_off: 'activitySceneOff',
-  door_alarm: 'activityDoorAlarm', scheduled_command: 'activityScheduledCommand',
+  door_alarm: 'activityDoorAlarm', scheduled_command: 'activityScheduledCommand', housekeeping_changed: 'activityHousekeeping',
 };
 
 function activityDetailText(item) {
@@ -1925,12 +1901,16 @@ async function submitNewStay() {
   btn.disabled = true;
 
   try {
-    const result = await apiFetch('/admin/token', {
+    await apiFetch('/admin/reservas', {
       method: 'POST',
-      body: JSON.stringify({ roomId, guestName: guest, phone, checkin, checkout, lang, accessibility }),
+      body: JSON.stringify({
+        hotelId: HOTEL_ID, roomId, guestName: guest, guestPhone: phone, checkin, checkout,
+        lang, accessibility, source: 'walk_in',
+      }),
     });
     closeModal('modal-new-stay');
     await loadRooms();
+    fcInstance?.refetchEvents();
     showToast(dt('stayCreated', { name: guest }), 'success');
 
     const room = rooms.find(r => r.id === roomId);
@@ -2253,6 +2233,7 @@ async function submitReservaModal(existingId) {
     }
     closeModal('modal-reserva');
     if (fcInstance) fcInstance.refetchEvents();
+    await loadRooms();
     showToast(existingId ? 'Reserva actualizada' : 'Reserva creada', 'success');
   } catch (err) {
     error.textContent = err.message;
@@ -2433,10 +2414,13 @@ function housekeepingControlHtml(room) {
   const estado = hk?.estado || 'limpia';
   const opts = Object.entries(HK_ESTADO_LABEL)
     .map(([k, v]) => `<option value="${k}" ${k === estado ? 'selected' : ''}>${v}</option>`).join('');
+  const title = hk?.usuario_nombre
+    ? `Última actualización: ${hk.usuario_nombre} · ${new Date(hk.updated_at).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`
+    : '';
   return `
     <div class="rc-hk-row">
       <span style="font-size:11px;opacity:.85">🧹</span>
-      <select class="form-input" style="font-size:10px;padding:3px 6px;height:auto;width:auto" onclick="event.stopPropagation()" onchange="setHousekeepingInline('${room.id}', this.value)">${opts}</select>
+      <select class="form-input" style="font-size:10px;padding:3px 6px;height:auto;width:auto" title="${title}" onclick="event.stopPropagation()" onchange="setHousekeepingInline('${room.id}', this.value)">${opts}</select>
     </div>`;
 }
 
@@ -2953,6 +2937,36 @@ function copyEmbedCode() {
   navigator.clipboard.writeText(text)
     .then(() => showToast('Código copiado al portapapeles', 'success'))
     .catch(() => showToast('No se pudo copiar. Selecciona el texto manualmente.', 'error'));
+}
+
+async function loadContactoConfig() {
+  if (!HOTEL_ID) return;
+  $('cc-save-err').textContent = '';
+  try {
+    const cfg = await apiFetch(`/admin/contacto-config/${HOTEL_ID}`);
+    $('cc-metodo').value  = cfg.metodo || 'whatsapp';
+    $('cc-mensaje').value = cfg.mensaje_otro || '';
+    $('cc-otro-wrap').classList.toggle('hidden', $('cc-metodo').value !== 'otro');
+  } catch (err) {
+    showToast('Error cargando configuración de contacto: ' + err.message, 'error');
+  }
+}
+
+async function saveContactoConfig() {
+  if (!HOTEL_ID) return;
+  $('cc-save-err').textContent = '';
+  try {
+    await apiFetch(`/admin/contacto-config/${HOTEL_ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        metodo:       $('cc-metodo').value,
+        mensaje_otro: $('cc-mensaje').value.trim() || null,
+      }),
+    });
+    showToast('Configuración guardada', 'success');
+  } catch (err) {
+    $('cc-save-err').textContent = err.message;
+  }
 }
 
 // ── CATEGORÍAS DE HABITACIÓN ──────────────────────────────────────────────────
@@ -3723,6 +3737,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Motor de reservas
   $('bk-save').addEventListener('click', saveBookingConfig);
   $('bk-copy').addEventListener('click', copyEmbedCode);
+  $('cc-save').addEventListener('click', saveContactoConfig);
+  $('cc-metodo').addEventListener('change', () => {
+    $('cc-otro-wrap').classList.toggle('hidden', $('cc-metodo').value !== 'otro');
+  });
   $('bk-add-tarifa').addEventListener('click', openAddTarifaModal);
   $('tf-cancel').addEventListener('click', () => closeModal('modal-tarifa'));
   $('tf-save').addEventListener('click', submitTarifa);
