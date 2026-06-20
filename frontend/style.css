@@ -624,6 +624,20 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 .door-alarm-card p { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
 .door-alarm-card .support-btn { width: 100%; justify-content: center; }
 
+/* ── MODAL: PROGRAMAR (rango horario + repetición) ────────────────────────── */
+.schedule-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; display: block; text-align: left; }
+.schedule-check-row {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text); margin-bottom: 12px; cursor: pointer;
+}
+.schedule-days-row { display: flex; gap: 5px; justify-content: space-between; margin-bottom: 14px; }
+.schedule-day-btn {
+  flex: 1; padding: 8px 0; border-radius: var(--rsm);
+  border: 1.5px solid var(--border); background: var(--card2); color: var(--text);
+  font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font); transition: all .15s;
+}
+.schedule-day-btn.active { border-color: var(--teal); background: var(--teal-l); color: var(--teal); }
+
 /* ── TUTORIAL: ELEGIR RECORRIDO GUIADO ───────────────────────────────────── */
 .tutorial-choice-actions { display: flex; flex-direction: column; gap: 10px; }
 .tutorial-choice-actions .support-btn { width: 100%; justify-content: center; }

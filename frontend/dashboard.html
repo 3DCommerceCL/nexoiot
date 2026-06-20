@@ -1318,6 +1318,16 @@ select.form-input option{background:var(--card);color:var(--text)}
 </div>
 
 <!-- MODAL: Agregar/editar categoría de habitación -->
+<div class="modal-overlay hidden" id="modal-schedule">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <div class="modal-title">🕐 Programar</div>
+      <button class="modal-close" onclick="closeModal('modal-schedule')">✕</button>
+    </div>
+    <div id="schedule-modal-body" style="padding:0 24px 20px"></div>
+  </div>
+</div>
+
 <div class="modal-overlay hidden" id="modal-categoria">
   <div class="modal" style="max-width:380px">
     <div class="modal-header">

@@ -1303,7 +1303,8 @@ function buildLightCard(key, dev, ico) {
   registerSchedule(panelId, dtDev(key, dev), [
     { value: 'true', label: 'Encender' }, { value: 'false', label: 'Apagar' },
   ], v => [{ dev: key, cmd: { on: v === 'true' } }],
-  c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && 'on' in s.cmd); } catch { return false; } });
+  v => [{ dev: key, cmd: { on: v !== 'true' } }],
+  c => { try { return JSON.parse(c.pasos_inicio).some(s => s.dev === key && 'on' in s.cmd); } catch { return false; } });
   return `<div class="dev-card">
     <div class="dev-card-head">
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
@@ -1321,7 +1322,6 @@ function buildLightCard(key, dev, ico) {
         <span class="slider-val">${dev.state.intensity}%</span>
       </div>
     </div>
-    ${buildSchedulePanel(panelId)}
     ${buildManualRow(key, manual)}
   </div>`;
 }
@@ -1334,7 +1334,8 @@ function buildCurtainCard(key, dev, ico) {
   registerSchedule(panelId, dtDev(key, dev), [
     { value: 'open', label: 'Abrir' }, { value: 'close', label: 'Cerrar' },
   ], v => [{ dev: key, cmd: { control: v } }],
-  c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && 'control' in s.cmd); } catch { return false; } });
+  v => [{ dev: key, cmd: { control: v === 'open' ? 'close' : 'open' } }],
+  c => { try { return JSON.parse(c.pasos_inicio).some(s => s.dev === key && 'control' in s.cmd); } catch { return false; } });
   return `<div class="dev-card">
     <div class="dev-card-head">
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
@@ -1352,7 +1353,6 @@ function buildCurtainCard(key, dev, ico) {
       </div>
     </div>
     <div class="curtain-label">${label}</div>
-    ${buildSchedulePanel(panelId)}
     ${buildUnlockRow(key, unlocked)}
     ${buildAllowManualUnlockRow(key, !!dev.manualUnlock)}
   </div>`;
@@ -1383,8 +1383,6 @@ function channelFuncionControlHtml(key, i, label) {
   return `<select class="form-input" style="font-size:10px;padding:3px 6px;height:auto;width:auto" onclick="event.stopPropagation()" onchange="setChannelFuncion('${key}', ${i}, this.value)">${opts.join('')}</select>`;
 }
 
-let scheduleOpenPanel = null; // "${key}-${i}" del panel de programación abierto, o null
-
 function buildMultiSwitchCard(key, dev, ico) {
   const labels = dev.channels || ['Canal 1', 'Canal 2', 'Canal 3'];
   const chKeys = ['ch1', 'ch2', 'ch3'].slice(0, labels.length);
@@ -1395,15 +1393,15 @@ function buildMultiSwitchCard(key, dev, ico) {
     registerSchedule(panelId, labels[i], [
       { value: 'true', label: 'Encender' }, { value: 'false', label: 'Apagar' },
     ], v => [{ dev: key, cmd: { [`ch${i + 1}`]: v === 'true' } }],
-    c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && `ch${i + 1}` in s.cmd); } catch { return false; } });
+    v => [{ dev: key, cmd: { [`ch${i + 1}`]: v !== 'true' } }],
+    c => { try { return JSON.parse(c.pasos_inicio).some(s => s.dev === key && `ch${i + 1}` in s.cmd); } catch { return false; } });
     return `<div style="display:flex;align-items:center;justify-content:space-between;${i ? 'margin-top:8px' : ''}">
       ${channelFuncionControlHtml(key, i, labels[i])}
       <div style="display:flex;align-items:center;gap:8px">
-        <button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();toggleSchedulePanel('${panelId}')">🕐</button>
+        ${scheduleBtnHtml(panelId)}
         <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleMultiSwitch('${key}','${ch}', ${!on})"></div>
       </div>
-    </div>
-    ${buildSchedulePanel(panelId)}`;
+    </div>`;
   }).join('');
   // Con un solo canal el enchufe controla una única función — el encabezado
   // "Enchufe USB" es redundante con la fila de abajo, así que se omite.
@@ -1417,82 +1415,154 @@ function buildMultiSwitchCard(key, dev, ico) {
   </div>`;
 }
 
-// ── PROGRAMACIÓN DE DISPOSITIVOS (cualquier tipo) ────────────────────────────
-// scheduleConfigs guarda, por panelId, cómo armar los `pasos` y cómo filtrar la
-// lista de programaciones pendientes — se recalcula en cada render, así que
-// siempre refleja el estado actual del dispositivo sin guardar nada obsoleto.
+// ── PROGRAMACIÓN DE DISPOSITIVOS (rango horario + repetición) ────────────────
+// Mismo modelo que la app del huésped (pasosInicio/pasosFin, horaInicio/Fin,
+// repetir 'once'|'weekly') — acá vive en un modal (`#modal-schedule`) en vez de
+// un panel inline porque son demasiados campos para un formulario embebido en
+// la tarjeta. scheduleConfigs guarda, por panelId, cómo armar los pasos y cómo
+// filtrar la lista de programaciones pendientes de ese dispositivo.
+const SCHED_DIAS = [
+  { value: 1, label: 'L' }, { value: 2, label: 'M' }, { value: 3, label: 'M' },
+  { value: 4, label: 'J' }, { value: 5, label: 'V' }, { value: 6, label: 'S' }, { value: 0, label: 'D' },
+];
+const SCHED_DIAS_CORTAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const scheduleConfigs = {};
+let dashScheduleState = null;
 
-function registerSchedule(panelId, descripcion, choices, buildPasos, matches) {
-  scheduleConfigs[panelId] = { descripcion, choices, buildPasos, matches };
+function registerSchedule(panelId, descripcion, choices, buildPasos, buildPasosFin, matches) {
+  scheduleConfigs[panelId] = { descripcion, choices, buildPasos, buildPasosFin, matches };
 }
 
 function scheduleBtnHtml(panelId) {
-  return `<button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();toggleSchedulePanel('${panelId}')">🕐</button>`;
+  return `<button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();openScheduleModalDash('${panelId}')">🕐</button>`;
 }
 
-function buildSchedulePanel(panelId) {
-  if (scheduleOpenPanel !== panelId) return '';
+window.openScheduleModalDash = function(panelId) {
   const cfg = scheduleConfigs[panelId];
-  if (!cfg) return '';
-  const optsHtml = cfg.choices.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
-  return `<div class="cobro-manual-form" style="margin-top:6px">
-      <input class="form-input" type="datetime-local" id="sched-dt-${panelId}" style="max-width:200px">
-      <select class="form-input" id="sched-choice-${panelId}" style="max-width:110px">${optsHtml}</select>
-      <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();confirmSchedule('${panelId}')">Programar</button>
-    </div>
-    <div id="sched-list-${panelId}" style="margin-bottom:8px"></div>`;
-}
-
-window.toggleSchedulePanel = function(panelId) {
-  scheduleOpenPanel = scheduleOpenPanel === panelId ? null : panelId;
-  renderDevGrid();
-  if (scheduleOpenPanel === panelId) loadSchedulePanel(panelId);
+  if (!cfg) return;
+  dashScheduleState = {
+    ...cfg, selected: cfg.choices ? cfg.choices[0].value : null,
+    horaInicio: '', horaFin: '', apagarAuto: false,
+    repetir: 'once', fecha: new Date().toISOString().slice(0, 10), diasSel: [],
+  };
+  renderScheduleModalBody();
+  $('modal-schedule').classList.remove('hidden');
 };
 
-async function loadSchedulePanel(panelId) {
-  const cfg = scheduleConfigs[panelId];
-  const listEl = document.getElementById(`sched-list-${panelId}`);
-  if (!listEl || !cfg) return;
+function renderScheduleModalBody() {
+  if (!dashScheduleState) return;
+  const { descripcion, choices, selected, apagarAuto, repetir, diasSel, buildPasosFin } = dashScheduleState;
+  const body = $('schedule-modal-body');
+
+  const choicesHtml = choices ? `
+    <div class="modal-field" style="margin-top:0">
+      <span class="modal-label">Acción</span>
+      <select class="form-input" id="sched-choice">${choices.map(c => `<option value="${c.value}" ${c.value === selected ? 'selected' : ''}>${c.label}</option>`).join('')}</select>
+    </div>` : '';
+
+  const autoOffHtml = buildPasosFin ? `
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:10px;cursor:pointer">
+      <input type="checkbox" id="sched-auto-off" ${apagarAuto ? 'checked' : ''}> Apagar/cerrar automáticamente
+    </label>
+    ${apagarAuto ? `<div class="modal-field"><span class="modal-label">Hasta</span><input type="time" class="form-input" id="sched-time-end" value="${dashScheduleState.horaFin}"></div>` : ''}` : '';
+
+  const repeatBodyHtml = repetir === 'weekly' ? `
+    <div style="display:flex;gap:4px;justify-content:space-between;margin-bottom:14px">
+      ${SCHED_DIAS.map(d => `<button type="button" class="btn btn-sm ${diasSel.includes(d.value) ? 'btn-primary' : 'btn-outline'}" style="flex:1;padding:6px 0" onclick="toggleSchedDay(${d.value})">${d.label}</button>`).join('')}
+    </div>` : `
+    <div class="modal-field"><span class="modal-label">Fecha</span><input type="date" class="form-input" id="sched-date" min="${new Date().toISOString().slice(0, 10)}" value="${dashScheduleState.fecha}"></div>`;
+
+  body.innerHTML = `
+    <p style="font-size:12px;color:var(--text2);margin-bottom:12px">${descripcion}</p>
+    ${choicesHtml}
+    <div class="modal-field"><span class="modal-label">Desde</span><input type="time" class="form-input" id="sched-time-start" value="${dashScheduleState.horaInicio}"></div>
+    ${autoOffHtml}
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <button type="button" class="btn btn-sm ${repetir === 'once' ? 'btn-primary' : 'btn-outline'}" style="flex:1" onclick="setSchedRepeat('once')">Solo una vez</button>
+      <button type="button" class="btn btn-sm ${repetir === 'weekly' ? 'btn-primary' : 'btn-outline'}" style="flex:1" onclick="setSchedRepeat('weekly')">Días de la semana</button>
+    </div>
+    ${repeatBodyHtml}
+    <div class="modal-error" id="sched-error"></div>
+    <div class="modal-actions" style="padding:0">
+      <button class="btn btn-outline" onclick="closeModal('modal-schedule')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmScheduleModal()">Programar</button>
+    </div>
+    <div id="schedule-modal-pending" style="margin-top:14px"></div>`;
+
+  $('sched-time-start').oninput = e => { dashScheduleState.horaInicio = e.target.value; };
+  if (choices) $('sched-choice').onchange = e => { dashScheduleState.selected = e.target.value; };
+  if (buildPasosFin) {
+    $('sched-auto-off').onchange = e => { dashScheduleState.apagarAuto = e.target.checked; renderScheduleModalBody(); };
+    if (apagarAuto) $('sched-time-end').oninput = e => { dashScheduleState.horaFin = e.target.value; };
+  }
+  if (repetir === 'once') $('sched-date').oninput = e => { dashScheduleState.fecha = e.target.value; };
+
+  loadScheduleModalPending();
+}
+
+window.setSchedRepeat = function(r) { dashScheduleState.repetir = r; renderScheduleModalBody(); };
+window.toggleSchedDay = function(d) {
+  const idx = dashScheduleState.diasSel.indexOf(d);
+  if (idx >= 0) dashScheduleState.diasSel.splice(idx, 1); else dashScheduleState.diasSel.push(d);
+  renderScheduleModalBody();
+};
+
+window.confirmScheduleModal = async function() {
+  const errEl = $('sched-error');
+  errEl.textContent = '';
+  const { descripcion, buildPasos, buildPasosFin, selected, horaInicio, horaFin, apagarAuto, repetir, fecha, diasSel } = dashScheduleState;
+  if (!horaInicio) { errEl.textContent = 'Elige una hora de inicio.'; return; }
+  if (apagarAuto && !horaFin) { errEl.textContent = 'Elige la hora hasta la que debe estar así.'; return; }
+  if (apagarAuto && horaFin === horaInicio) { errEl.textContent = 'La hora de fin debe ser distinta a la de inicio.'; return; }
+  if (repetir === 'once' && !fecha) { errEl.textContent = 'Elige una fecha.'; return; }
+  if (repetir === 'weekly' && !diasSel.length) { errEl.textContent = 'Elige al menos un día de la semana.'; return; }
+
+  try {
+    await apiFetch(`/admin/rooms/${state.currentRoom.id}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify({
+        descripcion, pasosInicio: buildPasos(selected),
+        pasosFin: apagarAuto && buildPasosFin ? buildPasosFin(selected) : null,
+        horaInicio, horaFin: apagarAuto ? horaFin : null,
+        repetir, fecha: repetir === 'once' ? fecha : null, diasSemana: repetir === 'weekly' ? diasSel : null,
+      }),
+    });
+    showToast('Programado correctamente', 'success');
+    loadScheduleModalPending();
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+};
+
+function formatScheduleRowDash(c) {
+  const rango = c.hora_fin ? `${c.hora_inicio}–${c.hora_fin}` : c.hora_inicio;
+  const cuando = c.repetir === 'once'
+    ? new Date(c.fecha + 'T00:00:00').toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit' })
+    : JSON.parse(c.dias_semana).map(d => SCHED_DIAS_CORTAS[d]).join(', ');
+  return `${rango} · ${cuando}`;
+}
+
+async function loadScheduleModalPending() {
+  const listEl = $('schedule-modal-pending');
+  if (!listEl || !dashScheduleState) return;
   try {
     const lista = await apiFetch(`/admin/rooms/${state.currentRoom.id}/schedule`);
-    const propios = lista.filter(cfg.matches);
+    const propios = lista.filter(dashScheduleState.matches);
     if (!propios.length) { listEl.innerHTML = '<div class="form-note">Sin programaciones pendientes.</div>'; return; }
-    listEl.innerHTML = propios.map(c => {
-      const fecha = new Date(c.ejecutar_en).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
-      return `<div class="mapping-row" style="margin-bottom:4px">
-        <span class="mapping-ota" style="flex:1">${c.descripcion} · ${fecha}</span>
-        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();cancelSchedulePanel('${c.id}','${panelId}')">Cancelar</button>
-      </div>`;
-    }).join('');
+    listEl.innerHTML = propios.map(c => `<div class="mapping-row" style="margin-bottom:4px">
+        <span class="mapping-ota" style="flex:1">${c.descripcion} · ${formatScheduleRowDash(c)}</span>
+        <button class="btn btn-outline btn-sm" onclick="cancelScheduleModal('${c.id}')">Cancelar</button>
+      </div>`).join('');
   } catch {
     listEl.innerHTML = '';
   }
 }
 
-window.confirmSchedule = async function(panelId) {
-  const cfg = scheduleConfigs[panelId];
-  if (!cfg) return;
-  const dt = document.getElementById(`sched-dt-${panelId}`).value;
-  if (!dt) { showToast('Elige una fecha y hora.', 'error'); return; }
-  const choice = document.getElementById(`sched-choice-${panelId}`).value;
-  try {
-    await apiFetch(`/admin/rooms/${state.currentRoom.id}/schedule`, {
-      method: 'POST',
-      body: JSON.stringify({ descripcion: cfg.descripcion, pasos: cfg.buildPasos(choice), ejecutarEn: new Date(dt).toISOString() }),
-    });
-    showToast('Programado correctamente', 'success');
-    loadSchedulePanel(panelId);
-  } catch (err) {
-    showToast(err.message, 'error');
-  }
-};
-
-window.cancelSchedulePanel = async function(id, panelId) {
+window.cancelScheduleModal = async function(id) {
   try {
     await apiFetch(`/admin/schedule/${id}`, { method: 'DELETE' });
     showToast('Programación cancelada', '');
-    loadSchedulePanel(panelId);
+    loadScheduleModalPending();
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -1505,7 +1575,8 @@ function buildSwitchCard(key, dev, ico) {
   registerSchedule(panelId, dtDev(key, dev), [
     { value: 'true', label: 'Encender' }, { value: 'false', label: 'Apagar' },
   ], v => [{ dev: key, cmd: { on: v === 'true' } }],
-  c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && 'on' in s.cmd); } catch { return false; } });
+  v => [{ dev: key, cmd: { on: v !== 'true' } }],
+  c => { try { return JSON.parse(c.pasos_inicio).some(s => s.dev === key && 'on' in s.cmd); } catch { return false; } });
   return `<div class="dev-card">
     <div class="dev-card-head">
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
@@ -1515,7 +1586,6 @@ function buildSwitchCard(key, dev, ico) {
       </div>
     </div>
     <div class="dev-status ${on && !manual ? 'on-label' : ''}">${manual ? dt('manualMode') : (on ? dt('onM') : dt('offM'))}</div>
-    ${buildSchedulePanel(panelId)}
     ${buildManualRow(key, manual)}
   </div>`;
 }

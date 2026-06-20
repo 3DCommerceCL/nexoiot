@@ -577,11 +577,11 @@ app.post('/api/room/:token/schedule', async (req, res) => {
   if (!result) return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
   const { room, entry } = result;
 
-  const { descripcion, pasos, ejecutarEn } = req.body;
-  if (!descripcion || !Array.isArray(pasos) || !pasos.length || !ejecutarEn) {
-    return res.status(400).json({ error: 'Faltan campos: descripcion, pasos (array), ejecutarEn' });
+  const { descripcion, pasosInicio, pasosFin, horaInicio, horaFin, repetir, fecha, diasSemana } = req.body;
+  if (!descripcion || !Array.isArray(pasosInicio) || !pasosInicio.length || !horaInicio || !repetir) {
+    return res.status(400).json({ error: 'Faltan campos: descripcion, pasosInicio (array), horaInicio, repetir' });
   }
-  for (const step of pasos) {
+  for (const step of [...pasosInicio, ...(pasosFin || [])]) {
     const devConfig = room.devices[step.dev];
     if (!devConfig) return res.status(404).json({ error: `Dispositivo "${step.dev}" no existe en esta habitación` });
     if (commandToTuya(devConfig.type, step.cmd).length === 0) {
@@ -591,8 +591,8 @@ app.post('/api/room/:token/schedule', async (req, res) => {
 
   try {
     const c = programados.crear({
-      hotelId: room.hotelId, roomId: entry.roomId, descripcion, pasos,
-      ejecutarEn, origen: 'huesped', creadoPor: req.params.token,
+      hotelId: room.hotelId, roomId: entry.roomId, descripcion, pasosInicio, pasosFin,
+      horaInicio, horaFin, repetir, fecha, diasSemana, origen: 'huesped', creadoPor: req.params.token,
     });
     res.status(201).json(c);
   } catch (err) {
@@ -603,7 +603,7 @@ app.post('/api/room/:token/schedule', async (req, res) => {
 app.get('/api/room/:token/schedule', (req, res) => {
   const result = rooms.getRoomByToken(req.params.token);
   if (!result) return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
-  res.json(programados.listarPorRoom(result.entry.roomId));
+  res.json(programados.listarActivosPorRoom(result.entry.roomId));
 });
 
 app.delete('/api/room/:token/schedule/:id', (req, res) => {
@@ -622,11 +622,11 @@ app.post('/api/admin/rooms/:roomId/schedule', requireAuth('owner', 'recepcion'),
   if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
   if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
 
-  const { descripcion, pasos, ejecutarEn } = req.body;
-  if (!descripcion || !Array.isArray(pasos) || !pasos.length || !ejecutarEn) {
-    return res.status(400).json({ error: 'Faltan campos: descripcion, pasos (array), ejecutarEn' });
+  const { descripcion, pasosInicio, pasosFin, horaInicio, horaFin, repetir, fecha, diasSemana } = req.body;
+  if (!descripcion || !Array.isArray(pasosInicio) || !pasosInicio.length || !horaInicio || !repetir) {
+    return res.status(400).json({ error: 'Faltan campos: descripcion, pasosInicio (array), horaInicio, repetir' });
   }
-  for (const step of pasos) {
+  for (const step of [...pasosInicio, ...(pasosFin || [])]) {
     const devConfig = room.devices[step.dev];
     if (!devConfig) return res.status(404).json({ error: `Dispositivo "${step.dev}" no existe en esta habitación` });
     if (commandToTuya(devConfig.type, step.cmd).length === 0) {
@@ -636,8 +636,8 @@ app.post('/api/admin/rooms/:roomId/schedule', requireAuth('owner', 'recepcion'),
 
   try {
     const c = programados.crear({
-      hotelId: room.hotelId, roomId: req.params.roomId, descripcion, pasos,
-      ejecutarEn, origen: 'staff', creadoPor: req.user.id,
+      hotelId: room.hotelId, roomId: req.params.roomId, descripcion, pasosInicio, pasosFin,
+      horaInicio, horaFin, repetir, fecha, diasSemana, origen: 'staff', creadoPor: req.user.id,
     });
     res.status(201).json(c);
   } catch (err) {
@@ -649,7 +649,7 @@ app.get('/api/admin/rooms/:roomId/schedule', requireAuth('owner', 'recepcion'), 
   const room = rooms.getRooms()[req.params.roomId];
   if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
   if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
-  res.json(programados.listarPorRoom(req.params.roomId));
+  res.json(programados.listarActivosPorRoom(req.params.roomId));
 });
 
 app.delete('/api/admin/schedule/:id', requireAuth('owner', 'recepcion'), (req, res) => {
@@ -2123,28 +2123,66 @@ app.listen(PORT, () => {
   setInterval(() => ejecutarComandosProgramados().catch(err => console.error('[programados] sweep falló:', err.message)), 60 * 1000);
 });
 
+// Hora/fecha/día de la semana en America/Santiago, independiente de la zona
+// horaria del servidor (Railway corre en UTC) — este producto es 100% Chile.
+function horaChile(ahora = new Date()) {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Santiago', hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', weekday: 'short',
+  });
+  const partes = {};
+  for (const p of fmt.formatToParts(ahora)) partes[p.type] = p.value;
+  const DOW = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return {
+    fecha: `${partes.year}-${partes.month}-${partes.day}`,
+    hhmm:  `${partes.hour}:${partes.minute}`,
+    dow:   DOW[partes.weekday],
+  };
+}
+
+async function correrPasos(room, pasos) {
+  for (const step of pasos) {
+    const dev = room.devices[step.dev];
+    if (!dev) throw new Error(`Dispositivo "${step.dev}" ya no existe`);
+    const tuyaCmds = commandToTuya(dev.type, step.cmd);
+    if (tuyaCmds.length === 0) throw new Error(`Comando no reconocido para "${step.dev}"`);
+    await tuya.sendCommand(dev.deviceId, tuyaCmds);
+  }
+}
+
 async function ejecutarComandosProgramados() {
-  const vencidos = programados.obtenerPendientesVencidos(new Date().toISOString());
-  for (const c of vencidos) {
-    const atrasoMin = (Date.now() - new Date(c.ejecutar_en).getTime()) / 60000;
-    if (atrasoMin > 15) {
-      programados.marcarFallido(c.id, 'Expiró sin ejecutarse (servidor no disponible a esa hora)');
-      continue;
-    }
+  const { fecha: hoy, hhmm, dow } = horaChile();
+  for (const c of programados.listarActivos()) {
+    const corresponde = c.repetir === 'once'
+      ? c.fecha === hoy
+      : JSON.parse(c.dias_semana).includes(dow);
+    if (!corresponde) continue;
+
     const room = rooms.getRooms()[c.room_id];
     if (!room) { programados.marcarFallido(c.id, 'Habitación ya no existe'); continue; }
+
     try {
-      for (const step of JSON.parse(c.pasos)) {
-        const dev = room.devices[step.dev];
-        if (!dev) throw new Error(`Dispositivo "${step.dev}" ya no existe`);
-        const tuyaCmds = commandToTuya(dev.type, step.cmd);
-        if (tuyaCmds.length === 0) throw new Error(`Comando no reconocido para "${step.dev}"`);
-        await tuya.sendCommand(dev.deviceId, tuyaCmds);
+      if (hhmm === c.hora_inicio && c.ultima_inicio !== hoy) {
+        await correrPasos(room, JSON.parse(c.pasos_inicio));
+        programados.marcarInicioEjecutado(c.id, hoy);
+        rooms.addActivity(c.room_id, 'scheduled_command', `${c.descripcion} (inicio)`);
       }
-      programados.marcarEjecutado(c.id);
-      rooms.addActivity(c.room_id, 'scheduled_command', c.descripcion);
+      if (c.hora_fin && hhmm === c.hora_fin && c.ultima_fin !== hoy && c.ultima_inicio === hoy) {
+        await correrPasos(room, JSON.parse(c.pasos_fin));
+        programados.marcarFinEjecutado(c.id, hoy);
+        rooms.addActivity(c.room_id, 'scheduled_command', `${c.descripcion} (fin)`);
+      }
     } catch (err) {
       programados.marcarFallido(c.id, err.message);
+      continue;
+    }
+
+    // Refrescar el registro (los marcarXEjecutado de arriba ya escribieron en BD).
+    const actualizado = programados.getById(c.id);
+    if (actualizado.repetir === 'once' && actualizado.ultima_inicio === hoy &&
+        (!actualizado.hora_fin || actualizado.ultima_fin === hoy)) {
+      programados.marcarCompletado(c.id);
     }
   }
 }

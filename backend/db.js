@@ -18,11 +18,12 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
-// Migración: comandos_programados pasó de un solo dispositivo (device_key +
-// comando) a una lista de pasos (descripcion + pasos JSON) para poder programar
-// escenas completas. Tabla sin uso real todavía — se recrea en vez de migrar datos.
+// Migración: comandos_programados pasó de un solo momento (pasos + ejecutar_en)
+// a rango horario + repetición (pasos_inicio/pasos_fin, hora_inicio/hora_fin,
+// repetir/fecha/dias_semana). Tabla sin uso real todavía — se recrea en vez de
+// migrar datos (mismo criterio ya aplicado antes hoy a esta misma tabla).
 const colsProgramados = db.prepare("PRAGMA table_info(comandos_programados)").all().map(c => c.name);
-if (colsProgramados.includes('device_key')) {
+if (colsProgramados.includes('device_key') || colsProgramados.includes('ejecutar_en')) {
   db.exec('DROP TABLE comandos_programados');
 }
 
@@ -133,20 +134,27 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS comandos_programados (
-    id           TEXT PRIMARY KEY,
-    hotel_id     TEXT NOT NULL,
-    room_id      TEXT NOT NULL,
-    descripcion  TEXT NOT NULL,
-    pasos        TEXT NOT NULL,
-    ejecutar_en  TEXT NOT NULL,
-    origen       TEXT NOT NULL,
-    creado_por   TEXT,
-    estado       TEXT NOT NULL DEFAULT 'pendiente',
-    error        TEXT,
-    created_at   TEXT NOT NULL,
-    ejecutado_at TEXT
+    id            TEXT PRIMARY KEY,
+    hotel_id      TEXT NOT NULL,
+    room_id       TEXT NOT NULL,
+    descripcion   TEXT NOT NULL,
+    pasos_inicio  TEXT NOT NULL,
+    pasos_fin     TEXT,
+    hora_inicio   TEXT NOT NULL,
+    hora_fin      TEXT,
+    repetir       TEXT NOT NULL,
+    fecha         TEXT,
+    dias_semana   TEXT,
+    ultima_inicio TEXT,
+    ultima_fin    TEXT,
+    origen        TEXT NOT NULL,
+    creado_por    TEXT,
+    estado        TEXT NOT NULL DEFAULT 'activo',
+    error         TEXT,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
   );
-  CREATE INDEX IF NOT EXISTS idx_prog_estado ON comandos_programados(estado, ejecutar_en);
+  CREATE INDEX IF NOT EXISTS idx_prog_estado ON comandos_programados(estado);
   CREATE INDEX IF NOT EXISTS idx_prog_room   ON comandos_programados(room_id);
 
   CREATE TABLE IF NOT EXISTS alarmas_puerta (

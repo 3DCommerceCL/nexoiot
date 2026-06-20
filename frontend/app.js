@@ -260,7 +260,20 @@ const I18N = {
     scheduleTurnOn: 'Encender',
     scheduleTurnOff: 'Apagar',
     scheduleSendBtn: 'Programar',
-    scheduleNoDateError: 'Elige una fecha y hora.',
+    scheduleFrom: 'Desde',
+    scheduleUntil: 'Hasta',
+    scheduleAutoOff: 'Apagar/cerrar automáticamente',
+    scheduleOnce: 'Solo una vez',
+    scheduleWeekly: 'Días de la semana',
+    scheduleNoTimeError: 'Elige una hora de inicio.',
+    scheduleNoEndTimeError: 'Elige la hora hasta la que debe estar así.',
+    scheduleSameTimeError: 'La hora de fin debe ser distinta a la de inicio.',
+    scheduleNoDateError: 'Elige una fecha.',
+    scheduleNoDaysError: 'Elige al menos un día de la semana.',
+    scheduleDay_L: 'L', scheduleDay_M: 'M', scheduleDay_M2: 'M', scheduleDay_J: 'J',
+    scheduleDay_V: 'V', scheduleDay_S: 'S', scheduleDay_D: 'D',
+    scheduleDayShortL: 'Lun', scheduleDayShortM: 'Mar', scheduleDayShortM2: 'Mié', scheduleDayShortJ: 'Jue',
+    scheduleDayShortV: 'Vie', scheduleDayShortS: 'Sáb', scheduleDayShortD: 'Dom',
     scheduleNonePending: 'Sin programaciones pendientes.',
     scheduleCancelBtn: 'Cancelar programación',
     toastScheduleSaved: 'Programado correctamente',
@@ -456,7 +469,20 @@ const I18N = {
     scheduleTurnOn: 'Turn on',
     scheduleTurnOff: 'Turn off',
     scheduleSendBtn: 'Schedule',
-    scheduleNoDateError: 'Pick a date and time.',
+    scheduleFrom: 'From',
+    scheduleUntil: 'Until',
+    scheduleAutoOff: 'Turn off/close automatically',
+    scheduleOnce: 'Just once',
+    scheduleWeekly: 'Days of the week',
+    scheduleNoTimeError: 'Pick a start time.',
+    scheduleNoEndTimeError: 'Pick the time it should end.',
+    scheduleSameTimeError: 'End time must be different from start time.',
+    scheduleNoDateError: 'Pick a date.',
+    scheduleNoDaysError: 'Pick at least one day of the week.',
+    scheduleDay_L: 'M', scheduleDay_M: 'T', scheduleDay_M2: 'W', scheduleDay_J: 'T',
+    scheduleDay_V: 'F', scheduleDay_S: 'S', scheduleDay_D: 'S',
+    scheduleDayShortL: 'Mon', scheduleDayShortM: 'Tue', scheduleDayShortM2: 'Wed', scheduleDayShortJ: 'Thu',
+    scheduleDayShortV: 'Fri', scheduleDayShortS: 'Sat', scheduleDayShortD: 'Sun',
     scheduleNonePending: 'No scheduled commands pending.',
     scheduleCancelBtn: 'Cancel scheduled command',
     toastScheduleSaved: 'Scheduled successfully',
@@ -652,7 +678,20 @@ const I18N = {
     scheduleTurnOn: 'Ligar',
     scheduleTurnOff: 'Desligar',
     scheduleSendBtn: 'Programar',
-    scheduleNoDateError: 'Escolha uma data e hora.',
+    scheduleFrom: 'Das',
+    scheduleUntil: 'Até',
+    scheduleAutoOff: 'Desligar/fechar automaticamente',
+    scheduleOnce: 'Só uma vez',
+    scheduleWeekly: 'Dias da semana',
+    scheduleNoTimeError: 'Escolha um horário de início.',
+    scheduleNoEndTimeError: 'Escolha o horário em que deve terminar.',
+    scheduleSameTimeError: 'O horário de término deve ser diferente do de início.',
+    scheduleNoDateError: 'Escolha uma data.',
+    scheduleNoDaysError: 'Escolha pelo menos um dia da semana.',
+    scheduleDay_L: 'S', scheduleDay_M: 'T', scheduleDay_M2: 'Q', scheduleDay_J: 'Q',
+    scheduleDay_V: 'S', scheduleDay_S: 'S', scheduleDay_D: 'D',
+    scheduleDayShortL: 'Seg', scheduleDayShortM: 'Ter', scheduleDayShortM2: 'Qua', scheduleDayShortJ: 'Qui',
+    scheduleDayShortV: 'Sex', scheduleDayShortS: 'Sáb', scheduleDayShortD: 'Dom',
     scheduleNonePending: 'Sem agendamentos pendentes.',
     scheduleCancelBtn: 'Cancelar agendamento',
     toastScheduleSaved: 'Agendado com sucesso',
@@ -1494,14 +1533,25 @@ function submitReport() {
 }
 
 // ── PROGRAMAR DISPOSITIVOS Y ESCENAS ─────────────────────────────────────────
-// Modal genérico: sirve tanto para un solo dispositivo (con choices on/off o
-// abrir/cerrar) como para una escena completa (sin choices — "Programar" ya
-// implica aplicarla). buildPasos(valor) siempre devuelve el array de pasos
-// {dev,cmd} que espera el backend (mismo formato que ya usa applyScene()).
-let scheduleState = null; // { descripcion, choices, buildPasos, matches, selected }
+// Modal genérico: rango horario (desde/hasta, con apagado automático opcional)
+// + repetición (una vez en una fecha, o ciertos días de la semana). Para
+// escenas no hay "hasta" (aplicar una escena no tiene un inverso natural) — se
+// disparan solo a la hora de inicio, con o sin repetición. buildPasos(valor)
+// siempre arma el array de pasos {dev,cmd} que espera el backend (mismo
+// formato que ya usa applyScene()); buildPasosFin(valor) es su inverso.
+const SCHEDULE_DIAS = [
+  { value: 1, key: 'L' }, { value: 2, key: 'M' }, { value: 3, key: 'M2' },
+  { value: 4, key: 'J' }, { value: 5, key: 'V' }, { value: 6, key: 'S' }, { value: 0, key: 'D' },
+];
+let scheduleState = null;
 
-function openScheduleModal({ descripcion, choices, buildPasos, matches }) {
-  scheduleState = { descripcion, choices, buildPasos, matches, selected: choices ? choices[0].value : null };
+function openScheduleModal({ descripcion, choices, buildPasos, buildPasosFin, matches }) {
+  scheduleState = {
+    descripcion, choices, buildPasos, buildPasosFin, matches,
+    selected: choices ? choices[0].value : null,
+    horaInicio: '', horaFin: '', apagarAuto: false,
+    repetir: 'once', fecha: new Date().toISOString().slice(0, 10), diasSel: [],
+  };
   renderScheduleModal();
   document.getElementById('schedule-modal-overlay').classList.remove('hidden');
 }
@@ -1513,24 +1563,43 @@ function closeScheduleModal() {
 
 function renderScheduleModal() {
   if (!scheduleState) return;
-  const { descripcion, choices } = scheduleState;
+  const { descripcion, choices, selected, apagarAuto, repetir, diasSel, buildPasosFin } = scheduleState;
   const card = document.getElementById('schedule-modal-card');
-
-  const now = new Date(Date.now() + 5 * 60000); // mínimo 5 min en el futuro
-  const minLocal = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
   const choicesHtml = choices ? `
     <div class="report-options" id="schedule-onoff">
-      ${choices.map((c, i) => `<button type="button" class="report-option ${i === 0 ? 'active' : ''}" data-value="${c.value}">${c.label}</button>`).join('')}
+      ${choices.map(c => `<button type="button" class="report-option ${c.value === selected ? 'active' : ''}" data-value="${c.value}">${c.label}</button>`).join('')}
     </div>` : '';
+
+  const autoOffHtml = buildPasosFin ? `
+    <label class="schedule-check-row">
+      <input type="checkbox" id="schedule-auto-off" ${apagarAuto ? 'checked' : ''}>
+      <span>${t('scheduleAutoOff')}</span>
+    </label>
+    ${apagarAuto ? `
+      <label class="schedule-label">${t('scheduleUntil')}</label>
+      <input type="time" class="scene-name-input" id="schedule-time-end" value="${scheduleState.horaFin}">` : ''}` : '';
+
+  const repeatBodyHtml = repetir === 'weekly' ? `
+    <div class="schedule-days-row">
+      ${SCHEDULE_DIAS.map(d => `<button type="button" class="schedule-day-btn ${diasSel.includes(d.value) ? 'active' : ''}" data-day="${d.value}">${t('scheduleDay_' + d.key)}</button>`).join('')}
+    </div>` : `
+    <input type="date" class="scene-name-input" id="schedule-date" min="${new Date().toISOString().slice(0, 10)}" value="${scheduleState.fecha}">`;
 
   card.innerHTML = `
     <div class="onboarding-ico">🕐</div>
     <h2>${t('scheduleTitle')}</h2>
     <p class="scene-modal-desc">${t('scheduleDesc', { device: descripcion })}</p>
-    <input type="datetime-local" class="scene-name-input" id="schedule-datetime" min="${minLocal}">
     ${choicesHtml}
-    <div class="form-error" id="schedule-error" style="color:#E5484D;font-size:12px;margin-bottom:10px"></div>
+    <label class="schedule-label">${t('scheduleFrom')}</label>
+    <input type="time" class="scene-name-input" id="schedule-time-start" value="${scheduleState.horaInicio}">
+    ${autoOffHtml}
+    <div class="report-options" id="schedule-repeat">
+      <button type="button" class="report-option ${repetir === 'once' ? 'active' : ''}" data-repeat="once">${t('scheduleOnce')}</button>
+      <button type="button" class="report-option ${repetir === 'weekly' ? 'active' : ''}" data-repeat="weekly">${t('scheduleWeekly')}</button>
+    </div>
+    ${repeatBodyHtml}
+    <div class="form-error" id="schedule-error" style="color:#E5484D;font-size:12px;margin:8px 0"></div>
     <div class="scene-modal-actions">
       <button class="support-btn" id="schedule-modal-back">${t('reportBackBtn')}</button>
       <button class="support-btn" id="schedule-modal-send">${t('scheduleSendBtn')}</button>
@@ -1539,12 +1608,28 @@ function renderScheduleModal() {
 
   if (choices) {
     document.querySelectorAll('#schedule-onoff .report-option').forEach(btn => {
+      btn.onclick = () => { scheduleState.selected = btn.dataset.value; renderScheduleModal(); };
+    });
+  }
+  document.getElementById('schedule-time-start').oninput = e => { scheduleState.horaInicio = e.target.value; };
+  if (buildPasosFin) {
+    document.getElementById('schedule-auto-off').onchange = e => { scheduleState.apagarAuto = e.target.checked; renderScheduleModal(); };
+    if (apagarAuto) document.getElementById('schedule-time-end').oninput = e => { scheduleState.horaFin = e.target.value; };
+  }
+  document.querySelectorAll('#schedule-repeat .report-option').forEach(btn => {
+    btn.onclick = () => { scheduleState.repetir = btn.dataset.repeat; renderScheduleModal(); };
+  });
+  if (repetir === 'weekly') {
+    document.querySelectorAll('.schedule-day-btn').forEach(btn => {
       btn.onclick = () => {
-        document.querySelectorAll('#schedule-onoff .report-option').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        scheduleState.selected = btn.dataset.value;
+        const d = parseInt(btn.dataset.day, 10);
+        const idx = scheduleState.diasSel.indexOf(d);
+        if (idx >= 0) scheduleState.diasSel.splice(idx, 1); else scheduleState.diasSel.push(d);
+        renderScheduleModal();
       };
     });
+  } else {
+    document.getElementById('schedule-date').oninput = e => { scheduleState.fecha = e.target.value; };
   }
   document.getElementById('schedule-modal-back').onclick = closeScheduleModal;
   document.getElementById('schedule-modal-send').onclick = submitSchedule;
@@ -1553,25 +1638,45 @@ function renderScheduleModal() {
 }
 
 async function submitSchedule() {
-  const dt = document.getElementById('schedule-datetime').value;
-  if (!dt) { document.getElementById('schedule-error').textContent = t('scheduleNoDateError'); return; }
-  const { descripcion, buildPasos, selected } = scheduleState;
-  const pasos = buildPasos(selected);
+  const errEl = document.getElementById('schedule-error');
+  errEl.textContent = '';
+  const { descripcion, buildPasos, buildPasosFin, selected, horaInicio, horaFin, apagarAuto, repetir, fecha, diasSel } = scheduleState;
+
+  if (!horaInicio) { errEl.textContent = t('scheduleNoTimeError'); return; }
+  if (apagarAuto && !horaFin) { errEl.textContent = t('scheduleNoEndTimeError'); return; }
+  if (apagarAuto && horaFin === horaInicio) { errEl.textContent = t('scheduleSameTimeError'); return; }
+  if (repetir === 'once' && !fecha) { errEl.textContent = t('scheduleNoDateError'); return; }
+  if (repetir === 'weekly' && !diasSel.length) { errEl.textContent = t('scheduleNoDaysError'); return; }
+
+  const body = {
+    descripcion,
+    pasosInicio: buildPasos(selected),
+    pasosFin: apagarAuto && buildPasosFin ? buildPasosFin(selected) : null,
+    horaInicio, horaFin: apagarAuto ? horaFin : null,
+    repetir, fecha: repetir === 'once' ? fecha : null, diasSemana: repetir === 'weekly' ? diasSel : null,
+  };
 
   try {
     const res = await fetch(`${API}/room/${app.token}/schedule`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ descripcion, pasos, ejecutarEn: new Date(dt).toISOString() }),
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error');
-    document.getElementById('schedule-datetime').value = '';
     showToast(t('toastScheduleSaved'), 'success');
     loadPendingSchedules();
   } catch (err) {
-    document.getElementById('schedule-error').textContent = err.message;
+    errEl.textContent = err.message;
   }
+}
+
+const SCHEDULE_DIAS_CORTAS = ['scheduleDayShortD', 'scheduleDayShortL', 'scheduleDayShortM', 'scheduleDayShortM2', 'scheduleDayShortJ', 'scheduleDayShortV', 'scheduleDayShortS'];
+
+function formatScheduleRow(c) {
+  const rango = c.hora_fin ? `${c.hora_inicio}–${c.hora_fin}` : c.hora_inicio;
+  const cuando = c.repetir === 'once'
+    ? new Date(c.fecha + 'T00:00:00').toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })
+    : JSON.parse(c.dias_semana).map(d => t(SCHEDULE_DIAS_CORTAS[d])).join(', ');
+  return `${rango} · ${cuando}`;
 }
 
 async function loadPendingSchedules() {
@@ -1582,13 +1687,10 @@ async function loadPendingSchedules() {
     const all = await res.json();
     const propios = (Array.isArray(all) ? all : []).filter(scheduleState.matches);
     if (!propios.length) { list.innerHTML = `<div class="scenes-hint">${t('scheduleNonePending')}</div>`; return; }
-    list.innerHTML = propios.map(c => {
-      const fecha = new Date(c.ejecutar_en).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
-      return `<div class="ch-row">
-        <span class="ch-label">${c.descripcion} · ${fecha}</span>
+    list.innerHTML = propios.map(c => `<div class="ch-row">
+        <span class="ch-label">${c.descripcion} · ${formatScheduleRow(c)}</span>
         <button type="button" class="report-btn" onclick="cancelSchedule('${c.id}')" aria-label="${t('scheduleCancelBtn')}">✕</button>
-      </div>`;
-    }).join('');
+      </div>`).join('');
   } catch {
     list.innerHTML = '';
   }
@@ -1609,8 +1711,9 @@ window.scheduleOnOff = function(key) {
   openScheduleModal({
     descripcion: devLabel(key, app.config[key] || {}),
     choices: [{ value: 'true', label: t('scheduleTurnOn') }, { value: 'false', label: t('scheduleTurnOff') }],
-    buildPasos: v => [{ dev: key, cmd: { on: v === 'true' } }],
-    matches: c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && 'on' in s.cmd); } catch { return false; } },
+    buildPasos:    v => [{ dev: key, cmd: { on: v === 'true' } }],
+    buildPasosFin: v => [{ dev: key, cmd: { on: v !== 'true' } }],
+    matches: c => { try { return JSON.parse(c.pasos_inicio).some(s => s.dev === key && 'on' in s.cmd); } catch { return false; } },
   });
 };
 
@@ -1620,8 +1723,9 @@ window.scheduleChannel = function(key, ch) {
   openScheduleModal({
     descripcion: label,
     choices: [{ value: 'true', label: t('scheduleTurnOn') }, { value: 'false', label: t('scheduleTurnOff') }],
-    buildPasos: v => [{ dev: key, cmd: { [`ch${ch + 1}`]: v === 'true' } }],
-    matches: c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && `ch${ch + 1}` in s.cmd); } catch { return false; } },
+    buildPasos:    v => [{ dev: key, cmd: { [`ch${ch + 1}`]: v === 'true' } }],
+    buildPasosFin: v => [{ dev: key, cmd: { [`ch${ch + 1}`]: v !== 'true' } }],
+    matches: c => { try { return JSON.parse(c.pasos_inicio).some(s => s.dev === key && `ch${ch + 1}` in s.cmd); } catch { return false; } },
   });
 };
 
@@ -1629,8 +1733,9 @@ window.scheduleCurtain = function(key) {
   openScheduleModal({
     descripcion: devLabel(key, app.config[key] || {}),
     choices: [{ value: 'open', label: t('curtainOpenBtn') }, { value: 'close', label: t('curtainCloseBtn') }],
-    buildPasos: v => [{ dev: key, cmd: { control: v } }],
-    matches: c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && 'control' in s.cmd); } catch { return false; } },
+    buildPasos:    v => [{ dev: key, cmd: { control: v } }],
+    buildPasosFin: v => [{ dev: key, cmd: { control: v === 'open' ? 'close' : 'open' } }],
+    matches: c => { try { return JSON.parse(c.pasos_inicio).some(s => s.dev === key && 'control' in s.cmd); } catch { return false; } },
   });
 };
 
@@ -1641,6 +1746,7 @@ window.scheduleScene = function(sceneId) {
     descripcion: scene.title,
     choices: null,
     buildPasos: () => getSceneSteps(sceneId),
+    buildPasosFin: null,
     matches: c => c.descripcion === scene.title,
   });
 };
