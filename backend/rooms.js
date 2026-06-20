@@ -420,4 +420,33 @@ function resolveRequest(id) {
   return true;
 }
 
+// Migración única: enchufes inteligentes con las etiquetas genéricas
+// "Entrada 1"/"Entrada 2" de antes de renombrarlos a la función real que
+// controlan (🔥 Estufa, 🌸 Aromatizador). En Railway el volumen de backend/data/
+// persiste entre deploys y rooms.json solo se siembra si el archivo no existe
+// (ver readJSON arriba) — así que un cambio al JSON commiteado en git nunca
+// llega solo a un volumen que ya tenía el archivo de antes. Esto se autocorrige
+// la próxima vez que arranca el servidor, sin depender de tocar el volumen a mano.
+(function migrarEtiquetasEnchufe() {
+  const allRooms = getRooms();
+  let changed = false;
+  for (const room of Object.values(allRooms)) {
+    const dev = room.devices && room.devices.enchufe;
+    if (!dev || !Array.isArray(dev.channels)) continue;
+    if (dev.channels.length === 1 && dev.channels[0] === 'Entrada 1') {
+      dev.channels = ['🔥 Estufa'];
+      dev.label = 'Enchufe inteligente';
+      changed = true;
+    } else if (dev.channels.length === 2 && dev.channels[0] === 'Entrada 1' && dev.channels[1] === 'Entrada 2') {
+      dev.channels = ['🔥 Estufa', '🌸 Aromatizador'];
+      dev.label = 'Enchufe inteligente';
+      changed = true;
+    }
+  }
+  if (changed) {
+    writeJSON(ROOMS_FILE, allRooms);
+    console.log('[rooms] Migración: etiquetas de enchufe actualizadas a funciones (Estufa/Aromatizador)');
+  }
+})();
+
 module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity, setManualUnlock, setDeviceChannelLabel, setRoomCategoria, saveScene, deleteScene };
