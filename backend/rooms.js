@@ -116,6 +116,19 @@ function setRoomCategoria(roomId, categoriaId) {
   return true;
 }
 
+// Renombra un canal de un enchufe inteligente (switch_3ch) a la función que
+// realmente controla (ej. "🔥 Estufa" en vez de "Entrada 1") — el enchufe es
+// el mecanismo, no el aparato.
+function setDeviceChannelLabel(roomId, deviceKey, index, label) {
+  const allRooms = getRooms();
+  const room = allRooms[roomId];
+  const dev  = room && room.devices[deviceKey];
+  if (!dev || !Array.isArray(dev.channels) || index < 0 || index >= dev.channels.length) return false;
+  dev.channels[index] = label;
+  writeJSON(ROOMS_FILE, allRooms);
+  return true;
+}
+
 // Habilita/deshabilita el modo manual (motor desbloqueado) de una cortina
 // según lo configure el hotel desde el panel.
 function setManualUnlock(roomId, deviceKey, allowed) {
@@ -403,4 +416,4 @@ function resolveRequest(id) {
   return true;
 }
 
-module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity, setManualUnlock, setRoomCategoria, saveScene, deleteScene };
+module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity, setManualUnlock, setDeviceChannelLabel, setRoomCategoria, saveScene, deleteScene };

@@ -719,6 +719,21 @@ app.post('/api/admin/rooms/:roomId/devices/:deviceKey/manual-unlock', requireAut
   res.json({ success: true });
 });
 
+// ── ADMIN: PATCH /api/admin/rooms/:roomId/devices/:deviceKey/channel/:index ──
+// Renombra un canal del enchufe inteligente a la función real que controla
+// (ej. "🔥 Estufa") en vez del genérico "Entrada 1"/"Entrada 2".
+app.patch('/api/admin/rooms/:roomId/devices/:deviceKey/channel/:index', requireAuth('owner'), (req, res) => {
+  const room = rooms.getRooms()[req.params.roomId];
+  if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
+  if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const { label } = req.body || {};
+  if (!label || !label.trim()) return res.status(400).json({ error: 'label requerido' });
+  const idx = parseInt(req.params.index, 10);
+  const ok = rooms.setDeviceChannelLabel(req.params.roomId, req.params.deviceKey, idx, label.trim());
+  if (!ok) return res.status(404).json({ error: 'Habitación, dispositivo o canal no encontrado' });
+  res.json({ success: true });
+});
+
 // ── ADMIN: GET /api/admin/rooms/:roomId/activity ──────────────────────────────
 // Historial de actividad de una habitación (check-in/out, cambios de preferencias,
 // solicitudes de servicio, escenas aplicadas), usado en el modal de detalle del panel.

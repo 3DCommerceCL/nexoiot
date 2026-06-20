@@ -1347,6 +1347,21 @@ function buildAllowManualUnlockRow(key, allowed) {
   <div class="manual-note">${dt('allowManualUnlockNote')}</div>`;
 }
 
+// El enchufe inteligente es el mecanismo, no el aparato — estas son las
+// funciones reales que un hotel suele conectar a través de él.
+const CHANNEL_FUNCION_PRESETS = [
+  '🔥 Estufa', '🌸 Aromatizador', '🛌 Calientacamas', '🌀 Ventilador',
+  '☕ Hervidor', '💧 Humidificador', '🔊 Parlante', '🔌 Enchufe genérico',
+];
+
+function channelFuncionControlHtml(key, i, label) {
+  if (!isOwnerOrSuper()) return `<span class="dev-status" style="margin:0">${label}</span>`;
+  const opts = CHANNEL_FUNCION_PRESETS
+    .map(p => `<option value="${p}" ${p === label ? 'selected' : ''}>${p}</option>`)
+    .concat(`<option value="__custom__">✏️ Otra función…</option>`);
+  return `<select class="form-input" style="font-size:10px;padding:3px 6px;height:auto;width:auto" onclick="event.stopPropagation()" onchange="setChannelFuncion('${key}', ${i}, this.value)">${opts.join('')}</select>`;
+}
+
 function buildMultiSwitchCard(key, dev, ico) {
   const labels = dev.channels || ['Canal 1', 'Canal 2', 'Canal 3'];
   const chKeys = ['ch1', 'ch2', 'ch3'].slice(0, labels.length);
@@ -1354,7 +1369,7 @@ function buildMultiSwitchCard(key, dev, ico) {
   const rows = chKeys.map((ch, i) => {
     const on = dev.state[ch];
     return `<div style="display:flex;align-items:center;justify-content:space-between;${i ? 'margin-top:8px' : ''}">
-      <span class="dev-status ${on && !manual ? 'on-label' : ''}" style="margin:0">${labels[i]}</span>
+      ${channelFuncionControlHtml(key, i, labels[i])}
       <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleMultiSwitch('${key}','${ch}', ${!on})"></div>
     </div>`;
   }).join('');
@@ -1449,6 +1464,30 @@ window.toggleUnlock = function(key) {
   const dev = state.currentRoom.devices[key];
   dev.state.unlocked = !dev.state.unlocked;
   renderDevGrid();
+};
+
+window.setChannelFuncion = async function(key, idx, value) {
+  const dev = state.currentRoom.devices[key];
+  const previo = dev.channels[idx];
+
+  let label = value;
+  if (value === '__custom__') {
+    label = (window.prompt('Función del enchufe (ej. Cafetera, Plancha de pelo):', '') || '').trim();
+    if (!label) { renderDevGrid(); return; } // cancelado — restaura el select al valor anterior
+  }
+
+  dev.channels[idx] = label;
+  renderDevGrid();
+  try {
+    await apiFetch(`/admin/rooms/${state.currentRoom.id}/devices/${key}/channel/${idx}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ label }),
+    });
+  } catch (err) {
+    dev.channels[idx] = previo;
+    renderDevGrid();
+    showToast(err.message, 'error');
+  }
 };
 
 window.toggleAllowManualUnlock = async function(key) {
