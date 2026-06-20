@@ -575,6 +575,24 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 .onboarding-ico-sm { font-size: 18px; flex-shrink: 0; }
 .onboarding-card .support-btn { width: 100%; justify-content: center; }
 
+/* ── ALARMA DE PUERTA ─────────────────────────────────────────────────────── */
+.door-alarm-overlay {
+  position: fixed; inset: 0; background: rgba(180,30,30,.85);
+  z-index: 400; display: flex; align-items: center; justify-content: center;
+  padding: 24px; animation: doorAlarmFlash 1s ease-in-out infinite;
+}
+.door-alarm-overlay.hidden { display: none; animation: none; }
+@keyframes doorAlarmFlash { 0%, 100% { background: rgba(180,30,30,.85); } 50% { background: rgba(220,50,50,.95); } }
+.door-alarm-card {
+  background: var(--card); border-radius: 18px; padding: 32px 24px;
+  max-width: 340px; width: 100%; text-align: center;
+  box-shadow: 0 16px 40px rgba(0,0,0,.4);
+}
+.door-alarm-ico { font-size: 52px; margin-bottom: 10px; }
+.door-alarm-card h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; color: #E5484D; }
+.door-alarm-card p { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+.door-alarm-card .support-btn { width: 100%; justify-content: center; }
+
 /* ── TUTORIAL: ELEGIR RECORRIDO GUIADO ───────────────────────────────────── */
 .tutorial-choice-actions { display: flex; flex-direction: column; gap: 10px; }
 .tutorial-choice-actions .support-btn { width: 100%; justify-content: center; }

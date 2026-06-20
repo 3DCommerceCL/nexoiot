@@ -197,7 +197,7 @@ function generateToken(roomId, guestName, checkin, checkout, phone = '', lang = 
 }
 
 // ── ACTUALIZAR PREFERENCIAS (idioma / accesibilidad) ─────────────────────────
-function updateTokenPrefs(token, { lang, accessibility, dnd } = {}) {
+function updateTokenPrefs(token, { lang, accessibility, dnd, doorAlarm } = {}) {
   const tokens = getTokens();
   const entry  = tokens[token];
   if (!entry || !entry.active) return false;
@@ -213,6 +213,10 @@ function updateTokenPrefs(token, { lang, accessibility, dnd } = {}) {
   if (typeof dnd === 'boolean' && dnd !== entry.dnd) {
     entry.dnd = dnd;
     changes.push(dnd ? 'No molestar activado' : 'No molestar desactivado');
+  }
+  if (typeof doorAlarm === 'boolean' && doorAlarm !== entry.doorAlarm) {
+    entry.doorAlarm = doorAlarm;
+    changes.push(doorAlarm ? 'Alarma de puerta activada' : 'Alarma de puerta desactivada');
   }
   writeJSON(TOKENS_FILE, tokens);
   if (changes.length) addActivity(entry.roomId, 'prefs_changed', changes.join(', '));

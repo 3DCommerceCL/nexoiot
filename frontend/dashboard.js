@@ -1299,10 +1299,18 @@ function buildDeviceCard(key, dev) {
 function buildLightCard(key, dev, ico) {
   const on = dev.state.on;
   const manual = !!dev.state.manual;
+  const panelId = key;
+  registerSchedule(panelId, dtDev(key, dev), [
+    { value: 'true', label: 'Encender' }, { value: 'false', label: 'Apagar' },
+  ], v => [{ dev: key, cmd: { on: v === 'true' } }],
+  c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && 'on' in s.cmd); } catch { return false; } });
   return `<div class="dev-card">
     <div class="dev-card-head">
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
-      <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleLight('${key}', ${!on})"></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${scheduleBtnHtml(panelId)}
+        <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleLight('${key}', ${!on})"></div>
+      </div>
     </div>
     <div class="${on && !manual ? '' : 'dev-dimmed'}">
       <div class="dev-status ${on && !manual ? 'on-label' : ''}">${manual ? dt('manualMode') : (on ? dt('onF') : dt('offF'))}</div>
@@ -1313,6 +1321,7 @@ function buildLightCard(key, dev, ico) {
         <span class="slider-val">${dev.state.intensity}%</span>
       </div>
     </div>
+    ${buildSchedulePanel(panelId)}
     ${buildManualRow(key, manual)}
   </div>`;
 }
@@ -1321,9 +1330,15 @@ function buildCurtainCard(key, dev, ico) {
   const pct = dev.state.position;
   const unlocked = !!dev.state.unlocked;
   const label = unlocked ? dt('manualShort') : (pct === 0 ? dt('curtainClosed') : pct === 100 ? dt('curtainOpened') : dt('curtainPct', { p: pct }));
+  const panelId = key;
+  registerSchedule(panelId, dtDev(key, dev), [
+    { value: 'open', label: 'Abrir' }, { value: 'close', label: 'Cerrar' },
+  ], v => [{ dev: key, cmd: { control: v } }],
+  c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && 'control' in s.cmd); } catch { return false; } });
   return `<div class="dev-card">
     <div class="dev-card-head">
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
+      ${scheduleBtnHtml(panelId)}
     </div>
     <div class="curtain-btns">
       <button class="curtain-btn" onclick="setCurtain('${key}','open')" ${unlocked ? 'disabled' : ''}>${dt('openBtn')}</button>
@@ -1332,6 +1347,7 @@ function buildCurtainCard(key, dev, ico) {
     </div>
     <div class="curtain-track"><div class="curtain-fill" style="width:${pct}%"></div></div>
     <div class="curtain-label">${label}</div>
+    ${buildSchedulePanel(panelId)}
     ${buildUnlockRow(key, unlocked)}
     ${buildAllowManualUnlockRow(key, !!dev.manualUnlock)}
   </div>`;
@@ -1371,6 +1387,10 @@ function buildMultiSwitchCard(key, dev, ico) {
   const rows = chKeys.map((ch, i) => {
     const on = dev.state[ch];
     const panelId = `${key}-${i}`;
+    registerSchedule(panelId, labels[i], [
+      { value: 'true', label: 'Encender' }, { value: 'false', label: 'Apagar' },
+    ], v => [{ dev: key, cmd: { [`ch${i + 1}`]: v === 'true' } }],
+    c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && `ch${i + 1}` in s.cmd); } catch { return false; } });
     return `<div style="display:flex;align-items:center;justify-content:space-between;${i ? 'margin-top:8px' : ''}">
       ${channelFuncionControlHtml(key, i, labels[i])}
       <div style="display:flex;align-items:center;gap:8px">
@@ -1389,14 +1409,28 @@ function buildMultiSwitchCard(key, dev, ico) {
   </div>`;
 }
 
+// ── PROGRAMACIÓN DE DISPOSITIVOS (cualquier tipo) ────────────────────────────
+// scheduleConfigs guarda, por panelId, cómo armar los `pasos` y cómo filtrar la
+// lista de programaciones pendientes — se recalcula en cada render, así que
+// siempre refleja el estado actual del dispositivo sin guardar nada obsoleto.
+const scheduleConfigs = {};
+
+function registerSchedule(panelId, descripcion, choices, buildPasos, matches) {
+  scheduleConfigs[panelId] = { descripcion, choices, buildPasos, matches };
+}
+
+function scheduleBtnHtml(panelId) {
+  return `<button type="button" class="btn btn-outline btn-sm" style="padding:2px 8px;font-size:11px" onclick="event.stopPropagation();toggleSchedulePanel('${panelId}')">🕐</button>`;
+}
+
 function buildSchedulePanel(panelId) {
   if (scheduleOpenPanel !== panelId) return '';
+  const cfg = scheduleConfigs[panelId];
+  if (!cfg) return '';
+  const optsHtml = cfg.choices.map(c => `<option value="${c.value}">${c.label}</option>`).join('');
   return `<div class="cobro-manual-form" style="margin-top:6px">
       <input class="form-input" type="datetime-local" id="sched-dt-${panelId}" style="max-width:200px">
-      <select class="form-input" id="sched-onoff-${panelId}" style="max-width:110px">
-        <option value="true">Encender</option>
-        <option value="false">Apagar</option>
-      </select>
+      <select class="form-input" id="sched-choice-${panelId}" style="max-width:110px">${optsHtml}</select>
       <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();confirmSchedule('${panelId}')">Programar</button>
     </div>
     <div id="sched-list-${panelId}" style="margin-bottom:8px"></div>`;
@@ -1409,19 +1443,17 @@ window.toggleSchedulePanel = function(panelId) {
 };
 
 async function loadSchedulePanel(panelId) {
-  const idx = parseInt(panelId.slice(panelId.lastIndexOf('-') + 1), 10);
-  const key = panelId.slice(0, panelId.lastIndexOf('-'));
+  const cfg = scheduleConfigs[panelId];
   const listEl = document.getElementById(`sched-list-${panelId}`);
-  if (!listEl) return;
+  if (!listEl || !cfg) return;
   try {
     const lista = await apiFetch(`/admin/rooms/${state.currentRoom.id}/schedule`);
-    const propios = lista.filter(c => c.device_key === key && JSON.parse(c.comando)[`ch${idx + 1}`] !== undefined);
+    const propios = lista.filter(cfg.matches);
     if (!propios.length) { listEl.innerHTML = '<div class="form-note">Sin programaciones pendientes.</div>'; return; }
     listEl.innerHTML = propios.map(c => {
-      const on = JSON.parse(c.comando)[`ch${idx + 1}`];
       const fecha = new Date(c.ejecutar_en).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' });
       return `<div class="mapping-row" style="margin-bottom:4px">
-        <span class="mapping-ota" style="flex:1">${on ? 'Encender' : 'Apagar'} · ${fecha}</span>
+        <span class="mapping-ota" style="flex:1">${c.descripcion} · ${fecha}</span>
         <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();cancelSchedulePanel('${c.id}','${panelId}')">Cancelar</button>
       </div>`;
     }).join('');
@@ -1431,15 +1463,15 @@ async function loadSchedulePanel(panelId) {
 }
 
 window.confirmSchedule = async function(panelId) {
-  const idx = parseInt(panelId.slice(panelId.lastIndexOf('-') + 1), 10);
-  const key = panelId.slice(0, panelId.lastIndexOf('-'));
+  const cfg = scheduleConfigs[panelId];
+  if (!cfg) return;
   const dt = document.getElementById(`sched-dt-${panelId}`).value;
   if (!dt) { showToast('Elige una fecha y hora.', 'error'); return; }
-  const onoff = document.getElementById(`sched-onoff-${panelId}`).value === 'true';
+  const choice = document.getElementById(`sched-choice-${panelId}`).value;
   try {
     await apiFetch(`/admin/rooms/${state.currentRoom.id}/schedule`, {
       method: 'POST',
-      body: JSON.stringify({ device: key, command: { [`ch${idx + 1}`]: onoff }, ejecutarEn: new Date(dt).toISOString() }),
+      body: JSON.stringify({ descripcion: cfg.descripcion, pasos: cfg.buildPasos(choice), ejecutarEn: new Date(dt).toISOString() }),
     });
     showToast('Programado correctamente', 'success');
     loadSchedulePanel(panelId);
@@ -1461,12 +1493,21 @@ window.cancelSchedulePanel = async function(id, panelId) {
 function buildSwitchCard(key, dev, ico) {
   const on = dev.state.on;
   const manual = !!dev.state.manual;
+  const panelId = key;
+  registerSchedule(panelId, dtDev(key, dev), [
+    { value: 'true', label: 'Encender' }, { value: 'false', label: 'Apagar' },
+  ], v => [{ dev: key, cmd: { on: v === 'true' } }],
+  c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && 'on' in s.cmd); } catch { return false; } });
   return `<div class="dev-card">
     <div class="dev-card-head">
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
-      <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleSwitch('${key}', ${!on})"></div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${scheduleBtnHtml(panelId)}
+        <div class="toggle-sw ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" onclick="toggleSwitch('${key}', ${!on})"></div>
+      </div>
     </div>
     <div class="dev-status ${on && !manual ? 'on-label' : ''}">${manual ? dt('manualMode') : (on ? dt('onM') : dt('offM'))}</div>
+    ${buildSchedulePanel(panelId)}
     ${buildManualRow(key, manual)}
   </div>`;
 }
@@ -3660,7 +3701,22 @@ document.addEventListener('DOMContentLoaded', () => {
   setInterval(() => {
     if (getSession() && (state.view === 'overview' || state.view === 'rooms')) loadRooms();
   }, 15_000);
+
+  // Alarmas de puerta armadas por el huésped: aviso de respaldo a recepción
+  // (la app del huésped ya muestra su propia alerta si la tiene abierta).
+  setInterval(() => { if (getSession() && HOTEL_ID) checkDoorAlarms(); }, 20_000);
 });
+
+async function checkDoorAlarms() {
+  try {
+    const alarmas = await apiFetch(`/admin/door-alarms?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    for (const a of alarmas) {
+      const room = rooms.find(r => r.id === a.room_id);
+      showToast(`🚨 Se abrió la puerta — ${room?.name || a.room_id}`, 'error');
+      apiFetch(`/admin/door-alarms/${a.id}/ack`, { method: 'POST' }).catch(() => {});
+    }
+  } catch { /* siguiente ciclo reintenta solo */ }
+}
 
 // PWA: instalable desde el navegador (manifest + ícono ya están en el <head>)
 if ('serviceWorker' in navigator) {

@@ -11,22 +11,26 @@ const now   = () => new Date().toISOString();
 const genId = () => crypto.randomBytes(8).toString('hex');
 
 const MAX_DIAS_ADELANTE = 30;
+const MAX_PASOS = 20; // mismo límite que saveScene() para escenas del huésped
 
-function crear({ hotelId, roomId, deviceKey, comando, ejecutarEn, origen, creadoPor }) {
+function crear({ hotelId, roomId, descripcion, pasos, ejecutarEn, origen, creadoPor }) {
   const fecha = new Date(ejecutarEn);
   if (isNaN(fecha.getTime())) throw new Error('Fecha/hora inválida');
   if (fecha.getTime() <= Date.now()) throw new Error('La fecha/hora debe ser futura');
   if (fecha.getTime() > Date.now() + MAX_DIAS_ADELANTE * 86400000) {
     throw new Error(`No se puede programar con más de ${MAX_DIAS_ADELANTE} días de anticipación`);
   }
+  if (!Array.isArray(pasos) || !pasos.length) throw new Error('pasos debe ser un array no vacío');
+  if (pasos.length > MAX_PASOS) throw new Error(`Máximo ${MAX_PASOS} pasos por programación`);
+  if (!descripcion || !descripcion.trim()) throw new Error('descripcion requerida');
 
   const id = genId();
   const ts = now();
   db.prepare(`
     INSERT INTO comandos_programados
-      (id, hotel_id, room_id, device_key, comando, ejecutar_en, origen, creado_por, estado, created_at)
+      (id, hotel_id, room_id, descripcion, pasos, ejecutar_en, origen, creado_por, estado, created_at)
     VALUES (?,?,?,?,?,?,?,?,'pendiente',?)
-  `).run(id, hotelId, roomId, deviceKey, JSON.stringify(comando), fecha.toISOString(), origen, creadoPor || null, ts);
+  `).run(id, hotelId, roomId, descripcion.trim(), JSON.stringify(pasos), fecha.toISOString(), origen, creadoPor || null, ts);
 
   return db.prepare('SELECT * FROM comandos_programados WHERE id = ?').get(id);
 }

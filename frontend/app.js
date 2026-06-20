@@ -101,6 +101,11 @@ const I18N = {
     sectionServices: 'Servicios',
     dndTitle: 'No molestar',
     dndDesc: 'El personal de limpieza no ingresará a tu habitación mientras esté activo',
+    doorAlarmTitle: 'Avisarme si se abre la puerta',
+    doorAlarmDesc: 'Si tienes la app abierta, sonará una alerta apenas se abra la puerta de tu habitación',
+    doorAlarmTriggeredTitle: '¡Se abrió la puerta!',
+    doorAlarmTriggeredDesc: 'Activaste el aviso de puerta para esta estadía.',
+    doorAlarmDismissBtn: 'Entendido',
     requestTowels: '🧺 Pedir toallas / amenities',
     requestRoomService: '🍽 Pedir room service',
     requestCleaning: '🧹 Pedir limpieza',
@@ -115,6 +120,8 @@ const I18N = {
     toastRequestSent: 'Solicitud enviada a recepción',
     toastDndOn: 'No molestar activado',
     toastDndOff: 'No molestar desactivado',
+    toastDoorAlarmOn: 'Aviso de puerta activado',
+    toastDoorAlarmOff: 'Aviso de puerta desactivado',
     onbTitle: '¡Bienvenido!',
     onbScenes: 'Activa tus aparatos inteligentes desde aquí',
     onbSettings: 'Cambia idioma y accesibilidad desde Ajustes',
@@ -133,8 +140,12 @@ const I18N = {
     tutLightDesc: 'Toca este interruptor para encender o apagar la luz. Cuando está encendida, puedes ajustar su intensidad y color.',
     tutCurtainOpenTitle: 'Abrir la cortina',
     tutCurtainOpenDesc: 'Toca este botón para abrir la cortina automáticamente.',
+    tutCurtainStopTitle: 'Detener la cortina',
+    tutCurtainStopDesc: 'Toca este botón para detener la cortina donde esté, sin que termine de abrirse o cerrarse.',
     tutCurtainCloseTitle: 'Cerrar la cortina',
     tutCurtainCloseDesc: 'Toca este botón para cerrar la cortina. También puedes usar el control deslizante para dejarla a media altura.',
+    toastCurtainMaxOpen: 'Abierta al máximo',
+    toastCurtainMaxClosed: 'Cerrada al mínimo',
     connOnline: 'En línea',
     connOffline: 'Sin conexión',
     toastOnline: 'Conexión restablecida',
@@ -286,6 +297,11 @@ const I18N = {
     sectionServices: 'Services',
     dndTitle: 'Do Not Disturb',
     dndDesc: 'Housekeeping will not enter your room while this is active',
+    doorAlarmTitle: 'Alert me if the door opens',
+    doorAlarmDesc: 'If you have the app open, an alert will sound as soon as your room door opens',
+    doorAlarmTriggeredTitle: 'The door opened!',
+    doorAlarmTriggeredDesc: 'You turned on the door alert for this stay.',
+    doorAlarmDismissBtn: 'Got it',
     requestTowels: '🧺 Request towels / amenities',
     requestRoomService: '🍽 Request room service',
     requestCleaning: '🧹 Request housekeeping',
@@ -300,6 +316,8 @@ const I18N = {
     toastRequestSent: 'Request sent to the front desk',
     toastDndOn: 'Do Not Disturb on',
     toastDndOff: 'Do Not Disturb off',
+    toastDoorAlarmOn: 'Door alert turned on',
+    toastDoorAlarmOff: 'Door alert turned off',
     onbTitle: 'Welcome!',
     onbScenes: 'Control your smart devices from here',
     onbSettings: 'Change language and accessibility from Settings',
@@ -318,8 +336,12 @@ const I18N = {
     tutLightDesc: 'Tap this switch to turn the light on or off. When it’s on, you can adjust its brightness and color.',
     tutCurtainOpenTitle: 'Open the curtain',
     tutCurtainOpenDesc: 'Tap this button to open the curtain automatically.',
+    tutCurtainStopTitle: 'Stop the curtain',
+    tutCurtainStopDesc: 'Tap this button to stop the curtain wherever it is, without finishing the open/close move.',
     tutCurtainCloseTitle: 'Close the curtain',
     tutCurtainCloseDesc: 'Tap this button to close the curtain. You can also use the slider to leave it halfway.',
+    toastCurtainMaxOpen: 'Already fully open',
+    toastCurtainMaxClosed: 'Already fully closed',
     connOnline: 'Online',
     connOffline: 'Offline',
     toastOnline: 'Connection restored',
@@ -471,6 +493,11 @@ const I18N = {
     sectionServices: 'Serviços',
     dndTitle: 'Não perturbe',
     dndDesc: 'A equipe de limpeza não entrará no seu quarto enquanto estiver ativo',
+    doorAlarmTitle: 'Avisar se a porta abrir',
+    doorAlarmDesc: 'Se você tiver o app aberto, soará um alerta assim que a porta do seu quarto abrir',
+    doorAlarmTriggeredTitle: 'A porta abriu!',
+    doorAlarmTriggeredDesc: 'Você ativou o aviso de porta para esta estadia.',
+    doorAlarmDismissBtn: 'Entendi',
     requestTowels: '🧺 Pedir toalhas / amenities',
     requestRoomService: '🍽 Pedir room service',
     requestCleaning: '🧹 Pedir limpeza',
@@ -485,6 +512,8 @@ const I18N = {
     toastRequestSent: 'Solicitação enviada à recepção',
     toastDndOn: 'Não perturbe ativado',
     toastDndOff: 'Não perturbe desativado',
+    toastDoorAlarmOn: 'Aviso de porta ativado',
+    toastDoorAlarmOff: 'Aviso de porta desativado',
     onbTitle: 'Bem-vindo!',
     onbScenes: 'Controle seus dispositivos inteligentes a partir daqui',
     onbSettings: 'Altere idioma e acessibilidade em Configurações',
@@ -503,8 +532,12 @@ const I18N = {
     tutLightDesc: 'Toque neste interruptor para ligar ou desligar a luz. Quando estiver ligada, você pode ajustar o brilho e a cor.',
     tutCurtainOpenTitle: 'Abrir a cortina',
     tutCurtainOpenDesc: 'Toque neste botão para abrir a cortina automaticamente.',
+    tutCurtainStopTitle: 'Parar a cortina',
+    tutCurtainStopDesc: 'Toque neste botão para parar a cortina onde estiver, sem terminar de abrir ou fechar.',
     tutCurtainCloseTitle: 'Fechar a cortina',
     tutCurtainCloseDesc: 'Toque neste botão para fechar a cortina. Você também pode usar o controle deslizante para deixá-la na metade.',
+    toastCurtainMaxOpen: 'Já está totalmente aberta',
+    toastCurtainMaxClosed: 'Já está totalmente fechada',
     connOnline: 'Online',
     connOffline: 'Sem conexão',
     toastOnline: 'Conexão restabelecida',
@@ -831,6 +864,8 @@ function animateCurtainTo(key, target) {
 
 async function curtainControl(key, ctrl) {
   const before = app.devices[key]?.position ?? 0;
+  if (ctrl === 'open'  && before === 100) { showToast(t('toastCurtainMaxOpen'), ''); return; }
+  if (ctrl === 'close' && before === 0)   { showToast(t('toastCurtainMaxClosed'), ''); return; }
   if (ctrl === 'stop') {
     stopCurtainAnim(key); // congela la posición donde iba la animación
   } else {
@@ -1012,6 +1047,7 @@ function renderApp(data) {
   app.a11y = (window.location.protocol === 'file:' && localStorage.getItem('nexo_a11y'))
     || data.accessibility || 'none';
   app.dnd = data.dnd || false;
+  app.doorAlarm = data.doorAlarm || false;
 
   try {
     app.favorites = JSON.parse(localStorage.getItem(`nexo_favs_${app.token || 'static'}`) || '[]');
@@ -1023,6 +1059,7 @@ function renderApp(data) {
   applyA11y();
   applyTheme();
   setInterval(applyTheme, 10 * 60 * 1000);
+  setInterval(refreshRoomState, 20 * 1000);
   applyTexts();
 
   startClock(new Date(data.checkout));
@@ -1143,6 +1180,7 @@ function applyTexts() {
   updateConnStatus();
 
   document.getElementById('dnd-toggle')?.classList.toggle('on', app.dnd);
+  document.getElementById('door-alarm-toggle')?.classList.toggle('on', app.doorAlarm);
 
   renderPrefsRows();
 }
@@ -1211,6 +1249,64 @@ function toggleDnd() {
   document.getElementById('dnd-toggle')?.classList.toggle('on', app.dnd);
   showToast(app.dnd ? t('toastDndOn') : t('toastDndOff'), '');
   savePrefs({ dnd: app.dnd });
+}
+
+// ── ALARMA DE PUERTA ──────────────────────────────────────────────────────────
+// La app no recibe push real (sin Service Worker con Web Push) — mientras la
+// tenga abierta, un polling cada 20s detecta si la puerta pasó de cerrada a
+// abierta y, si la alarma está armada, dispara un aviso visual+sonoro local y
+// avisa al backend para que recepción también lo vea (door-alarm-triggered).
+let doorAlarmAudioCtx  = null;
+let doorAlarmBeepTimer = null;
+
+function toggleDoorAlarm() {
+  app.doorAlarm = !app.doorAlarm;
+  document.getElementById('door-alarm-toggle')?.classList.toggle('on', app.doorAlarm);
+  showToast(app.doorAlarm ? t('toastDoorAlarmOn') : t('toastDoorAlarmOff'), '');
+  savePrefs({ doorAlarm: app.doorAlarm });
+}
+
+async function refreshRoomState() {
+  if (window.location.protocol === 'file:' || !app.token) return;
+  const wasOpen = !!app.devices?.puerta?.open;
+  try {
+    const data = await apiGet(app.token);
+    app.data    = data;
+    app.devices = data.devices;
+    renderGrid();
+    const isOpenNow = !!app.devices?.puerta?.open;
+    if (!wasOpen && isOpenNow && app.doorAlarm) {
+      triggerDoorAlarmUI();
+      fetch(`${API}/room/${app.token}/door-alarm-triggered`, { method: 'POST' }).catch(() => {});
+    }
+  } catch { /* la próxima vuelta del polling reintenta sola */ }
+}
+
+function triggerDoorAlarmUI() {
+  document.getElementById('door-alarm-overlay')?.classList.remove('hidden');
+  playDoorAlarmBeep();
+  doorAlarmBeepTimer = setInterval(playDoorAlarmBeep, 1500);
+}
+
+function dismissDoorAlarm() {
+  document.getElementById('door-alarm-overlay')?.classList.add('hidden');
+  clearInterval(doorAlarmBeepTimer);
+  doorAlarmBeepTimer = null;
+}
+
+// Tono generado con Web Audio (sin archivo de audio que cargar/mantener).
+function playDoorAlarmBeep() {
+  try {
+    doorAlarmAudioCtx = doorAlarmAudioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = doorAlarmAudioCtx.createOscillator();
+    const gain = doorAlarmAudioCtx.createGain();
+    osc.type = 'square';
+    osc.frequency.value = 880;
+    gain.gain.value = 0.15;
+    osc.connect(gain).connect(doorAlarmAudioCtx.destination);
+    osc.start();
+    osc.stop(doorAlarmAudioCtx.currentTime + 0.4);
+  } catch { /* navegador sin Web Audio o sin permiso de audio todavía — no es crítico */ }
 }
 
 // ── SOLICITUDES DE SERVICIO ───────────────────────────────────────────────────
@@ -1353,11 +1449,15 @@ function submitReport() {
   closeReportModal();
 }
 
-// ── PROGRAMAR ENCENDIDO/APAGADO (enchufe inteligente) ────────────────────────
-let scheduleState = null; // { key, ch }
+// ── PROGRAMAR DISPOSITIVOS Y ESCENAS ─────────────────────────────────────────
+// Modal genérico: sirve tanto para un solo dispositivo (con choices on/off o
+// abrir/cerrar) como para una escena completa (sin choices — "Programar" ya
+// implica aplicarla). buildPasos(valor) siempre devuelve el array de pasos
+// {dev,cmd} que espera el backend (mismo formato que ya usa applyScene()).
+let scheduleState = null; // { descripcion, choices, buildPasos, matches, selected }
 
-function openScheduleModal(key, ch) {
-  scheduleState = { key, ch };
+function openScheduleModal({ descripcion, choices, buildPasos, matches }) {
+  scheduleState = { descripcion, choices, buildPasos, matches, selected: choices ? choices[0].value : null };
   renderScheduleModal();
   document.getElementById('schedule-modal-overlay').classList.remove('hidden');
 }
@@ -1367,25 +1467,25 @@ function closeScheduleModal() {
   scheduleState = null;
 }
 
-async function renderScheduleModal() {
+function renderScheduleModal() {
   if (!scheduleState) return;
-  const { key, ch } = scheduleState;
-  const cfg   = app.config[key] || {};
-  const label = (cfg.channels && cfg.channels[ch]) || devLabel(key, cfg);
-  const card  = document.getElementById('schedule-modal-card');
+  const { descripcion, choices } = scheduleState;
+  const card = document.getElementById('schedule-modal-card');
 
   const now = new Date(Date.now() + 5 * 60000); // mínimo 5 min en el futuro
   const minLocal = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
+  const choicesHtml = choices ? `
+    <div class="report-options" id="schedule-onoff">
+      ${choices.map((c, i) => `<button type="button" class="report-option ${i === 0 ? 'active' : ''}" data-value="${c.value}">${c.label}</button>`).join('')}
+    </div>` : '';
+
   card.innerHTML = `
     <div class="onboarding-ico">🕐</div>
     <h2>${t('scheduleTitle')}</h2>
-    <p class="scene-modal-desc">${t('scheduleDesc', { device: label })}</p>
+    <p class="scene-modal-desc">${t('scheduleDesc', { device: descripcion })}</p>
     <input type="datetime-local" class="scene-name-input" id="schedule-datetime" min="${minLocal}">
-    <div class="report-options" id="schedule-onoff">
-      <button type="button" class="report-option active" data-onoff="true">${t('scheduleTurnOn')}</button>
-      <button type="button" class="report-option" data-onoff="false">${t('scheduleTurnOff')}</button>
-    </div>
+    ${choicesHtml}
     <div class="form-error" id="schedule-error" style="color:#E5484D;font-size:12px;margin-bottom:10px"></div>
     <div class="scene-modal-actions">
       <button class="support-btn" id="schedule-modal-back">${t('reportBackBtn')}</button>
@@ -1393,55 +1493,55 @@ async function renderScheduleModal() {
     </div>
     <div id="schedule-pending-list" style="margin-top:16px"></div>`;
 
-  let onoff = 'true';
-  document.querySelectorAll('#schedule-onoff .report-option').forEach(btn => {
-    btn.onclick = () => {
-      document.querySelectorAll('#schedule-onoff .report-option').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      onoff = btn.dataset.onoff;
-    };
-  });
+  if (choices) {
+    document.querySelectorAll('#schedule-onoff .report-option').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('#schedule-onoff .report-option').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        scheduleState.selected = btn.dataset.value;
+      };
+    });
+  }
   document.getElementById('schedule-modal-back').onclick = closeScheduleModal;
-  document.getElementById('schedule-modal-send').onclick = () => submitSchedule(onoff);
+  document.getElementById('schedule-modal-send').onclick = submitSchedule;
 
-  loadPendingSchedules(key, ch);
+  loadPendingSchedules();
 }
 
-async function submitSchedule(onoff) {
-  const { key, ch } = scheduleState;
+async function submitSchedule() {
   const dt = document.getElementById('schedule-datetime').value;
   if (!dt) { document.getElementById('schedule-error').textContent = t('scheduleNoDateError'); return; }
+  const { descripcion, buildPasos, selected } = scheduleState;
+  const pasos = buildPasos(selected);
 
-  const command = { [`ch${ch + 1}`]: onoff === 'true' };
   try {
     const res = await fetch(`${API}/room/${app.token}/schedule`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ device: key, command, ejecutarEn: new Date(dt).toISOString() }),
+      body:    JSON.stringify({ descripcion, pasos, ejecutarEn: new Date(dt).toISOString() }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error');
     document.getElementById('schedule-datetime').value = '';
     showToast(t('toastScheduleSaved'), 'success');
-    loadPendingSchedules(key, ch);
+    loadPendingSchedules();
   } catch (err) {
     document.getElementById('schedule-error').textContent = err.message;
   }
 }
 
-async function loadPendingSchedules(key, ch) {
+async function loadPendingSchedules() {
   const list = document.getElementById('schedule-pending-list');
-  if (!list) return;
+  if (!list || !scheduleState) return;
   try {
     const res = await fetch(`${API}/room/${app.token}/schedule`);
     const all = await res.json();
-    const propios = (Array.isArray(all) ? all : []).filter(c => c.device_key === key && JSON.parse(c.comando)[`ch${ch + 1}`] !== undefined);
+    const propios = (Array.isArray(all) ? all : []).filter(scheduleState.matches);
     if (!propios.length) { list.innerHTML = `<div class="scenes-hint">${t('scheduleNonePending')}</div>`; return; }
     list.innerHTML = propios.map(c => {
-      const on = JSON.parse(c.comando)[`ch${ch + 1}`];
       const fecha = new Date(c.ejecutar_en).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
       return `<div class="ch-row">
-        <span class="ch-label">${on ? t('scheduleTurnOn') : t('scheduleTurnOff')} · ${fecha}</span>
+        <span class="ch-label">${c.descripcion} · ${fecha}</span>
         <button type="button" class="report-btn" onclick="cancelSchedule('${c.id}')" aria-label="${t('scheduleCancelBtn')}">✕</button>
       </div>`;
     }).join('');
@@ -1454,10 +1554,51 @@ window.cancelSchedule = async function(id) {
   try {
     await fetch(`${API}/room/${app.token}/schedule/${id}`, { method: 'DELETE' });
     showToast(t('toastScheduleCancelled'), '');
-    loadPendingSchedules(scheduleState.key, scheduleState.ch);
+    loadPendingSchedules();
   } catch (err) {
     showToast(err.message, 'error');
   }
+};
+
+// Atajos por tipo de dispositivo — arman los `opts` que espera openScheduleModal().
+window.scheduleOnOff = function(key) {
+  openScheduleModal({
+    descripcion: devLabel(key, app.config[key] || {}),
+    choices: [{ value: 'true', label: t('scheduleTurnOn') }, { value: 'false', label: t('scheduleTurnOff') }],
+    buildPasos: v => [{ dev: key, cmd: { on: v === 'true' } }],
+    matches: c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && 'on' in s.cmd); } catch { return false; } },
+  });
+};
+
+window.scheduleChannel = function(key, ch) {
+  const cfg = app.config[key] || {};
+  const label = (cfg.channels && cfg.channels[ch]) || devLabel(key, cfg);
+  openScheduleModal({
+    descripcion: label,
+    choices: [{ value: 'true', label: t('scheduleTurnOn') }, { value: 'false', label: t('scheduleTurnOff') }],
+    buildPasos: v => [{ dev: key, cmd: { [`ch${ch + 1}`]: v === 'true' } }],
+    matches: c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && `ch${ch + 1}` in s.cmd); } catch { return false; } },
+  });
+};
+
+window.scheduleCurtain = function(key) {
+  openScheduleModal({
+    descripcion: devLabel(key, app.config[key] || {}),
+    choices: [{ value: 'open', label: t('curtainOpenBtn') }, { value: 'close', label: t('curtainCloseBtn') }],
+    buildPasos: v => [{ dev: key, cmd: { control: v } }],
+    matches: c => { try { return JSON.parse(c.pasos).some(s => s.dev === key && 'control' in s.cmd); } catch { return false; } },
+  });
+};
+
+window.scheduleScene = function(sceneId) {
+  const scene = getSceneList().find(s => s.id === sceneId);
+  if (!scene) return;
+  openScheduleModal({
+    descripcion: scene.title,
+    choices: null,
+    buildPasos: () => getSceneSteps(sceneId),
+    matches: c => c.descripcion === scene.title,
+  });
 };
 
 function setA11y(mode) {
@@ -1544,7 +1685,7 @@ function switchView(view) {
 const TUTORIAL_STEPS = [
   {
     view: 'room',
-    selector: () => document.querySelector('#device-grid .device-card:not(.offline) [data-action="toggle-light"]'),
+    selector: () => document.querySelector('[data-key="luz_techo"][data-action="toggle-light"]'),
     titleKey: 'tutLightTitle',
     descKey:  'tutLightDesc',
   },
@@ -1553,6 +1694,12 @@ const TUTORIAL_STEPS = [
     selector: () => document.querySelector('#device-grid .curtain-btn[data-curtain="open"]'),
     titleKey: 'tutCurtainOpenTitle',
     descKey:  'tutCurtainOpenDesc',
+  },
+  {
+    view: 'room',
+    selector: () => document.querySelector('#device-grid .curtain-btn[data-curtain="stop"]'),
+    titleKey: 'tutCurtainStopTitle',
+    descKey:  'tutCurtainStopDesc',
   },
   {
     view: 'room',
@@ -1664,6 +1811,8 @@ function initNav() {
 
   // No molestar y solicitudes de servicio
   document.getElementById('dnd-toggle')?.addEventListener('click', toggleDnd);
+  document.getElementById('door-alarm-toggle')?.addEventListener('click', toggleDoorAlarm);
+  document.getElementById('door-alarm-dismiss')?.addEventListener('click', dismissDoorAlarm);
   document.getElementById('request-towels-btn')?.addEventListener('click', () => sendServiceRequest('towels'));
   document.getElementById('request-roomservice-btn')?.addEventListener('click', () => sendServiceRequest('roomservice'));
   document.getElementById('request-cleaning-btn')?.addEventListener('click', () => sendServiceRequest('cleaning'));
@@ -1700,6 +1849,19 @@ function initNav() {
     if (tutorialStep === 0) return;
     tutorialStep--;
     showTutorialStep();
+  });
+  // Reenviar el clic al control real resaltado (luz/cortina) cuando cae dentro
+  // del recuadro destacado, para que el huésped pueda probarlo de verdad en
+  // vez de que el overlay del tutorial absorba el clic sin hacer nada.
+  document.getElementById('tutorial-overlay')?.addEventListener('click', (e) => {
+    if (e.target.closest('.tutorial-tooltip') || e.target.closest('.tutorial-exit-btn')) return;
+    const step   = TUTORIAL_STEPS[tutorialStep];
+    const target = step?.selector();
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    if (e.clientX >= rect.left && e.clientX <= rect.right && e.clientY >= rect.top && e.clientY <= rect.bottom) {
+      target.click();
+    }
   });
   window.addEventListener('resize', () => {
     if (document.getElementById('tutorial-overlay').classList.contains('hidden')) return;
@@ -1743,6 +1905,10 @@ function favBtn(key) {
 
 function reportBtn(key) {
   return `<button type="button" class="report-btn" data-key="${key}" data-action="report-problem" aria-label="${t('reportProblemBtn')}">⚠️</button>`;
+}
+
+function scheduleBtn(key) {
+  return `<button type="button" class="report-btn" onclick="event.stopPropagation();scheduleOnOff('${key}')" aria-label="${t('scheduleBtn')}">🕐</button>`;
 }
 
 function saveFavorites() {
@@ -1811,7 +1977,7 @@ function unlockRow(key) {
 }
 
 // ── RENDER GRID ────────────────────────────────────────────────────────────────
-const CARD_ORDER = ['luz_velador1','luz_velador2','led_cama','luz_techo','cortina','enchufe'];
+const CARD_ORDER = ['luz_techo','luz_velador2','led_cama','luz_velador1','cortina','enchufe'];
 
 function renderGrid() {
   const grid = document.getElementById('device-grid');
@@ -1879,6 +2045,7 @@ function buildLightCard(key) {
       <div class="card-head-actions">
         ${favBtn(key)}
         ${reportBtn(key)}
+        ${scheduleBtn(key)}
         <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
       </div>
     </div>
@@ -1932,6 +2099,7 @@ function buildLEDCard(key) {
       <div class="card-head-actions">
         ${favBtn(key)}
         ${reportBtn(key)}
+        ${scheduleBtn(key)}
         <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
       </div>
     </div>
@@ -1975,6 +2143,7 @@ function buildCurtainCard(key) {
       <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${devLabel(key, cfg)}</span></div>
       <div class="card-head-actions">
         ${reportBtn(key)}
+        <button type="button" class="report-btn" onclick="event.stopPropagation();scheduleCurtain('${key}')" aria-label="${t('scheduleBtn')}">🕐</button>
         <span class="card-status" style="margin:0">${unlocked ? t('manualShort') : lbl}</span>
       </div>
     </div>
@@ -2006,6 +2175,7 @@ function buildSwitchCard(key) {
       <div class="card-head-actions">
         ${favBtn(key)}
         ${reportBtn(key)}
+        ${scheduleBtn(key)}
         <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-switch"></div>
       </div>
     </div>
@@ -2029,7 +2199,7 @@ function buildSwitch3CHCard(key) {
     <div class="ch-row">
       <span class="ch-label">${label}</span>
       <div style="display:flex;align-items:center;gap:10px">
-        <button type="button" class="report-btn" data-action="schedule-channel" data-key="${key}" data-ch="${i}" aria-label="${t('scheduleBtn')}">🕐</button>
+        <button type="button" class="report-btn" onclick="event.stopPropagation();scheduleChannel('${key}', ${i})" aria-label="${t('scheduleBtn')}">🕐</button>
         <div class="toggle ${vals[i] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch${i + 1}"></div>
       </div>
     </div>`).join('');
@@ -2059,6 +2229,7 @@ function buildACCard(key) {
       <div class="card-head-actions">
         ${favBtn(key)}
         ${reportBtn(key)}
+        ${scheduleBtn(key)}
         <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-ac"></div>
       </div>
     </div>
@@ -2421,10 +2592,6 @@ function handleGridClick(e) {
   const reportBtnEl = e.target.closest('[data-action="report-problem"]');
   if (reportBtnEl) { openReportModal(reportBtnEl.dataset.key); return; }
 
-  // Programar encendido/apagado de un canal del enchufe inteligente
-  const scheduleBtnEl = e.target.closest('[data-action="schedule-channel"]');
-  if (scheduleBtnEl) { openScheduleModal(scheduleBtnEl.dataset.key, parseInt(scheduleBtnEl.dataset.ch, 10)); return; }
-
   // Marcar/desmarcar favorito (acceso directo)
   const favBtnEl = e.target.closest('[data-action="toggle-favorite"]');
   if (favBtnEl) {
@@ -2596,11 +2763,12 @@ function handleGridInput(e) {
 function renderScenes() {
   const grid = document.getElementById('scenes-grid');
   grid.innerHTML = getSceneList().map(scene => {
-    const actions = scene.isCustom
+    const scheduleAction = `<button class="scene-action-btn" onclick="event.stopPropagation();scheduleScene('${scene.id}')" title="${t('scheduleBtn')}" aria-label="${t('scheduleBtn')}">🕐</button>`;
+    const actions = (scene.isCustom
       ? `<button class="scene-action-btn" data-scene-action="edit"   data-scene="${scene.id}" title="${t('sceneEditTitle')}"   aria-label="${t('sceneEditTitle')}">✏️</button>
          <button class="scene-action-btn" data-scene-action="delete" data-scene="${scene.id}" title="${t('sceneDeleteTitle')}" aria-label="${t('sceneDeleteTitle')}">🗑️</button>`
       : `<button class="scene-action-btn" data-scene-action="edit" data-scene="${scene.id}" title="${t('sceneEditTitle')}" aria-label="${t('sceneEditTitle')}">✏️</button>
-         ${scene.hasOverride ? `<button class="scene-action-btn" data-scene-action="reset" data-scene="${scene.id}" title="${t('sceneResetTitle')}" aria-label="${t('sceneResetTitle')}">↺</button>` : ''}`;
+         ${scene.hasOverride ? `<button class="scene-action-btn" data-scene-action="reset" data-scene="${scene.id}" title="${t('sceneResetTitle')}" aria-label="${t('sceneResetTitle')}">↺</button>` : ''}`) + scheduleAction;
 
     // div, no button: el botón externo no puede contener los botones internos
     // de editar/eliminar (✏️/🗑️/↺) — un <button> dentro de otro <button> es

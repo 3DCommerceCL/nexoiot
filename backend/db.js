@@ -18,6 +18,14 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
+// Migración: comandos_programados pasó de un solo dispositivo (device_key +
+// comando) a una lista de pasos (descripcion + pasos JSON) para poder programar
+// escenas completas. Tabla sin uso real todavía — se recrea en vez de migrar datos.
+const colsProgramados = db.prepare("PRAGMA table_info(comandos_programados)").all().map(c => c.name);
+if (colsProgramados.includes('device_key')) {
+  db.exec('DROP TABLE comandos_programados');
+}
+
 // ── SCHEMA ────────────────────────────────────────────────────────────────────
 db.exec(`
   CREATE TABLE IF NOT EXISTS reservas (
@@ -128,8 +136,8 @@ db.exec(`
     id           TEXT PRIMARY KEY,
     hotel_id     TEXT NOT NULL,
     room_id      TEXT NOT NULL,
-    device_key   TEXT NOT NULL,
-    comando      TEXT NOT NULL,
+    descripcion  TEXT NOT NULL,
+    pasos        TEXT NOT NULL,
     ejecutar_en  TEXT NOT NULL,
     origen       TEXT NOT NULL,
     creado_por   TEXT,
@@ -140,6 +148,15 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_prog_estado ON comandos_programados(estado, ejecutar_en);
   CREATE INDEX IF NOT EXISTS idx_prog_room   ON comandos_programados(room_id);
+
+  CREATE TABLE IF NOT EXISTS alarmas_puerta (
+    id            TEXT PRIMARY KEY,
+    hotel_id      TEXT NOT NULL,
+    room_id       TEXT NOT NULL,
+    disparada_at  TEXT NOT NULL,
+    reconocida    INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_alarmas_hotel ON alarmas_puerta(hotel_id, reconocida);
 
   CREATE TABLE IF NOT EXISTS facturacion_config (
     hotel_id        TEXT PRIMARY KEY,
