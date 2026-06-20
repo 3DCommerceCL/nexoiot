@@ -292,6 +292,16 @@ input[type=range]:disabled{opacity:.3;pointer-events:none}
 .curtain-track{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:4px}
 .curtain-fill{height:100%;background:rgba(66,160,220,.7);border-radius:2px;transition:width .4s ease}
 .curtain-label{font-size:10px;color:var(--text2)}
+.curtain-vcontrol{display:flex;align-items:stretch;gap:12px;justify-content:center;padding:4px 0 8px}
+.curtain-vbtns{display:flex;flex-direction:column;gap:5px;justify-content:space-between}
+.curtain-vbtn{padding:6px 8px;border-radius:5px;text-align:left;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:11px;font-weight:500;cursor:pointer;font-family:var(--font);transition:all .15s}
+.curtain-vbtn:hover{color:var(--text);border-color:var(--text3);background:rgba(16,24,40,.04)}
+.curtain-vbtn:disabled{opacity:.3;pointer-events:none}
+.curtain-vbtn.stop-vbtn{color:#B8860B;border-color:rgba(184,134,11,.4)}
+.curtain-vslider-wrap{width:34px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px}
+.curtain-vtrack{width:6px;height:90px;background:var(--border);border-radius:3px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
+.curtain-vfill{width:100%;background:rgba(66,160,220,.7);border-radius:3px;transition:height .4s ease}
+.curtain-vval{font-size:10px;color:var(--text2)}
 .door-badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:6px;display:inline-block}
 .door-badge.closed{background:var(--teal-l);color:var(--teal)}
 .door-badge.open{background:var(--warn-l);color:var(--warn)}

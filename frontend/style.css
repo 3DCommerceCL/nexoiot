@@ -517,6 +517,37 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 .curtain-btn.stop-btn { color: #FFE3B0; border-color: rgba(255,227,176,.4); }
 .curtain-btn:disabled { opacity: .4; pointer-events: none; }
 
+/* ── CORTINA: control vertical (flechas + barra) ──────────────────────────── */
+.curtain-vcontrol {
+  display: flex; align-items: stretch; gap: 14px; justify-content: center;
+  padding: 4px 0 8px;
+}
+.curtain-vbtns { display: flex; flex-direction: column; gap: 6px; justify-content: space-between; }
+.curtain-vbtn {
+  padding: 8px 10px; border-radius: var(--rsm); text-align: left;
+  border: 1px solid rgba(255,255,255,.35); background: transparent;
+  color: rgba(255,255,255,.9); font-size: 12px; font-weight: 600;
+  cursor: pointer; font-family: var(--font); transition: all .15s;
+}
+.curtain-vbtn:hover, .curtain-vbtn:active {
+  background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.6); color: #fff;
+}
+.curtain-vbtn.stop-vbtn { color: #FFE3B0; border-color: rgba(255,227,176,.4); }
+.curtain-vbtn:disabled { opacity: .4; pointer-events: none; }
+.curtain-vslider-wrap {
+  width: 40px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.curtain-vtrack {
+  width: 40px; height: 108px;
+  display: flex; align-items: center; justify-content: center;
+}
+.curtain-vslider {
+  width: 108px; height: 8px; margin: 0;
+  transform: rotate(-90deg); /* mínimo (cerrado) queda abajo, máximo (abierto) arriba */
+}
+.curtain-vval { font-size: 11px; color: rgba(255,255,255,.85); }
+
 /* ── SWITCH 3CH ───────────────────────────────────────────────────────────── */
 .ch-row {
   display: flex; align-items: center; justify-content: space-between;

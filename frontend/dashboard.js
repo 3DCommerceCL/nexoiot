@@ -1340,12 +1340,17 @@ function buildCurtainCard(key, dev, ico) {
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
       ${scheduleBtnHtml(panelId)}
     </div>
-    <div class="curtain-btns">
-      <button class="curtain-btn" onclick="setCurtain('${key}','open')" ${unlocked ? 'disabled' : ''}>${dt('openBtn')}</button>
-      <button class="curtain-btn" onclick="setCurtain('${key}','stop')" ${unlocked ? 'disabled' : ''}>${dt('stopBtn')}</button>
-      <button class="curtain-btn" onclick="setCurtain('${key}','close')" ${unlocked ? 'disabled' : ''}>${dt('closeBtn')}</button>
+    <div class="curtain-vcontrol">
+      <div class="curtain-vbtns">
+        <button class="curtain-vbtn" onclick="setCurtain('${key}','open')" ${unlocked ? 'disabled' : ''}>▲ ${dt('openBtn')}</button>
+        <button class="curtain-vbtn stop-vbtn" onclick="setCurtain('${key}','stop')" ${unlocked ? 'disabled' : ''}>⏹ ${dt('stopBtn')}</button>
+        <button class="curtain-vbtn" onclick="setCurtain('${key}','close')" ${unlocked ? 'disabled' : ''}>▼ ${dt('closeBtn')}</button>
+      </div>
+      <div class="curtain-vslider-wrap">
+        <div class="curtain-vtrack"><div class="curtain-vfill" style="height:${pct}%"></div></div>
+        <span class="curtain-vval">${pct}%</span>
+      </div>
     </div>
-    <div class="curtain-track"><div class="curtain-fill" style="width:${pct}%"></div></div>
     <div class="curtain-label">${label}</div>
     ${buildSchedulePanel(panelId)}
     ${buildUnlockRow(key, unlocked)}
@@ -1400,10 +1405,13 @@ function buildMultiSwitchCard(key, dev, ico) {
     </div>
     ${buildSchedulePanel(panelId)}`;
   }).join('');
-  return `<div class="dev-card">
-    <div class="dev-card-head">
+  // Con un solo canal el enchufe controla una única función — el encabezado
+  // "Enchufe USB" es redundante con la fila de abajo, así que se omite.
+  const header = labels.length === 1 ? '' : `<div class="dev-card-head">
       <div class="dev-card-name"><span class="dev-card-ico">${ico}</span> ${dtDev(key, dev)}</div>
-    </div>
+    </div>`;
+  return `<div class="dev-card">
+    ${header}
     ${rows}
     ${buildManualRow(key, manual)}
   </div>`;

@@ -1179,13 +1179,56 @@ function applyTexts() {
 
   updateConnStatus();
 
-  document.getElementById('dnd-toggle')?.classList.toggle('on', app.dnd);
-  document.getElementById('door-alarm-toggle')?.classList.toggle('on', app.doorAlarm);
+  document.querySelectorAll('[data-action="toggle-dnd"]').forEach(el => el.classList.toggle('on', app.dnd));
+  document.querySelectorAll('[data-action="toggle-door-alarm"]').forEach(el => el.classList.toggle('on', app.doorAlarm));
+  renderHomeServices();
 
   renderPrefsRows();
 }
 
 // ── SELECTORES DE IDIOMA Y ACCESIBILIDAD (vista Ajustes) ─────────────────────
+// Copia de la sección "Servicios" (no molestar, alarma de puerta, solicitudes)
+// directo en la página de Inicio, debajo de los dispositivos — sin el bloque de
+// contactar a recepción, que sigue viviendo solo en la pestaña Soporte. Los ids
+// llevan sufijo -home y se sincronizan con sus pares en Soporte vía toggleDnd/
+// toggleDoorAlarm (que ya no asumen un único elemento por acción).
+function renderHomeServices() {
+  const el = document.getElementById('home-services');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="device-card full-width" id="dnd-card-home">
+      <div class="card-head">
+        <div class="card-ico-name"><span class="card-ico">🔔</span><span class="card-label">${t('dndTitle')}</span></div>
+        <div class="toggle ${app.dnd ? 'on' : ''}" id="dnd-toggle-home" data-action="toggle-dnd"></div>
+      </div>
+      <div class="card-status">${t('dndDesc')}</div>
+    </div>
+    <div class="device-card full-width" id="door-alarm-card-home">
+      <div class="card-head">
+        <div class="card-ico-name"><span class="card-ico">🚨</span><span class="card-label">${t('doorAlarmTitle')}</span></div>
+        <div class="toggle ${app.doorAlarm ? 'on' : ''}" id="door-alarm-toggle-home" data-action="toggle-door-alarm"></div>
+      </div>
+      <div class="card-status">${t('doorAlarmDesc')}</div>
+    </div>
+    <div class="support-card" style="padding:24px 32px;gap:10px">
+      <button class="support-btn" id="request-towels-btn-home" style="width:100%">🧺 ${t('requestTowels')}</button>
+      <button class="support-btn" id="request-roomservice-btn-home" style="width:100%">🍽 ${t('requestRoomService')}</button>
+      <button class="support-btn" id="request-cleaning-btn-home" style="width:100%">🧹 ${t('requestCleaning')}</button>
+      <button class="support-btn" id="request-late-checkout-btn-home" style="width:100%">🕐 ${t('requestLateCheckout')}</button>
+      <button class="support-btn" id="request-maintenance-btn-home" style="width:100%">🔧 ${t('requestMaintenance')}</button>
+      <button class="support-btn" id="request-other-btn-home" style="width:100%">💬 ${t('requestOther')}</button>
+    </div>`;
+
+  document.getElementById('dnd-toggle-home').addEventListener('click', toggleDnd);
+  document.getElementById('door-alarm-toggle-home').addEventListener('click', toggleDoorAlarm);
+  document.getElementById('request-towels-btn-home').addEventListener('click', () => sendServiceRequest('towels'));
+  document.getElementById('request-roomservice-btn-home').addEventListener('click', () => sendServiceRequest('roomservice'));
+  document.getElementById('request-cleaning-btn-home').addEventListener('click', () => sendServiceRequest('cleaning'));
+  document.getElementById('request-late-checkout-btn-home').addEventListener('click', () => sendServiceRequest('late_checkout'));
+  document.getElementById('request-maintenance-btn-home').addEventListener('click', () => sendServiceRequestWithNote('maintenance'));
+  document.getElementById('request-other-btn-home').addEventListener('click', () => sendServiceRequestWithNote('other'));
+}
+
 function renderPrefsRows() {
   const langEl = document.getElementById('lang-options');
   if (langEl) {
@@ -1240,13 +1283,14 @@ function setLang(lang) {
   renderPlanGrid();
   renderClimateView();
   renderScenes();
+  renderHomeServices();
   savePrefs({ lang });
 }
 
 // ── NO MOLESTAR ───────────────────────────────────────────────────────────────
 function toggleDnd() {
   app.dnd = !app.dnd;
-  document.getElementById('dnd-toggle')?.classList.toggle('on', app.dnd);
+  document.querySelectorAll('[data-action="toggle-dnd"]').forEach(el => el.classList.toggle('on', app.dnd));
   showToast(app.dnd ? t('toastDndOn') : t('toastDndOff'), '');
   savePrefs({ dnd: app.dnd });
 }
@@ -1261,7 +1305,7 @@ let doorAlarmBeepTimer = null;
 
 function toggleDoorAlarm() {
   app.doorAlarm = !app.doorAlarm;
-  document.getElementById('door-alarm-toggle')?.classList.toggle('on', app.doorAlarm);
+  document.querySelectorAll('[data-action="toggle-door-alarm"]').forEach(el => el.classList.toggle('on', app.doorAlarm));
   showToast(app.doorAlarm ? t('toastDoorAlarmOn') : t('toastDoorAlarmOff'), '');
   savePrefs({ doorAlarm: app.doorAlarm });
 }
@@ -2138,7 +2182,7 @@ function buildCurtainCard(key) {
   const lbl = pos === 0 ? t('curtainClosed') : pos === 100 ? t('curtainOpened') : t('curtainPct', { p: pos });
   const unlocked = !!app._unlocked[key];
 
-  return `<div class="device-card full-width" id="card-${key}">
+  return `<div class="device-card" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${devLabel(key, cfg)}</span></div>
       <div class="card-head-actions">
@@ -2147,16 +2191,19 @@ function buildCurtainCard(key) {
         <span class="card-status" style="margin:0">${unlocked ? t('manualShort') : lbl}</span>
       </div>
     </div>
-    <div class="curtain-btns">
-      <button class="curtain-btn" data-key="${key}" data-curtain="open" ${unlocked ? 'disabled' : ''}>${t('curtainOpenBtn')}</button>
-      <button class="curtain-btn stop-btn" data-key="${key}" data-curtain="stop" ${unlocked ? 'disabled' : ''}>${t('curtainStopBtn')}</button>
-      <button class="curtain-btn" data-key="${key}" data-curtain="close" ${unlocked ? 'disabled' : ''}>${t('curtainCloseBtn')}</button>
-    </div>
-    <div class="slider-lbl">${t('position')}</div>
-    <div class="slider-row">
-      <input type="range" min="0" max="100" value="${pos}"
-        data-key="${key}" data-action="curtain-pos" ${unlocked ? 'disabled' : ''}>
-      <span class="slider-val" id="curtain-val-${key}">${pos}%</span>
+    <div class="curtain-vcontrol">
+      <div class="curtain-vbtns">
+        <button class="curtain-vbtn" data-key="${key}" data-curtain="open" ${unlocked ? 'disabled' : ''}>▲ ${t('curtainOpenBtn')}</button>
+        <button class="curtain-vbtn stop-vbtn" data-key="${key}" data-curtain="stop" ${unlocked ? 'disabled' : ''}>⏹ ${t('curtainStopBtn')}</button>
+        <button class="curtain-vbtn" data-key="${key}" data-curtain="close" ${unlocked ? 'disabled' : ''}>▼ ${t('curtainCloseBtn')}</button>
+      </div>
+      <div class="curtain-vslider-wrap">
+        <div class="curtain-vtrack">
+          <input type="range" class="curtain-vslider" min="0" max="100" value="${pos}"
+            data-key="${key}" data-action="curtain-pos" ${unlocked ? 'disabled' : ''}>
+        </div>
+        <span class="curtain-vval" id="curtain-val-${key}">${pos}%</span>
+      </div>
     </div>
     ${unlockRow(key)}
   </div>`;
@@ -2193,6 +2240,26 @@ function buildSwitch3CHCard(key) {
   const vals = [s.ch1, s.ch2, s.ch3];
   const manual = !!app._manual[key];
   const anyOn = !manual && vals.slice(0, chs.length).some(Boolean);
+
+  // Un solo canal: el enchufe controla una única función (ej. 🔥 Estufa) — se
+  // muestra como una tarjeta simple de ícono+nombre+toggle, igual que un switch
+  // normal, sin el encabezado "Enchufe" que solo tenía sentido con varios canales.
+  if (chs.length === 1) {
+    const on = !manual && vals[0];
+    return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
+      <div class="card-head">
+        <div class="card-ico-name"><span class="card-label">${chs[0]}</span></div>
+        <div class="card-head-actions">
+          ${favBtn(key)}
+          ${reportBtn(key)}
+          <button type="button" class="report-btn" onclick="event.stopPropagation();scheduleChannel('${key}', 0)" aria-label="${t('scheduleBtn')}">🕐</button>
+          <div class="toggle ${vals[0] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch1"></div>
+        </div>
+      </div>
+      <div class="card-status ${on ? 'on' : ''}">${manual ? t('manualMode') : (vals[0] ? t('onM') : t('offM'))}</div>
+      ${manualRow(key)}
+    </div>`;
+  }
 
   // Generar una fila por cada canal definido (no siempre 3)
   const rows = chs.map((label, i) => `
