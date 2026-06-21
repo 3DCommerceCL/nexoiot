@@ -250,6 +250,17 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_usuarios_hotel ON usuarios(hotel_id);
 
+  CREATE TABLE IF NOT EXISTS roles (
+    id          TEXT PRIMARY KEY,
+    hotel_id    TEXT NOT NULL,
+    nombre      TEXT NOT NULL,
+    permisos    TEXT NOT NULL DEFAULT '[]',
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    UNIQUE(hotel_id, nombre)
+  );
+  CREATE INDEX IF NOT EXISTS idx_roles_hotel ON roles(hotel_id);
+
   CREATE TABLE IF NOT EXISTS sesiones (
     token       TEXT PRIMARY KEY,
     usuario_id  TEXT NOT NULL,

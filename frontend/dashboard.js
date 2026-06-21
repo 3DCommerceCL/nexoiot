@@ -891,6 +891,7 @@ function navigate(view) {
   }
   if (view === 'log') loadLogMaestro();
   if (view === 'crm') loadCRM();
+  if (view === 'equipo') loadEquipo();
   if (view === 'mensajes') loadMensajesLog();
   if (view === 'grid-tarifas') loadGrid();
 }
@@ -2377,6 +2378,176 @@ window.openHuespedModal = function(i) {
   $('modal-huesped').classList.remove('hidden');
 };
 
+// ── EQUIPO (staff del hotel + roles personalizados) ──────────────────────────
+let equipoCache = [];
+let rolesCache  = [];
+let permisosCatalogoCache = [];
+
+async function loadEquipo() {
+  try {
+    const [staff, rolesRes] = await Promise.all([
+      apiFetch('/admin/equipo'),
+      apiFetch('/admin/roles'),
+    ]);
+    equipoCache = staff;
+    rolesCache = rolesRes.roles;
+    permisosCatalogoCache = rolesRes.catalogo;
+    renderStaffTable();
+    renderRolesList();
+    populateEqmRolSelect();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function populateEqmRolSelect() {
+  const sel = $('eqm-rol');
+  sel.innerHTML = '<option value="recepcion">Recepción</option>' +
+    rolesCache.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
+}
+
+function renderStaffTable() {
+  if (!equipoCache.length) {
+    $('eq-staff-tbody').innerHTML = '<tr><td colspan="5" class="rl-empty">Todavía no hay staff agregado.</td></tr>';
+    return;
+  }
+  $('eq-staff-tbody').innerHTML = equipoCache.map(u => `
+    <tr>
+      <td>${u.nombre}</td>
+      <td>${u.email}</td>
+      <td>${u.rolNombre}</td>
+      <td><span class="badge ${u.activo ? 'badge-active' : 'badge-inactive'}" style="cursor:pointer" onclick="toggleEquipoActivo('${u.id}', ${u.activo ? 0 : 1})">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
+      <td><button class="btn btn-outline btn-sm" onclick="eliminarMiembroEquipo('${u.id}', '${u.nombre.replace(/'/g, "\\'")}')">Eliminar</button></td>
+    </tr>`).join('');
+}
+
+window.toggleEquipoActivo = async function(id, activo) {
+  try {
+    await apiFetch(`/admin/equipo/${id}`, { method: 'PATCH', body: JSON.stringify({ activo }) });
+    await loadEquipo();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+window.eliminarMiembroEquipo = async function(id, nombre) {
+  if (!confirm(`¿Eliminar a ${nombre} del equipo? Esta acción no se puede deshacer.`)) return;
+  try {
+    await apiFetch(`/admin/equipo/${id}`, { method: 'DELETE' });
+    await loadEquipo();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+function openNuevoMiembroModal() {
+  $('eqm-nombre').value = '';
+  $('eqm-email').value = '';
+  $('eqm-password').value = '';
+  $('eqm-error').textContent = '';
+  populateEqmRolSelect();
+  $('modal-eq-miembro').classList.remove('hidden');
+}
+
+async function saveNuevoMiembro() {
+  const nombre = $('eqm-nombre').value.trim();
+  const email = $('eqm-email').value.trim();
+  const password = $('eqm-password').value;
+  const rol = $('eqm-rol').value;
+  $('eqm-error').textContent = '';
+  if (!nombre || !email || !password) {
+    $('eqm-error').textContent = 'Completa todos los campos.';
+    return;
+  }
+  try {
+    await apiFetch('/admin/equipo', { method: 'POST', body: JSON.stringify({ nombre, email, password, rol }) });
+    closeModal('modal-eq-miembro');
+    await loadEquipo();
+    showToast('Miembro del equipo creado', 'success');
+  } catch (err) {
+    $('eqm-error').textContent = err.message;
+  }
+}
+
+function renderRolesList() {
+  if (!rolesCache.length) {
+    $('eq-roles-list').innerHTML = '<div class="form-note" style="padding:14px">Todavía no hay roles personalizados. Crea uno para asignárselo al personal de aseo, mayordomos, etc.</div>';
+    return;
+  }
+  $('eq-roles-list').innerHTML = rolesCache.map(r => `
+    <div class="analytics-card">
+      <div style="font-weight:600;margin-bottom:6px">${r.nombre}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px">
+        ${r.permisos.length ? r.permisos.map(p => permisosCatalogoCache.find(c => c.id === p)?.label || p).join(', ') : 'Sin permisos asignados'}
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="openEditarRolModal('${r.id}')">Editar</button>
+        <button class="btn btn-outline btn-sm" onclick="eliminarRol('${r.id}', '${r.nombre.replace(/'/g, "\\'")}')">Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderPermisosCheckboxes(seleccionados = []) {
+  $('eqr-permisos').innerHTML = permisosCatalogoCache.map(p => `
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-bottom:8px;font-size:13px;cursor:pointer">
+      <input type="checkbox" value="${p.id}" ${seleccionados.includes(p.id) ? 'checked' : ''} style="margin-top:2px">
+      <span><strong>${p.label}</strong><br><span style="color:var(--text2);font-size:12px">${p.desc}</span></span>
+    </label>`).join('');
+}
+
+function openNuevoRolModal() {
+  $('eqr-titulo').textContent = 'Nuevo rol';
+  $('eqr-id').value = '';
+  $('eqr-nombre').value = '';
+  $('eqr-error').textContent = '';
+  renderPermisosCheckboxes();
+  $('modal-eq-rol').classList.remove('hidden');
+}
+
+window.openEditarRolModal = function(id) {
+  const r = rolesCache.find(x => x.id === id);
+  if (!r) return;
+  $('eqr-titulo').textContent = 'Editar rol';
+  $('eqr-id').value = r.id;
+  $('eqr-nombre').value = r.nombre;
+  $('eqr-error').textContent = '';
+  renderPermisosCheckboxes(r.permisos);
+  $('modal-eq-rol').classList.remove('hidden');
+};
+
+async function saveRol() {
+  const id = $('eqr-id').value;
+  const nombre = $('eqr-nombre').value.trim();
+  const permisos = [...document.querySelectorAll('#eqr-permisos input:checked')].map(el => el.value);
+  $('eqr-error').textContent = '';
+  if (!nombre) {
+    $('eqr-error').textContent = 'El rol necesita un nombre.';
+    return;
+  }
+  try {
+    if (id) {
+      await apiFetch(`/admin/roles/${id}`, { method: 'PATCH', body: JSON.stringify({ nombre, permisos }) });
+    } else {
+      await apiFetch('/admin/roles', { method: 'POST', body: JSON.stringify({ nombre, permisos }) });
+    }
+    closeModal('modal-eq-rol');
+    await loadEquipo();
+    showToast('Rol guardado', 'success');
+  } catch (err) {
+    $('eqr-error').textContent = err.message;
+  }
+}
+
+window.eliminarRol = async function(id, nombre) {
+  if (!confirm(`¿Eliminar el rol "${nombre}"?`)) return;
+  try {
+    await apiFetch(`/admin/roles/${id}`, { method: 'DELETE' });
+    await loadEquipo();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
 // ── GRID DE TARIFAS (planilla habitación/categoría × fecha) ──────────────────
 let gtDesde = new Date().toISOString().slice(0, 10);
 let gtData = null;
@@ -3852,6 +4023,11 @@ document.addEventListener('DOMContentLoaded', () => {
     clearTimeout(crmSearchTimer);
     crmSearchTimer = setTimeout(() => loadCRM($('crm-search').value), 350);
   });
+
+  $('eq-nuevo-miembro').addEventListener('click', openNuevoMiembroModal);
+  $('eqm-save').addEventListener('click', saveNuevoMiembro);
+  $('eq-nuevo-rol').addEventListener('click', openNuevoRolModal);
+  $('eqr-save').addEventListener('click', saveRol);
 
   // Pagos
   $('pg-filtrar').addEventListener('click', loadTransacciones);

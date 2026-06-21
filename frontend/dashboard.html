@@ -524,6 +524,10 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">👥</span>
       <span class="nav-label">CRM</span>
     </div>
+    <div class="nav-item" data-view="equipo" data-role="owner">
+      <span class="nav-icon">🧑‍🤝‍🧑</span>
+      <span class="nav-label">Equipo</span>
+    </div>
     <div class="nav-item" data-view="mensajes">
       <span class="nav-icon">💬</span>
       <span class="nav-label">Mensajes</span>
@@ -729,6 +733,24 @@ select.form-input option{background:var(--card);color:var(--text)}
       </div>
       <div class="rl-count" id="crm-count"></div>
       <div id="crm-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px"></div>
+    </div>
+
+    <!-- VIEW: EQUIPO (staff del hotel + roles personalizados) -->
+    <div class="view" id="view-equipo">
+      <div class="sec-header" style="margin-bottom:10px">
+        <span class="sec-title">Staff</span>
+        <button class="btn btn-primary btn-sm" id="eq-nuevo-miembro">+ Nuevo miembro</button>
+      </div>
+      <table class="rl-table" style="margin-bottom:28px">
+        <thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th></th></tr></thead>
+        <tbody id="eq-staff-tbody"></tbody>
+      </table>
+
+      <div class="sec-header" style="margin-bottom:10px">
+        <span class="sec-title">Roles personalizados</span>
+        <button class="btn btn-outline btn-sm" id="eq-nuevo-rol">+ Nuevo rol</button>
+      </div>
+      <div id="eq-roles-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px"></div>
     </div>
 
     <!-- VIEW: MENSAJES (bandeja de pendientes + registro/log completo con fecha y hora) -->
@@ -1394,6 +1416,63 @@ select.form-input option{background:var(--card);color:var(--text)}
       <button class="modal-close" onclick="closeModal('modal-schedule')">✕</button>
     </div>
     <div id="schedule-modal-body" style="padding:0 24px 20px"></div>
+  </div>
+</div>
+
+<!-- MODAL: Nuevo miembro del equipo -->
+<div class="modal-overlay hidden" id="modal-eq-miembro">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">Nuevo miembro</div>
+      <button class="modal-close" onclick="closeModal('modal-eq-miembro')">✕</button>
+    </div>
+    <div class="modal-field" style="margin-top:0">
+      <span class="modal-label">Nombre</span>
+      <input class="form-input" id="eqm-nombre" placeholder="Nombre completo">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Email</span>
+      <input class="form-input" id="eqm-email" type="email" placeholder="correo@hotel.cl">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Contraseña</span>
+      <input class="form-input" id="eqm-password" type="password" placeholder="Mínimo 8 caracteres">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Rol</span>
+      <select class="form-input" id="eqm-rol">
+        <option value="recepcion">Recepción</option>
+      </select>
+    </div>
+    <div class="modal-error" id="eqm-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-eq-miembro')">Cancelar</button>
+      <button class="btn btn-primary" id="eqm-save">Crear</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nuevo rol personalizado -->
+<div class="modal-overlay hidden" id="modal-eq-rol">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title" id="eqr-titulo">Nuevo rol</div>
+      <button class="modal-close" onclick="closeModal('modal-eq-rol')">✕</button>
+    </div>
+    <input type="hidden" id="eqr-id">
+    <div class="modal-field" style="margin-top:0">
+      <span class="modal-label">Nombre del rol</span>
+      <input class="form-input" id="eqr-nombre" placeholder="Ej: Aseo, Mayordomo">
+    </div>
+    <div class="modal-field">
+      <span class="modal-label">Permisos</span>
+      <div id="eqr-permisos"></div>
+    </div>
+    <div class="modal-error" id="eqr-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-eq-rol')">Cancelar</button>
+      <button class="btn btn-primary" id="eqr-save">Guardar</button>
+    </div>
   </div>
 </div>
 

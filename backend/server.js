@@ -27,6 +27,7 @@ const alarmasPuerta     = require('./alarmas-puerta');
 const pagos         = require('./pagos');
 const transacciones = require('./transacciones');
 const auth          = require('./auth');
+const roles         = require('./roles');
 const housekeeping  = require('./housekeeping');
 const reglas        = require('./reglas-rendimiento');
 const servicios     = require('./servicios');
@@ -221,6 +222,18 @@ function assertHotelAccess(req, hotelId) {
   return req.user.rol === 'superadmin' || req.user.hotelId === hotelId;
 }
 
+// Como requireAuth(rolesFijos), pero además deja pasar a roles personalizados que
+// tengan el permiso dado (ver backend/roles.js) — para endpoints puntuales que los
+// roles personalizados también pueden usar, sin tocar el resto de requireAuth(...).
+function requireRoleOrPermiso(rolesFijos, permiso) {
+  return (req, res, next) => requireAuth()(req, res, () => {
+    if (rolesFijos.includes(req.user.rol) || req.user.rol === 'superadmin' || roles.tienePermiso(req.user.rol, permiso)) {
+      return next();
+    }
+    res.status(403).json({ error: 'No tienes permiso para esta acción.' });
+  });
+}
+
 // Rate limiter estricto para login (evitar fuerza bruta)
 const loginLimiter = rateLimit({
   windowMs: 60_000,
@@ -303,12 +316,100 @@ app.post('/api/admin/usuarios', requireAuth('superadmin'), (req, res) => {
 // ── ADMIN: PATCH /api/admin/usuarios/:id ──────────────────────────────────────
 app.patch('/api/admin/usuarios/:id', requireAuth('superadmin'), (req, res) => {
   if (!auth.getUsuarioById(req.params.id)) return res.status(404).json({ error: 'Usuario no encontrado' });
-  res.json(auth.updateUsuario(req.params.id, req.body || {}));
+  const { password_hash, ...safe } = auth.updateUsuario(req.params.id, req.body || {});
+  res.json(safe);
 });
 
 // ── ADMIN: DELETE /api/admin/usuarios/:id ─────────────────────────────────────
 app.delete('/api/admin/usuarios/:id', requireAuth('superadmin'), (req, res) => {
   if (!auth.deleteUsuario(req.params.id)) return res.status(404).json({ error: 'Usuario no encontrado' });
+  res.json({ success: true });
+});
+
+// ── ADMIN: ROLES PERSONALIZADOS (por hotel) ───────────────────────────────────
+app.get('/api/admin/roles', requireAuth('owner'), (req, res) => {
+  res.json({ catalogo: roles.PERMISOS_CATALOGO, roles: roles.listByHotel(req.user.hotelId) });
+});
+
+app.post('/api/admin/roles', requireAuth('owner'), (req, res) => {
+  const { nombre, permisos } = req.body || {};
+  try {
+    res.status(201).json(roles.create(req.user.hotelId, nombre, permisos));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.patch('/api/admin/roles/:id', requireAuth('owner'), (req, res) => {
+  const existing = roles.getById(req.params.id);
+  if (!existing || existing.hotel_id !== req.user.hotelId) return res.status(404).json({ error: 'Rol no encontrado' });
+  try {
+    res.json(roles.update(req.params.id, req.body || {}));
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+app.delete('/api/admin/roles/:id', requireAuth('owner'), (req, res) => {
+  const existing = roles.getById(req.params.id);
+  if (!existing || existing.hotel_id !== req.user.hotelId) return res.status(404).json({ error: 'Rol no encontrado' });
+  try {
+    roles.remove(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(409).json({ error: err.message });
+  }
+});
+
+// ── ADMIN: EQUIPO (staff del propio hotel — owner crea recepción y roles personalizados) ──
+function validarRolEquipo(rol, hotelId) {
+  if (rol === 'recepcion') return true;
+  const r = roles.getById(rol);
+  return !!r && r.hotel_id === hotelId;
+}
+
+function enriquecerRol(usuario) {
+  const { password_hash, ...safe } = usuario;
+  if (safe.rol === 'recepcion') return { ...safe, rolNombre: 'Recepción' };
+  const r = roles.getById(safe.rol);
+  return { ...safe, rolNombre: r ? r.nombre : safe.rol };
+}
+
+app.get('/api/admin/equipo', requireAuth('owner'), (req, res) => {
+  res.json(auth.listUsuarios(req.user.hotelId).filter(u => u.id !== req.user.id).map(enriquecerRol));
+});
+
+app.post('/api/admin/equipo', requireAuth('owner'), (req, res) => {
+  const { email, password, nombre, rol } = req.body || {};
+  if (!email || !password || !nombre || !rol) {
+    return res.status(400).json({ error: 'Requeridos: email, password, nombre, rol' });
+  }
+  if (!validarRolEquipo(rol, req.user.hotelId)) {
+    return res.status(400).json({ error: 'rol debe ser "recepcion" o un rol personalizado de tu hotel' });
+  }
+  if (auth.getUsuarioByEmail(email)) {
+    return res.status(409).json({ error: 'Ya existe un usuario con ese email' });
+  }
+  const usuario = auth.createUsuario(req.user.hotelId, email, password, nombre, rol);
+  res.status(201).json(enriquecerRol(usuario));
+});
+
+app.patch('/api/admin/equipo/:id', requireAuth('owner'), (req, res) => {
+  if (req.params.id === req.user.id) return res.status(400).json({ error: 'No puedes editar tu propia cuenta desde Equipo' });
+  const existing = auth.getUsuarioById(req.params.id);
+  if (!existing || existing.hotel_id !== req.user.hotelId) return res.status(404).json({ error: 'Usuario no encontrado' });
+  const fields = { ...req.body };
+  if (fields.rol !== undefined && !validarRolEquipo(fields.rol, req.user.hotelId)) {
+    return res.status(400).json({ error: 'rol debe ser "recepcion" o un rol personalizado de tu hotel' });
+  }
+  res.json(enriquecerRol(auth.updateUsuario(req.params.id, fields)));
+});
+
+app.delete('/api/admin/equipo/:id', requireAuth('owner'), (req, res) => {
+  if (req.params.id === req.user.id) return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta' });
+  const existing = auth.getUsuarioById(req.params.id);
+  if (!existing || existing.hotel_id !== req.user.hotelId) return res.status(404).json({ error: 'Usuario no encontrado' });
+  auth.deleteUsuario(req.params.id);
   res.json({ success: true });
 });
 
@@ -1812,7 +1913,7 @@ app.delete('/api/admin/servicios/:id', requireAuth('owner'), (req, res) => {
 });
 
 // ── ADMIN: GET /api/admin/housekeeping ────────────────────────────────────────
-app.get('/api/admin/housekeeping', requireAuth('owner', 'recepcion'), (req, res) => {
+app.get('/api/admin/housekeeping', requireRoleOrPermiso(['owner', 'recepcion'], 'housekeeping.gestionar'), (req, res) => {
   const { hotel } = req.query;
   if (!hotel) return res.status(400).json({ error: 'hotel requerido' });
   if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
@@ -1821,7 +1922,7 @@ app.get('/api/admin/housekeeping', requireAuth('owner', 'recepcion'), (req, res)
 
 // ── ADMIN: PATCH /api/admin/housekeeping/:roomId ──────────────────────────────
 // Body: { hotelId, estado, notas } — estado: limpia | sucia | en_proceso | inspeccion
-app.patch('/api/admin/housekeeping/:roomId', requireAuth('owner', 'recepcion'), (req, res) => {
+app.patch('/api/admin/housekeeping/:roomId', requireRoleOrPermiso(['owner', 'recepcion'], 'housekeeping.gestionar'), (req, res) => {
   const { hotelId, estado, notas } = req.body;
   if (!hotelId || !estado) return res.status(400).json({ error: 'Requeridos: hotelId, estado' });
   if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
