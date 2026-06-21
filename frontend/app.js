@@ -281,8 +281,11 @@ const I18N = {
     helpTextGeneric: 'Toca el interruptor para encender o apagar este control.',
     helpTextTV: 'Toca el interruptor para encender o apagar la TV. Ajusta el volumen con la barra y elige la fuente (cable, streaming o HDMI).',
     helpTextBathroom: 'Toca el interruptor para encender o apagar la luz del baño. Con "Encendido automático" activado, se enciende sola al detectar presencia.',
-    helpTextBidet: 'Toca el interruptor para encender el bidé. Elige lavado o secado, y activa el asiento calefaccionado si lo necesitas.',
+    helpTextBidet: 'Toca el interruptor para precalentar el asiento del baño japonés antes de levantarte. El resto de las funciones se controla desde el panel del baño.',
     helpTextRug: 'Toca el interruptor para encender la alfombra calefaccionable y elige el nivel de calor.',
+    heatedSeatOn: 'Asiento calefaccionado — encendido',
+    heatedSeatOff: 'Asiento calefaccionado — apagado',
+    bidetPanelNote: 'El resto de las funciones (lavado, secado, etc.) se controla desde el panel del baño.',
     scheduleTitle: 'Programar',
     scheduleDesc: 'Elige cuándo se debe encender o apagar: {device}.',
     scheduleDescScene: 'Elige cuándo activar esta escena: {device}.',
@@ -522,8 +525,11 @@ const I18N = {
     helpTextGeneric: 'Tap the switch to turn this control on or off.',
     helpTextTV: 'Tap the switch to turn the TV on or off. Adjust the volume with the bar and pick a source (cable, streaming, or HDMI).',
     helpTextBathroom: 'Tap the switch to turn the bathroom light on or off. With "Auto on" enabled, it turns on by itself when it detects someone.',
-    helpTextBidet: 'Tap the switch to turn on the bidet. Choose wash or dry, and turn on the heated seat if you want it.',
+    helpTextBidet: 'Tap the switch to pre-heat the bidet seat before getting up. Everything else is controlled from the bathroom panel.',
     helpTextRug: 'Tap the switch to turn on the heated rug and pick the heat level.',
+    heatedSeatOn: 'Heated seat — on',
+    heatedSeatOff: 'Heated seat — off',
+    bidetPanelNote: 'Everything else (wash, dry, etc.) is controlled from the bathroom panel.',
     scheduleTitle: 'Schedule',
     scheduleDesc: 'Choose when it should turn on or off: {device}.',
     scheduleDescScene: 'Choose when to activate this scene: {device}.',
@@ -763,8 +769,11 @@ const I18N = {
     helpTextGeneric: 'Toque no interruptor para ligar ou desligar este controle.',
     helpTextTV: 'Toque no interruptor para ligar ou desligar a TV. Ajuste o volume na barra e escolha a fonte (cabo, streaming ou HDMI).',
     helpTextBathroom: 'Toque no interruptor para ligar ou desligar a luz do banheiro. Com "Ligar automático" ativado, ela liga sozinha ao detectar presença.',
-    helpTextBidet: 'Toque no interruptor para ligar o bidê. Escolha lavar ou secar, e ative o assento aquecido se quiser.',
+    helpTextBidet: 'Toque no interruptor para pré-aquecer o assento antes de levantar. O resto das funções é controlado pelo painel do banheiro.',
     helpTextRug: 'Toque no interruptor para ligar o tapete aquecido e escolha o nível de calor.',
+    heatedSeatOn: 'Assento aquecido — ligado',
+    heatedSeatOff: 'Assento aquecido — desligado',
+    bidetPanelNote: 'O resto das funções (lavar, secar, etc.) é controlado pelo painel do banheiro.',
     scheduleTitle: 'Programar',
     scheduleDesc: 'Escolha quando deve ligar ou desligar: {device}.',
     scheduleDescScene: 'Escolha quando ativar esta cena: {device}.',
@@ -2573,8 +2582,18 @@ function buildTVCard() {
 
 // ── BAÑO INTELIGENTE (sensor de presencia + luz) ─────────────────────────────
 function buildBathroomCard() {
-  const s = app._placeholder.bathroom ?? (app._placeholder.bathroom = { presence: false, lightOn: false, intensity: 60, colorTemp: 50, auto: true, manual: false });
+  const s = app._placeholder.bathroom ?? (app._placeholder.bathroom = {
+    presence: false, lightOn: false, intensity: 60, colorTemp: 50, auto: true, manual: false,
+    mode: 'white', hue: 0, saturation: 1000,
+  });
   const manual = !!s.manual;
+  const isColour = s.mode === 'colour';
+  const wheelOpen = !!app._wheelOpen.bathroom;
+  const colorPreview = `hsl(${s.hue}, 100%, 50%)`;
+  const r     = (s.saturation / 1000) * WHEEL_RADIUS;
+  const angle = (s.hue * Math.PI) / 180;
+  const cx    = Math.sin(angle) * r;
+  const cy    = -Math.cos(angle) * r;
   return `<div class="device-card full-width ${s.lightOn ? 'on' : ''}" id="feature-bathroom">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🚿</span><span class="card-label">${t('bathTitle')}</span></div>
@@ -2598,10 +2617,20 @@ function buildBathroomCard() {
       <span class="slider-val">${s.intensity}%</span>
     </div>
     <div class="ct-row">
-      <button class="ct-btn ${s.colorTemp < 33 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="5">${t('warm')}</button>
-      <button class="ct-btn ${s.colorTemp >= 33 && s.colorTemp < 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="50">${t('neutral')}</button>
-      <button class="ct-btn ${s.colorTemp >= 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="95">${t('cold')}</button>
-    </div>` : ''}
+      <button class="ct-btn ${!isColour && s.colorTemp < 33 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="5">${t('warm')}</button>
+      <button class="ct-btn ${!isColour && s.colorTemp >= 33 && s.colorTemp < 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="50">${t('neutral')}</button>
+      <button class="ct-btn ${!isColour && s.colorTemp >= 66 ? 'active' : ''}" data-feature="bathroom" data-action="ct" data-ct="95">${t('cold')}</button>
+      <button class="ct-btn color-toggle-btn ${wheelOpen ? 'open' : ''}" data-feature="bathroom" data-action="toggle-wheel"
+        style="${isColour ? `border-color:${colorPreview};color:${colorPreview}` : ''}">
+        <span class="color-dot" style="background:${colorPreview}"></span> ${t('color')}
+      </button>
+    </div>
+    ${wheelOpen ? `
+    <div class="color-wheel-wrap">
+      <div class="color-wheel" data-feature="bathroom" data-action="pick-color">
+        <div class="color-wheel-cursor" style="transform: translate(${cx}px, ${cy}px); background:${colorPreview}"></div>
+      </div>
+    </div>` : ''}` : ''}
     <div class="manual-row">
       <span>${t('manualMode')}</span>
       <div class="toggle toggle-sm ${manual ? 'on' : ''}" data-feature="bathroom" data-action="manual"></div>
@@ -2612,25 +2641,18 @@ function buildBathroomCard() {
 }
 
 // ── BAÑO JAPONÉS (bidé inteligente) ──────────────────────────────────────────
+// Solo expone el asiento calefaccionado; el resto se opera desde el panel físico.
 function buildBidetCard() {
-  const s = app._placeholder.bidet ?? (app._placeholder.bidet = { on: false, heatedSeat: false, mode: null });
+  const s = app._placeholder.bidet ?? (app._placeholder.bidet = { on: false });
   return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-bidet">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🚽</span><span class="card-label">${t('bidetTitle')}</span></div>
     </div>
     <div class="card-status-row">
-      <span class="card-status ${s.on ? 'on' : ''}">${s.on ? t('onM') : t('offM')}</span>
+      <span class="card-status ${s.on ? 'on' : ''}">${s.on ? t('heatedSeatOn') : t('heatedSeatOff')}</span>
       <div class="toggle ${s.on ? 'on' : ''}" data-feature="bidet" data-action="toggle"></div>
     </div>
-    ${s.on ? `
-    <div class="feature-row">
-      <span class="feature-row-label">${t('heatedSeat')}</span>
-      <div class="toggle ${s.heatedSeat ? 'on' : ''}" data-feature="bidet" data-action="heated"></div>
-    </div>
-    <div class="source-row">
-      <button class="source-btn ${s.mode === 'wash' ? 'active' : ''}" data-feature="bidet" data-action="mode" data-mode="wash">${t('wash')}</button>
-      <button class="source-btn ${s.mode === 'dry'  ? 'active' : ''}" data-feature="bidet" data-action="mode" data-mode="dry">${t('dry')}</button>
-    </div>` : ''}
+    <p class="form-note" style="margin:0 0 10px">${t('bidetPanelNote')}</p>
     ${featureIconsRow('bidet')}
   </div>`;
 }
@@ -2767,6 +2789,40 @@ function handlePlanGridClick(e) {
   const bathroomCt = e.target.closest('[data-feature="bathroom"][data-action="ct"]');
   if (bathroomCt) {
     app._placeholder.bathroom.colorTemp = parseInt(bathroomCt.dataset.ct);
+    app._placeholder.bathroom.mode = 'white';
+    app._wheelOpen.bathroom = false; // cerrar la rueda de color al elegir temperatura
+    rerenderFeature('bathroom');
+    showPreviewToast();
+    return;
+  }
+
+  // Mismo selector de color que las luces RGB reales, pero sobre el placeholder.
+  const bathroomWheelBtn = e.target.closest('[data-feature="bathroom"][data-action="toggle-wheel"]');
+  if (bathroomWheelBtn) {
+    const s = app._placeholder.bathroom;
+    const wasOpen = !!app._wheelOpen.bathroom;
+    app._wheelOpen.bathroom = !wasOpen;
+    if (!wasOpen && s.mode !== 'colour') {
+      s.mode = 'colour';
+      s.lightOn = true;
+    }
+    rerenderFeature('bathroom');
+    showPreviewToast();
+    return;
+  }
+
+  const bathroomWheel = e.target.closest('[data-feature="bathroom"][data-action="pick-color"]');
+  if (bathroomWheel) {
+    const rect = bathroomWheel.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top + rect.height / 2);
+    let hue = Math.atan2(dx, -dy) * (180 / Math.PI);
+    if (hue < 0) hue += 360;
+    const s = app._placeholder.bathroom;
+    s.hue = Math.round(hue);
+    s.saturation = 1000;
+    s.mode = 'colour';
+    s.lightOn = true;
     rerenderFeature('bathroom');
     showPreviewToast();
     return;
@@ -2784,23 +2840,6 @@ function handlePlanGridClick(e) {
   if (src) {
     app._placeholder.tv.source = src.dataset.source;
     rerenderFeature('tv');
-    showPreviewToast();
-    return;
-  }
-
-  const heated = e.target.closest('[data-action="heated"]');
-  if (heated) {
-    app._placeholder.bidet.heatedSeat = !app._placeholder.bidet.heatedSeat;
-    rerenderFeature('bidet');
-    showPreviewToast();
-    return;
-  }
-
-  const mode = e.target.closest('[data-action="mode"]');
-  if (mode) {
-    const s = app._placeholder.bidet;
-    s.mode = s.mode === mode.dataset.mode ? null : mode.dataset.mode;
-    rerenderFeature('bidet');
     showPreviewToast();
     return;
   }
