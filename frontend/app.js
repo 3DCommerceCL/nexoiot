@@ -112,6 +112,12 @@ const I18N = {
     requestMaintenance: '🔧 Reportar un problema',
     requestOther: '💬 Otra solicitud',
     requestNotePrompt: 'Describe brevemente tu solicitud:',
+    reportAppProblemBtn: '⚠️ Reportar un problema',
+    reportAppProblemTitle: 'Reportar un problema',
+    reportAppProblemDesc: 'Cuéntanos qué está fallando — le llega tanto al hotel como al equipo que mantiene esta app.',
+    reportAppProblemPlaceholder: 'Describe el problema…',
+    reportAppProblemSend: 'Enviar',
+    reportAppProblemCancel: 'Cancelar',
     sectionDirectorio: 'Qué ofrece el hotel',
     directorioEmpty: 'Sin servicios publicados todavía.',
     noDevicesMsg: 'Esta habitación no tiene dispositivos inteligentes. Usa Servicios para pedir lo que necesites a recepción.',
@@ -329,6 +335,12 @@ const I18N = {
     requestMaintenance: '🔧 Report an issue',
     requestOther: '💬 Other request',
     requestNotePrompt: 'Briefly describe your request:',
+    reportAppProblemBtn: '⚠️ Report a problem',
+    reportAppProblemTitle: 'Report a problem',
+    reportAppProblemDesc: "Tell us what's wrong — it reaches both the hotel and the team that maintains this app.",
+    reportAppProblemPlaceholder: 'Describe the problem…',
+    reportAppProblemSend: 'Send',
+    reportAppProblemCancel: 'Cancel',
     sectionDirectorio: 'What the hotel offers',
     directorioEmpty: 'No services published yet.',
     noDevicesMsg: 'This room has no smart devices. Use Services to ask the front desk for anything you need.',
@@ -551,6 +563,12 @@ const I18N = {
     requestMaintenance: '🔧 Relatar um problema',
     requestOther: '💬 Outra solicitação',
     requestNotePrompt: 'Descreva brevemente sua solicitação:',
+    reportAppProblemBtn: '⚠️ Reportar um problema',
+    reportAppProblemTitle: 'Reportar um problema',
+    reportAppProblemDesc: 'Conte-nos o que está errado — chega tanto ao hotel quanto à equipe que mantém este app.',
+    reportAppProblemPlaceholder: 'Descreva o problema…',
+    reportAppProblemSend: 'Enviar',
+    reportAppProblemCancel: 'Cancelar',
     sectionDirectorio: 'O que o hotel oferece',
     directorioEmpty: 'Nenhum serviço publicado ainda.',
     noDevicesMsg: 'Este quarto não possui dispositivos inteligentes. Use Serviços para pedir o que precisar à recepção.',
@@ -1375,6 +1393,23 @@ function sendServiceRequestWithNote(type) {
   sendServiceRequest(type, note);
 }
 
+// ── REPORTAR PROBLEMA GENERAL (app/PMS) — llega al hotel Y al admin de la app ──
+function openAppProblemModal() {
+  document.getElementById('app-problem-text').value = '';
+  document.getElementById('app-problem-modal-overlay').classList.remove('hidden');
+}
+
+function closeAppProblemModal() {
+  document.getElementById('app-problem-modal-overlay').classList.add('hidden');
+}
+
+async function submitAppProblem() {
+  const note = document.getElementById('app-problem-text').value.trim();
+  if (!note) return;
+  await sendServiceRequest('app_problem', note);
+  closeAppProblemModal();
+}
+
 // ── REPORTAR PROBLEMA DE DISPOSITIVO ─────────────────────────────────────────
 // Asistente de 3 pasos (intro → opciones → "otra") que termina enviando una
 // solicitud tipo 'maintenance' con el dispositivo y el motivo en la nota —
@@ -1927,6 +1962,10 @@ function initNav() {
   document.getElementById('request-late-checkout-btn')?.addEventListener('click', () => sendServiceRequest('late_checkout'));
   document.getElementById('request-maintenance-btn')?.addEventListener('click', () => sendServiceRequestWithNote('maintenance'));
   document.getElementById('request-other-btn')?.addEventListener('click', () => sendServiceRequestWithNote('other'));
+
+  document.getElementById('report-app-problem-btn')?.addEventListener('click', openAppProblemModal);
+  document.getElementById('app-problem-cancel')?.addEventListener('click', closeAppProblemModal);
+  document.getElementById('app-problem-send')?.addEventListener('click', submitAppProblem);
 
   // Onboarding: al cerrar el mensaje de bienvenida, ofrecer el tutorial guiado
   document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {

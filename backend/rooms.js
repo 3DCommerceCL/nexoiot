@@ -389,7 +389,9 @@ function getActiveTokenForRoom(roomId) {
 // ── SOLICITUDES DE SERVICIO ───────────────────────────────────────────────────
 // towels/roomservice: amenities. cleaning: aseo. late_checkout: salida tardía.
 // maintenance/other: requieren note describiendo el problema o pedido.
-const REQUEST_TYPES = ['towels', 'roomservice', 'cleaning', 'late_checkout', 'maintenance', 'other'];
+// app_problem: problema con la app/PMS en sí (no con la habitación) — además de
+// quedar como solicitud normal, server.js le manda un correo aparte al admin.
+const REQUEST_TYPES = ['towels', 'roomservice', 'cleaning', 'late_checkout', 'maintenance', 'other', 'app_problem'];
 
 function createRequest(token, type, note = '') {
   if (!REQUEST_TYPES.includes(type)) return null;

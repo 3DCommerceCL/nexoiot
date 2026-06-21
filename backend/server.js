@@ -704,8 +704,30 @@ app.post('/api/room/:token/request', (req, res) => {
     }
     return res.status(400).json({ error: 'Tipo de solicitud no válido' });
   }
+  if (type === 'app_problem') notificarProblemaApp(request);
   res.json({ success: true, request });
 });
+
+// Problema con la app/PMS en sí — además de quedar como solicitud normal (la ve
+// el hotel en Mensajes, sin cambios), se le avisa por correo al admin de la
+// plataforma. Sin ADMIN_NOTIFY_EMAIL configurado, no se envía nada (no hay a
+// quién, no hay dirección hardcodeada en el código).
+function notificarProblemaApp(request) {
+  if (!process.env.ADMIN_NOTIFY_EMAIL) return;
+  email.sendEmail({
+    to: process.env.ADMIN_NOTIFY_EMAIL,
+    subject: `[Nexo IoT] Problema reportado — ${request.roomName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto">
+        <h2 style="color:#009D71">Problema reportado por un huésped</h2>
+        <p><strong>Hotel:</strong> ${request.hotelId || '—'}</p>
+        <p><strong>Habitación:</strong> ${request.roomName}</p>
+        <p><strong>Huésped:</strong> ${request.guestName || '—'}</p>
+        <p><strong>Descripción:</strong></p>
+        <p>${request.note}</p>
+      </div>`,
+  }).catch(err => console.error('[app_problem] No se pudo notificar al admin:', err.message));
+}
 
 // ── API: POST /api/room/:token/command ────────────────────────────────────────
 app.post('/api/room/:token/command', async (req, res) => {

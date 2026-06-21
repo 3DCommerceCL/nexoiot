@@ -82,6 +82,7 @@ const DT = {
     requestLateCheckout: 'Late checkout',
     requestMaintenance: 'Reporte de problema',
     requestOther: 'Otra solicitud',
+    requestAppProblem: 'Problema con la app/PMS',
     requestSub: 'Hab {room} · {guest} · {time}',
     requestResolveBtn: 'Resuelto ✓',
     requestResolved: 'Solicitud marcada como resuelta',
@@ -206,6 +207,7 @@ const DT = {
     requestLateCheckout: 'Late checkout',
     requestMaintenance: 'Issue report',
     requestOther: 'Other request',
+    requestAppProblem: 'App/PMS problem',
     requestSub: 'Room {room} · {guest} · {time}',
     requestResolveBtn: 'Resolved ✓',
     requestResolved: 'Request marked as resolved',
@@ -330,6 +332,7 @@ const DT = {
     requestLateCheckout: 'Late checkout',
     requestMaintenance: 'Relato de problema',
     requestOther: 'Outra solicitação',
+    requestAppProblem: 'Problema com o app/PMS',
     requestSub: 'Quarto {room} · {guest} · {time}',
     requestResolveBtn: 'Resolvido ✓',
     requestResolved: 'Solicitação marcada como resolvida',
@@ -588,10 +591,11 @@ async function loadRequests() {
   renderRequests();
 }
 
-const REQUEST_ICONS = { towels: '🧺', roomservice: '🍽', cleaning: '🧹', late_checkout: '🕐', maintenance: '🔧', other: '💬' };
+const REQUEST_ICONS = { towels: '🧺', roomservice: '🍽', cleaning: '🧹', late_checkout: '🕐', maintenance: '🔧', other: '💬', app_problem: '⚠️' };
 const REQUEST_TITLE_KEY = {
   towels: 'requestTowels', roomservice: 'requestRoomService', cleaning: 'requestCleaning',
   late_checkout: 'requestLateCheckout', maintenance: 'requestMaintenance', other: 'requestOther',
+  app_problem: 'requestAppProblem',
 };
 
 function timeAgo(iso) {
