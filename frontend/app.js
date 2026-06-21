@@ -178,12 +178,21 @@ const I18N = {
     sceneSaveBtn: 'Guardar',
     sceneCancelBtn: 'Cancelar',
     sceneEditTitle: 'Guardar estado actual',
-    sceneEditConfirm: '¿Guardar la configuración actual de tu habitación en la escena "{name}"? Se reemplazará la anterior.',
     sceneDeleteTitle: 'Eliminar escena',
     sceneDeleteConfirm: '¿Eliminar la escena "{name}"?',
     sceneResetTitle: 'Restaurar escena original',
     sceneResetConfirm: '¿Restaurar la escena "{name}" a su configuración original?',
     scenesHint: 'Toca una escena para activarla. Usa ✏️ para guardar la configuración actual de tu habitación en esa escena, o ➕ para crear una nueva.',
+    scenesConfigLabel: 'Ajusta los controles',
+    scenesConfigHintCreate: 'Enciende, apaga o ajusta lo que quieras guardar en la escena nueva. Cuando esté como quieres, toca "Guardar".',
+    scenesConfigHintEdit: 'Ajusta los controles como quieras que queden en "{name}" y luego guarda los cambios.',
+    scenesConfigSaveCreate: 'Guardar esta configuración',
+    scenesConfigSaveEdit: 'Guardar cambios en "{name}"',
+    scenesConfigCancel: 'Cancelar',
+    sceneHelpTitle: '¿Cómo funcionan las escenas?',
+    sceneHelpText: 'Una escena aplica varios ajustes a la vez con un solo toque (por ejemplo, apagar todas las luces y cerrar la cortina para dormir). Tócala para activarla. Usa ✏️ para ajustar lo que guarda, 🕐 para programarla a una hora, o ➕ para crear una nueva.',
+    reportSceneProblemPrompt: 'Describe el problema con la escena "{name}":',
+    reportSceneProblemNote: 'Problema con la escena "{name}": {note}',
     toastSceneSaved: 'Escena guardada',
     toastSceneSaveFail: 'No se pudo guardar la escena',
     toastSceneDeleted: 'Escena eliminada',
@@ -401,12 +410,21 @@ const I18N = {
     sceneSaveBtn: 'Save',
     sceneCancelBtn: 'Cancel',
     sceneEditTitle: 'Save current state',
-    sceneEditConfirm: 'Save your room\'s current configuration to the scene "{name}"? This will replace the previous one.',
     sceneDeleteTitle: 'Delete scene',
     sceneDeleteConfirm: 'Delete the scene "{name}"?',
     sceneResetTitle: 'Reset scene to default',
     sceneResetConfirm: 'Reset the scene "{name}" to its original configuration?',
     scenesHint: 'Tap a scene to activate it. Use ✏️ to save your room\'s current configuration to that scene, or ➕ to create a new one.',
+    scenesConfigLabel: 'Adjust the controls',
+    scenesConfigHintCreate: 'Turn on, off, or adjust whatever you want saved in the new scene. When it looks right, tap "Save".',
+    scenesConfigHintEdit: 'Adjust the controls the way you want them in "{name}", then save the changes.',
+    scenesConfigSaveCreate: 'Save this configuration',
+    scenesConfigSaveEdit: 'Save changes to "{name}"',
+    scenesConfigCancel: 'Cancel',
+    sceneHelpTitle: 'How do scenes work?',
+    sceneHelpText: 'A scene applies several settings at once with a single tap (for example, turning off all lights and closing the curtain to sleep). Tap it to activate it. Use ✏️ to adjust what it saves, 🕐 to schedule it, or ➕ to create a new one.',
+    reportSceneProblemPrompt: 'Describe the problem with the "{name}" scene:',
+    reportSceneProblemNote: 'Problem with scene "{name}": {note}',
     toastSceneSaved: 'Scene saved',
     toastSceneSaveFail: 'Could not save the scene',
     toastSceneDeleted: 'Scene deleted',
@@ -629,12 +647,21 @@ const I18N = {
     sceneSaveBtn: 'Salvar',
     sceneCancelBtn: 'Cancelar',
     sceneEditTitle: 'Salvar estado atual',
-    sceneEditConfirm: 'Salvar a configuração atual do seu quarto na cena "{name}"? Isso substituirá a anterior.',
     sceneDeleteTitle: 'Excluir cena',
     sceneDeleteConfirm: 'Excluir a cena "{name}"?',
     sceneResetTitle: 'Restaurar cena original',
     sceneResetConfirm: 'Restaurar a cena "{name}" para sua configuração original?',
     scenesHint: 'Toque em uma cena para ativá-la. Use ✏️ para salvar a configuração atual do seu quarto nessa cena, ou ➕ para criar uma nova.',
+    scenesConfigLabel: 'Ajuste os controles',
+    scenesConfigHintCreate: 'Ligue, desligue ou ajuste o que quiser salvar na cena nova. Quando estiver como quiser, toque em "Salvar".',
+    scenesConfigHintEdit: 'Ajuste os controles como quiser que fiquem em "{name}" e depois salve as alterações.',
+    scenesConfigSaveCreate: 'Salvar esta configuração',
+    scenesConfigSaveEdit: 'Salvar alterações em "{name}"',
+    scenesConfigCancel: 'Cancelar',
+    sceneHelpTitle: 'Como funcionam as cenas?',
+    sceneHelpText: 'Uma cena aplica vários ajustes de uma vez com um único toque (por exemplo, desligar todas as luzes e fechar a cortina para dormir). Toque para ativá-la. Use ✏️ para ajustar o que ela salva, 🕐 para agendá-la, ou ➕ para criar uma nova.',
+    reportSceneProblemPrompt: 'Descreva o problema com a cena "{name}":',
+    reportSceneProblemNote: 'Problema com a cena "{name}": {note}',
     toastSceneSaved: 'Cena salva',
     toastSceneSaveFail: 'Não foi possível salvar a cena',
     toastSceneDeleted: 'Cena excluída',
@@ -1081,9 +1108,19 @@ function renderApp(data) {
   // Delegación de eventos para la vista de Escenas
   document.getElementById('scenes-grid').addEventListener('click', handleSceneGridClick);
   document.getElementById('scenes-grid').addEventListener('keydown', handleSceneGridKeydown);
-  document.getElementById('scene-new-btn').addEventListener('click', openSceneModal);
+  document.getElementById('scene-new-btn').addEventListener('click', () => expandScenesConfig('create'));
   document.getElementById('scene-modal-cancel').addEventListener('click', closeSceneModal);
   document.getElementById('scene-modal-save').addEventListener('click', saveNewScene);
+  document.getElementById('scenes-config-save-btn').addEventListener('click', saveScenesConfig);
+  document.getElementById('scenes-config-cancel-btn').addEventListener('click', collapseScenesConfig);
+
+  const scenesDeviceGrid = document.getElementById('scenes-device-grid');
+  scenesDeviceGrid.addEventListener('click',  handleGridClick);
+  scenesDeviceGrid.addEventListener('input',  handleGridInput);
+  scenesDeviceGrid.addEventListener('change', handleGridInput);
+  scenesDeviceGrid.addEventListener('click',  handlePlanGridClick);
+  scenesDeviceGrid.addEventListener('input',  handlePlanGridInput);
+  scenesDeviceGrid.addEventListener('change', handlePlanGridInput);
 
   // Delegación de eventos para los controles del grid
   const grid = document.getElementById('device-grid');
@@ -1818,6 +1855,14 @@ function switchView(view) {
   document.getElementById(`view-${view}`)?.classList.remove('hidden');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelector(`.nav-item[data-view="${view}"]`)?.classList.add('active');
+
+  if (view === 'scenes') {
+    const key = `nexo_scenes_onboarded_${app.token || 'static'}`;
+    if (!localStorage.getItem(key)) {
+      localStorage.setItem(key, '1');
+      openSceneHelpModal();
+    }
+  }
 }
 
 // ── TUTORIAL GUIADO (encender una luz / mover la cortina) ────────────────────
@@ -2197,11 +2242,13 @@ function updateCard(key) {
       const el = document.getElementById(`card-${key}-${i}`);
       if (el) el.outerHTML = buildSwitchChannelCard(key, i, label);
     });
+    if (scenesConfigMode) renderScenesConfigGrid();
     return;
   }
   const el = document.getElementById(`card-${key}`);
   if (el) el.outerHTML = buildCard(key);
   if (enlargedKey === key) document.getElementById('enlarge-modal-body').innerHTML = buildCard(key);
+  if (scenesConfigMode) renderScenesConfigGrid();
 }
 
 function buildCard(key) {
@@ -2944,12 +2991,15 @@ function handleGridInput(e) {
 function renderScenes() {
   const grid = document.getElementById('scenes-grid');
   grid.innerHTML = getSceneList().map(scene => {
+    const titleEsc = scene.title.replace(/'/g, "\\'");
     const scheduleAction = `<button class="scene-action-btn" onclick="event.stopPropagation();scheduleScene('${scene.id}')" title="${t('scheduleBtn')}" aria-label="${t('scheduleBtn')}">🕐</button>`;
+    const helpAction = `<button class="scene-action-btn" onclick="event.stopPropagation();openSceneHelpModal()" title="${t('helpBtn')}" aria-label="${t('helpBtn')}">❓</button>`;
+    const reportAction = `<button class="scene-action-btn" onclick="event.stopPropagation();reportSceneProblem('${titleEsc}')" title="${t('reportProblemBtn')}" aria-label="${t('reportProblemBtn')}">⚠️</button>`;
     const actions = (scene.isCustom
       ? `<button class="scene-action-btn" data-scene-action="edit"   data-scene="${scene.id}" title="${t('sceneEditTitle')}"   aria-label="${t('sceneEditTitle')}">✏️</button>
          <button class="scene-action-btn" data-scene-action="delete" data-scene="${scene.id}" title="${t('sceneDeleteTitle')}" aria-label="${t('sceneDeleteTitle')}">🗑️</button>`
       : `<button class="scene-action-btn" data-scene-action="edit" data-scene="${scene.id}" title="${t('sceneEditTitle')}" aria-label="${t('sceneEditTitle')}">✏️</button>
-         ${scene.hasOverride ? `<button class="scene-action-btn" data-scene-action="reset" data-scene="${scene.id}" title="${t('sceneResetTitle')}" aria-label="${t('sceneResetTitle')}">↺</button>` : ''}`) + scheduleAction;
+         ${scene.hasOverride ? `<button class="scene-action-btn" data-scene-action="reset" data-scene="${scene.id}" title="${t('sceneResetTitle')}" aria-label="${t('sceneResetTitle')}">↺</button>` : ''}`) + scheduleAction + helpAction + reportAction;
 
     // div, no button: el botón externo no puede contener los botones internos
     // de editar/eliminar (✏️/🗑️/↺) — un <button> dentro de otro <button> es
@@ -2964,13 +3014,25 @@ function renderScenes() {
   }).join('');
 }
 
+window.openSceneHelpModal = function() {
+  document.getElementById('help-modal-title').textContent = t('sceneHelpTitle');
+  document.getElementById('help-modal-body').textContent = t('sceneHelpText');
+  document.getElementById('help-modal-overlay').classList.remove('hidden');
+};
+
+window.reportSceneProblem = function(sceneTitle) {
+  const note = (window.prompt(t('reportSceneProblemPrompt', { name: sceneTitle })) || '').trim();
+  if (!note) return;
+  sendServiceRequest('maintenance', t('reportSceneProblemNote', { name: sceneTitle, note }));
+};
+
 function handleSceneGridClick(e) {
   const actionBtn = e.target.closest('[data-scene-action]');
   if (actionBtn) {
     e.stopPropagation();
     const id = actionBtn.dataset.scene;
     const action = actionBtn.dataset.sceneAction;
-    if (action === 'edit')   return confirmSaveSceneOverride(id);
+    if (action === 'edit')   return expandScenesConfig(id);
     if (action === 'delete') return confirmDeleteScene(id);
     if (action === 'reset')  return confirmDeleteScene(id);
     return;
@@ -3034,15 +3096,57 @@ async function apiDeleteScene(id) {
   return res.json();
 }
 
-// Sobrescribe una escena existente (default o personalizada) con el estado actual de la habitación
-async function confirmSaveSceneOverride(id) {
+// ── CONTROLES EMBEBIDOS EN ESCENAS (ajustar y guardar sin cambiar de pestaña) ──
+// null cuando está colapsado; 'create' al crear una escena nueva; el id de la
+// escena cuando se está editando una existente.
+let scenesConfigMode = null;
+
+function scenesConfigDeviceKeys() {
+  return [
+    ...CARD_ORDER.filter(k => app.config[k]),
+    ...Object.keys(app.config).filter(k => !CARD_ORDER.includes(k) && k !== 'puerta'),
+  ];
+}
+
+function renderScenesConfigGrid() {
+  document.getElementById('scenes-device-grid').innerHTML = scenesConfigDeviceKeys().map(buildCard).join('');
+}
+
+function expandScenesConfig(mode) {
+  scenesConfigMode = mode;
+  const isEdit = mode !== 'create';
+  const scene = isEdit ? getSceneList().find(s => s.id === mode) : null;
+  document.getElementById('scenes-config-label').textContent = t('scenesConfigLabel');
+  document.getElementById('scenes-config-hint').textContent = isEdit
+    ? t('scenesConfigHintEdit', { name: scene?.title || '' })
+    : t('scenesConfigHintCreate');
+  document.getElementById('scenes-config-save-btn').textContent = isEdit
+    ? t('scenesConfigSaveEdit', { name: scene?.title || '' })
+    : t('scenesConfigSaveCreate');
+  renderScenesConfigGrid();
+  const section = document.getElementById('scenes-config-section');
+  section.classList.remove('hidden');
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function collapseScenesConfig() {
+  scenesConfigMode = null;
+  document.getElementById('scenes-config-section').classList.add('hidden');
+}
+
+// Botón "Guardar" dentro de la sección expandida — crea (abre el modal de
+// nombre/ícono de siempre) o sobrescribe una escena existente directamente.
+async function saveScenesConfig() {
+  if (scenesConfigMode === 'create') {
+    openSceneModal();
+    return;
+  }
+  const id = scenesConfigMode;
   const scene = getSceneList().find(s => s.id === id);
   if (!scene) return;
-  if (!confirm(t('sceneEditConfirm', { name: scene.title }))) return;
-
   const steps = captureSceneSteps();
   try {
-    const res = await apiSaveScene({ id, name: scene.title, icon: scene.icon, steps });
+    await apiSaveScene({ id, name: scene.title, icon: scene.icon, steps });
     if (!app.scenes[id]) app.scenes[id] = {};
     app.scenes[id].steps = steps;
     if (scene.isCustom) {
@@ -3050,6 +3154,7 @@ async function confirmSaveSceneOverride(id) {
       app.scenes[id].icon = scene.icon;
     }
     renderScenes();
+    collapseScenesConfig();
     showToast(t('toastSceneSaved'), 'success');
   } catch {
     showToast(t('toastSceneSaveFail'), 'error');
@@ -3119,6 +3224,7 @@ async function saveNewScene() {
     app.scenes[result.id] = { name, icon: sceneModalIcon, steps };
     renderScenes();
     closeSceneModal();
+    collapseScenesConfig();
     showToast(t('toastSceneSaved'), 'success');
   } catch {
     showToast(t('toastSceneSaveFail'), 'error');
