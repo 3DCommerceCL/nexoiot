@@ -402,6 +402,14 @@ body {
 .card-ico svg   { display: block; }
 .card-label     { font-size: 13px; font-weight: 600; color: #fff; min-width: 0; }
 .card-status    { font-size: 11px; color: rgba(255,255,255,.75); margin-bottom: 10px; }
+/* Segunda línea de la tarjeta: estado a la izquierda + interruptor a la derecha,
+   separada del título — así el interruptor queda siempre en el mismo lugar sin
+   importar cuántas líneas ocupe la etiqueta encima (ver card-head). */
+.card-status-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 10px;
+}
+.card-status-row .card-status { margin-bottom: 0; }
 .card-status.on { color: #fff; }
 .offline-label  { font-size: 11px; color: rgba(255,255,255,.65); margin-top: 6px; }
 

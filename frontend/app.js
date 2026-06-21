@@ -2201,15 +2201,12 @@ function buildLightCard(key) {
 
   return `<div class="device-card ${on && !manual ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
-      <div class="card-ico-name">
-        <span class="card-ico">${deviceIcon(key, '💡')}</span>
-        <span class="card-label">${devLabel(key, cfg)}</span>
-      </div>
-      <div class="card-head-actions">
-        <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
-      </div>
+      <div class="card-ico-name"><span class="card-ico">${deviceIcon(key, '💡')}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
     </div>
-    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onF') : t('offF'))}</div>
+    <div class="card-status-row">
+      <span class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onF') : t('offF'))}</span>
+      <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
+    </div>
     ${on && !manual ? `
       <div class="slider-lbl">${t('intensity')}</div>
       <div class="slider-row">
@@ -2253,15 +2250,12 @@ function buildLEDCard(key) {
 
   return `<div class="device-card ${on && !manual ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
-      <div class="card-ico-name">
-        <span class="card-ico">${deviceIcon(key, '💡')}</span>
-        <span class="card-label">${devLabel(key, cfg)}</span>
-      </div>
-      <div class="card-head-actions">
-        <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
-      </div>
+      <div class="card-ico-name"><span class="card-ico">${deviceIcon(key, '💡')}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
     </div>
-    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onM') : t('offM'))}</div>
+    <div class="card-status-row">
+      <span class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onM') : t('offM'))}</span>
+      <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
+    </div>
     ${on && !manual ? `
       <div class="slider-lbl">${t('intensity')}</div>
       <div class="slider-row">
@@ -2331,11 +2325,11 @@ function buildSwitchCard(key) {
   return `<div class="device-card ${on && !manual ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">${on ? '🔌' : '⬜'}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
-      <div class="card-head-actions">
-        <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-switch"></div>
-      </div>
     </div>
-    <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onM') : t('offM'))}</div>
+    <div class="card-status-row">
+      <span class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onM') : t('offM'))}</span>
+      <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-switch"></div>
+    </div>
     ${manualRow(key)}
     ${cardIconsRow(key, scheduleBtn(key))}
   </div>`;
@@ -2359,12 +2353,12 @@ function buildSwitchChannelCard(key, i, label) {
   const on = !manual && vals[i];
   return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}-${i}">
     <div class="card-head">
-      <div class="card-ico-name"><span class="card-label">${label}</span></div>
-      <div class="card-head-actions">
-        <div class="toggle ${vals[i] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch${i + 1}"></div>
-      </div>
+      <span class="card-label">${label}</span>
     </div>
-    <div class="card-status ${on ? 'on' : ''}">${manual ? t('manualMode') : (vals[i] ? t('onM') : t('offM'))}</div>
+    <div class="card-status-row">
+      <span class="card-status ${on ? 'on' : ''}">${manual ? t('manualMode') : (vals[i] ? t('onM') : t('offM'))}</span>
+      <div class="toggle ${vals[i] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch${i + 1}"></div>
+    </div>
     ${manualRow(key)}
     ${cardIconsRow(key, `<button type="button" class="report-btn" onclick="event.stopPropagation();scheduleChannel('${key}', ${i})" aria-label="${t('scheduleBtn')}">🕐</button>`)}
   </div>`;
@@ -2380,9 +2374,10 @@ function buildACCard(key) {
   return `<div class="device-card ${on ? 'on' : ''}" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">${devLabel(key, cfg)}</span></div>
-      <div class="card-head-actions">
-        <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-ac"></div>
-      </div>
+    </div>
+    <div class="card-status-row">
+      <span class="card-status ${on ? 'on' : ''}">${on ? t('onM') : t('offM')}</span>
+      <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-ac"></div>
     </div>
     <div class="ac-temp-display">
       <div class="ac-temp-val ${on ? 'on' : ''}">${temp}°C</div>
@@ -2430,9 +2425,11 @@ function buildTVCard() {
   return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-tv">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">📺</span><span class="card-label">TV</span></div>
+    </div>
+    <div class="card-status-row">
+      <span class="card-status ${s.on ? 'on' : ''}">${s.on ? t('onF') : t('offF')}</span>
       <div class="toggle ${s.on ? 'on' : ''}" data-feature="tv" data-action="toggle"></div>
     </div>
-    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? t('onF') : t('offF')}</div>
     ${s.on ? `
       <div class="slider-lbl">${t('volume')}</div>
       <div class="slider-row">
@@ -2452,6 +2449,9 @@ function buildBathroomCard() {
   return `<div class="device-card full-width ${s.lightOn ? 'on' : ''}" id="feature-bathroom">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🚿</span><span class="card-label">${t('bathTitle')}</span></div>
+    </div>
+    <div class="card-status-row">
+      <span class="card-status ${s.lightOn ? 'on' : ''}">${manual ? t('manualMode') : (s.lightOn ? t('lightOn') : t('lightOff'))}${s.auto && !manual ? t('bathAutoNote') : ''}</span>
       <div class="toggle ${s.lightOn ? 'on' : ''} ${manual ? 'disabled' : ''}" data-feature="bathroom" data-action="toggle"></div>
     </div>
     <div class="feature-row" data-action="presence" style="cursor:pointer">
@@ -2462,7 +2462,6 @@ function buildBathroomCard() {
       <span class="feature-row-label">${t('bathAuto')}</span>
       <div class="toggle ${s.auto ? 'on' : ''} ${manual ? 'disabled' : ''}" data-feature="bathroom" data-action="auto"></div>
     </div>
-    <div class="card-status ${s.lightOn ? 'on' : ''}" style="margin-top:8px">${manual ? t('manualMode') : (s.lightOn ? t('lightOn') : t('lightOff'))}${s.auto && !manual ? t('bathAutoNote') : ''}</div>
     ${s.lightOn && !manual ? `
     <div class="slider-lbl">${t('intensity')}</div>
     <div class="slider-row">
@@ -2488,9 +2487,11 @@ function buildBidetCard() {
   return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-bidet">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🚽</span><span class="card-label">${t('bidetTitle')}</span></div>
+    </div>
+    <div class="card-status-row">
+      <span class="card-status ${s.on ? 'on' : ''}">${s.on ? t('onM') : t('offM')}</span>
       <div class="toggle ${s.on ? 'on' : ''}" data-feature="bidet" data-action="toggle"></div>
     </div>
-    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? t('onM') : t('offM')}</div>
     ${s.on ? `
     <div class="feature-row">
       <span class="feature-row-label">${t('heatedSeat')}</span>
@@ -2510,9 +2511,11 @@ function buildRugCard() {
   return `<div class="device-card ${s.on ? 'on' : ''}" id="feature-rug">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🔥</span><span class="card-label">${t('rugTitle')}</span></div>
+    </div>
+    <div class="card-status-row">
+      <span class="card-status ${s.on ? 'on' : ''}">${s.on ? t('onF') : t('offF')}</span>
       <div class="toggle ${s.on ? 'on' : ''}" data-feature="rug" data-action="toggle"></div>
     </div>
-    <div class="card-status ${s.on ? 'on' : ''}">${s.on ? t('onF') : t('offF')}</div>
     ${s.on ? `
     <div class="level-row">
       ${levels.map(l => `<button class="level-btn ${s.level === l.id ? 'active' : ''}" data-feature="rug" data-action="level" data-level="${l.id}">${l.label}</button>`).join('')}
