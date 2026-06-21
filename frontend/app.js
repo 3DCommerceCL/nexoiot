@@ -1204,12 +1204,12 @@ function renderHomeServices() {
       <div class="card-status">${t('doorAlarmDesc')}</div>
     </div>
     <div class="support-card" style="padding:24px 32px;gap:10px">
-      <button class="support-btn" id="request-towels-btn-home" style="width:100%">🧺 ${t('requestTowels')}</button>
-      <button class="support-btn" id="request-roomservice-btn-home" style="width:100%">🍽 ${t('requestRoomService')}</button>
-      <button class="support-btn" id="request-cleaning-btn-home" style="width:100%">🧹 ${t('requestCleaning')}</button>
-      <button class="support-btn" id="request-late-checkout-btn-home" style="width:100%">🕐 ${t('requestLateCheckout')}</button>
-      <button class="support-btn" id="request-maintenance-btn-home" style="width:100%">🔧 ${t('requestMaintenance')}</button>
-      <button class="support-btn" id="request-other-btn-home" style="width:100%">💬 ${t('requestOther')}</button>
+      <button class="support-btn" id="request-towels-btn-home" style="width:100%">${t('requestTowels')}</button>
+      <button class="support-btn" id="request-roomservice-btn-home" style="width:100%">${t('requestRoomService')}</button>
+      <button class="support-btn" id="request-cleaning-btn-home" style="width:100%">${t('requestCleaning')}</button>
+      <button class="support-btn" id="request-late-checkout-btn-home" style="width:100%">${t('requestLateCheckout')}</button>
+      <button class="support-btn" id="request-maintenance-btn-home" style="width:100%">${t('requestMaintenance')}</button>
+      <button class="support-btn" id="request-other-btn-home" style="width:100%">${t('requestOther')}</button>
     </div>`;
 
   document.getElementById('dnd-toggle-home').addEventListener('click', toggleDnd);
