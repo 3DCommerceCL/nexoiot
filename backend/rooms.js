@@ -140,6 +140,19 @@ function setManualUnlock(roomId, deviceKey, allowed) {
   return true;
 }
 
+// Oculta/muestra un dispositivo en la app del huésped — el dueño lo usa para
+// dispositivos que prefiere seguir controlando solo desde el hotel. El
+// dashboard de staff sigue viendo y controlando el dispositivo igual,
+// independiente de este campo (se filtra solo del lado del huésped).
+function setDeviceHidden(roomId, deviceKey, hidden) {
+  const allRooms = getRooms();
+  const room = allRooms[roomId];
+  if (!room || !room.devices[deviceKey]) return false;
+  room.devices[deviceKey].hidden = !!hidden;
+  writeJSON(ROOMS_FILE, allRooms);
+  return true;
+}
+
 // ── REGISTRO DE ACTIVIDAD POR HABITACIÓN ──────────────────────────────────────
 // type: 'checkin' | 'qr_resent' | 'checkout' | 'prefs_changed' | 'service_request'
 //       | 'request_resolved' | 'scene_off'
@@ -474,4 +487,4 @@ function resolveRequest(id) {
   }
 })();
 
-module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity, listActivityByHotel, setManualUnlock, setDeviceChannelLabel, setRoomCategoria, saveScene, deleteScene };
+module.exports = { generateToken, validateToken, expireToken, getRoomByToken, listActiveTokens, getActiveTokenForRoom, getRooms, getHotels, updateTokenPrefs, createRequest, listRequests, resolveRequest, addActivity, listActivity, listActivityByHotel, setManualUnlock, setDeviceHidden, setDeviceChannelLabel, setRoomCategoria, saveScene, deleteScene };

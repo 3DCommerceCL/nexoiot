@@ -562,6 +562,7 @@ app.get('/api/room/:token', async (req, res) => {
       channels:     dev.channels || null,
       available:    online,
       manualUnlock: dev.manualUnlock === true,
+      hidden:       dev.hidden === true,
       state:        online ? statusToState(dev.type, raw.status) : null,
     };
   });
@@ -1009,6 +1010,19 @@ app.post('/api/admin/rooms/:roomId/devices/:deviceKey/manual-unlock', requireAut
   if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
   const { allowed } = req.body || {};
   const ok = rooms.setManualUnlock(req.params.roomId, req.params.deviceKey, allowed);
+  if (!ok) return res.status(404).json({ error: 'Habitación o dispositivo no encontrado' });
+  res.json({ success: true });
+});
+
+// ── ADMIN: POST /api/admin/rooms/:roomId/devices/:deviceKey/hidden ────────────
+// El huésped deja de ver este dispositivo en su app (el dashboard de staff lo
+// sigue mostrando igual — el filtrado es solo del lado del huésped).
+app.post('/api/admin/rooms/:roomId/devices/:deviceKey/hidden', requireAuth('owner'), (req, res) => {
+  const room = rooms.getRooms()[req.params.roomId];
+  if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
+  if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const { hidden } = req.body || {};
+  const ok = rooms.setDeviceHidden(req.params.roomId, req.params.deviceKey, hidden);
   if (!ok) return res.status(404).json({ error: 'Habitación o dispositivo no encontrado' });
   res.json({ success: true });
 });

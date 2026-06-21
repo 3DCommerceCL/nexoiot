@@ -157,6 +157,8 @@ const DT = {
     waMsg: '¡Hola {name}! Te damos la bienvenida a {hotel}. Aquí tienes el acceso al control inteligente de tu habitación: {url}',
     previewToast: 'Vista previa — función no conectada a un dispositivo real',
     devOffline: 'Sin conexión',
+    hideFromGuest: 'Ocultar de la app del huésped',
+    hideFromGuestNote: 'El huésped deja de verlo y controlarlo desde su app — desde acá se sigue controlando igual.',
     manualNote: 'Control manual activado — el huésped usa el interruptor físico de la habitación.',
     unlockNote: 'Motor desbloqueado — la cortina se mueve a mano y no responde a la app.',
     openBtn: 'Abrir',
@@ -282,6 +284,8 @@ const DT = {
     waMsg: 'Hello {name}! Welcome to {hotel}. Here is your access to your room’s smart controls: {url}',
     previewToast: 'Preview — feature not connected to a real device',
     devOffline: 'Offline',
+    hideFromGuest: 'Hide from guest app',
+    hideFromGuestNote: "The guest stops seeing and controlling it from their app — it's still controlled normally from here.",
     manualNote: 'Manual control enabled — the guest uses the physical switch in the room.',
     unlockNote: 'Motor unlocked — the curtain moves by hand and does not respond to the app.',
     openBtn: 'Open',
@@ -407,6 +411,8 @@ const DT = {
     waMsg: 'Olá {name}! Bem-vindo ao {hotel}. Aqui está o acesso ao controle inteligente do seu quarto: {url}',
     previewToast: 'Pré-visualização — função não conectada a um dispositivo real',
     devOffline: 'Sem conexão',
+    hideFromGuest: 'Ocultar do app do hóspede',
+    hideFromGuestNote: 'O hóspede deixa de ver e controlar pelo app dele — continua sendo controlado normalmente por aqui.',
     manualNote: 'Controle manual ativado — o hóspede usa o interruptor físico do quarto.',
     unlockNote: 'Motor destravado — a cortina se move com a mão e não responde ao app.',
     openBtn: 'Abrir',
@@ -1384,6 +1390,7 @@ function buildLightCard(key, dev, ico) {
       </div>
     </div>
     ${buildManualRow(key, manual)}
+    ${buildHideDeviceRow(key, !!dev.hidden)}
   </div>`;
 }
 
@@ -1416,6 +1423,7 @@ function buildCurtainCard(key, dev, ico) {
     <div class="curtain-label">${label}</div>
     ${buildUnlockRow(key, unlocked)}
     ${buildAllowManualUnlockRow(key, !!dev.manualUnlock)}
+    ${buildHideDeviceRow(key, !!dev.hidden)}
   </div>`;
 }
 
@@ -1428,6 +1436,34 @@ function buildAllowManualUnlockRow(key, allowed) {
   </div>
   <div class="manual-note">${dt('allowManualUnlockNote')}</div>`;
 }
+
+// El huésped deja de ver este dispositivo en su app — para algo que el hotel
+// prefiere seguir controlando solo desde acá (panel de staff sigue funcionando
+// igual, esto no afecta el control, solo lo que ve el huésped).
+function buildHideDeviceRow(key, hidden) {
+  return `<div class="manual-row">
+    <span>${dt('hideFromGuest')}</span>
+    <div class="toggle-sw toggle-sw-sm ${hidden ? 'on' : ''}" onclick="toggleHideDevice('${key}')"></div>
+  </div>
+  <div class="manual-note">${dt('hideFromGuestNote')}</div>`;
+}
+
+window.toggleHideDevice = async function(key) {
+  const dev = state.currentRoom.devices[key];
+  const hidden = !dev.hidden;
+  dev.hidden = hidden;
+  renderDevGrid();
+  try {
+    await apiFetch(`/admin/rooms/${state.currentRoom.id}/devices/${key}/hidden`, {
+      method: 'POST',
+      body: JSON.stringify({ hidden }),
+    });
+  } catch (err) {
+    dev.hidden = !hidden;
+    renderDevGrid();
+    showToast(err.message, 'error');
+  }
+};
 
 // El enchufe inteligente es el mecanismo, no el aparato — estas son las
 // funciones reales que un hotel suele conectar a través de él.
@@ -1468,6 +1504,7 @@ function buildMultiSwitchCard(key, dev, ico) {
         </div>
       </div>
       ${buildManualRow(key, manual)}
+      ${buildHideDeviceRow(key, !!dev.hidden)}
     </div>`;
   }).join('');
 }
@@ -1644,6 +1681,7 @@ function buildSwitchCard(key, dev, ico) {
     </div>
     <div class="dev-status ${on && !manual ? 'on-label' : ''}">${manual ? dt('manualMode') : (on ? dt('onM') : dt('offM'))}</div>
     ${buildManualRow(key, manual)}
+    ${buildHideDeviceRow(key, !!dev.hidden)}
   </div>`;
 }
 

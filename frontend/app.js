@@ -1056,8 +1056,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 function renderApp(data) {
   app.data = data;
 
-  // Construir estado
+  // Construir estado — un dispositivo que el hotel ocultó no entra a app.config,
+  // así que automáticamente queda afuera de la grilla, de las escenas nuevas,
+  // de favoritos, etc. (todo eso ya opera solo sobre las claves de app.config).
   for (const [key, dev] of Object.entries(data.devices)) {
+    if (dev.hidden) continue;
     app.config[key]  = { type: dev.type, label: dev.label, channels: dev.channels, available: dev.available, manualUnlock: !!dev.manualUnlock };
     app.devices[key] = dev.state ? { ...dev.state } : {};
   }
