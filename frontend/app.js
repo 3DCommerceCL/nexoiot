@@ -283,6 +283,8 @@ const I18N = {
     helpTextBathroom: 'Toca el interruptor para encender o apagar la luz del baño. Con "Encendido automático" activado, se enciende sola al detectar presencia.',
     helpTextBidet: 'Toca el interruptor para precalentar el asiento del baño japonés antes de levantarte. El resto de las funciones se controla desde el panel del baño.',
     helpTextRug: 'Toca el interruptor para encender la alfombra calefaccionable y elige el nivel de calor.',
+    helpTextClimateWindow: 'Este sensor detecta si la ventana está abierta o cerrada. Usa el botón para simular el cambio y ver cómo reacciona el aire acondicionado.',
+    helpTextClimateAuto: 'Si está activado, el aire acondicionado se apaga automáticamente al detectar que la ventana se abrió, para ahorrar energía.',
     heatedSeatOn: 'Asiento calefaccionado — encendido',
     heatedSeatOff: 'Asiento calefaccionado — apagado',
     bidetPanelNote: 'El resto de las funciones (lavado, secado, etc.) se controla desde el panel del baño.',
@@ -527,6 +529,8 @@ const I18N = {
     helpTextBathroom: 'Tap the switch to turn the bathroom light on or off. With "Auto on" enabled, it turns on by itself when it detects someone.',
     helpTextBidet: 'Tap the switch to pre-heat the bidet seat before getting up. Everything else is controlled from the bathroom panel.',
     helpTextRug: 'Tap the switch to turn on the heated rug and pick the heat level.',
+    helpTextClimateWindow: 'This sensor detects whether the window is open or closed. Use the button to simulate the change and see how the AC reacts.',
+    helpTextClimateAuto: 'When enabled, the AC turns off automatically as soon as the window is detected open, to save energy.',
     heatedSeatOn: 'Heated seat — on',
     heatedSeatOff: 'Heated seat — off',
     bidetPanelNote: 'Everything else (wash, dry, etc.) is controlled from the bathroom panel.',
@@ -771,6 +775,8 @@ const I18N = {
     helpTextBathroom: 'Toque no interruptor para ligar ou desligar a luz do banheiro. Com "Ligar automático" ativado, ela liga sozinha ao detectar presença.',
     helpTextBidet: 'Toque no interruptor para pré-aquecer o assento antes de levantar. O resto das funções é controlado pelo painel do banheiro.',
     helpTextRug: 'Toque no interruptor para ligar o tapete aquecido e escolha o nível de calor.',
+    helpTextClimateWindow: 'Este sensor detecta se a janela está aberta ou fechada. Use o botão para simular a mudança e ver como o ar-condicionado reage.',
+    helpTextClimateAuto: 'Se ativado, o ar-condicionado desliga automaticamente ao detectar que a janela foi aberta, para economizar energia.',
     heatedSeatOn: 'Assento aquecido — ligado',
     heatedSeatOff: 'Assento aquecido — desligado',
     bidetPanelNote: 'O resto das funções (lavar, secar, etc.) é controlado pelo painel do banheiro.',
@@ -1168,8 +1174,12 @@ function renderApp(data) {
   // Delegación de eventos para la barra de favoritos
   document.getElementById('favorites-bar')?.addEventListener('click', handleFavBarClick);
 
-  // Delegación de eventos para la vista de Clima (Premium)
+  // Delegación de eventos para la vista de Clima (Premium). También necesita
+  // handleGridClick (no solo handlePlanGridClick) porque el botón de reportar
+  // problema (featureIconsRow) usa data-action="report-problem", manejado ahí
+  // — mismo motivo por el que #device-grid ya tiene ambos manejadores.
   const climateContent = document.getElementById('climate-content');
+  climateContent.addEventListener('click',  handleGridClick);
   climateContent.addEventListener('click',  handlePlanGridClick);
   climateContent.addEventListener('input',  handlePlanGridInput);
   climateContent.addEventListener('change', handlePlanGridInput);
@@ -1510,7 +1520,7 @@ function renderReportModal() {
   if (!reportState) return;
   const { key, step, option } = reportState;
   const cfg   = app.config[key] || {};
-  const label = devLabel(key, cfg);
+  const label = featureOrDeviceLabel(key);
   const card  = document.getElementById('report-modal-card');
 
   if (step === 'intro') {
@@ -1574,7 +1584,7 @@ function renderReportModal() {
 
 function submitReport() {
   const { key, option, otherText } = reportState;
-  const label = devLabel(key, app.config[key] || {});
+  const label = featureOrDeviceLabel(key);
   const detail = option === 'otra'
     ? (otherText ? `${t('reportOptOtra')}: ${otherText}` : t('reportOptOtra'))
     : t(REPORT_OPTION_LABELS[option]);
@@ -2678,6 +2688,47 @@ function buildRugCard() {
 }
 
 // ── VISTA CLIMA (AC + sensor de ventana + automatizaciones, Premium+) ────────
+function buildClimateACCard() {
+  const s = app._placeholder.climate;
+  return `<div class="device-card ${s.acOn ? 'on' : ''}" id="feature-climateAc">
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">${t('acTitle')}</span></div>
+      <div class="toggle ${s.acOn ? 'on' : ''}" data-feature="climate" data-action="ac-toggle"></div>
+    </div>
+    <div class="ac-temp-display"><div class="ac-temp-val ${s.acOn ? 'on' : ''}">${s.temp}°C</div></div>
+    <div class="ac-temp-btns">
+      <button class="ac-btn" data-feature="climate" data-action="ac-temp" data-delta="-1" ${s.acOn ? '' : 'disabled'}>−</button>
+      <span class="ac-range">16 – 30°C</span>
+      <button class="ac-btn" data-feature="climate" data-action="ac-temp" data-delta="1" ${s.acOn ? '' : 'disabled'}>+</button>
+    </div>
+    ${featureIconsRow('climateAc')}
+  </div>`;
+}
+
+function buildClimateWindowCard() {
+  const s = app._placeholder.climate;
+  return `<div class="device-card ${s.windowOpen ? '' : 'on'}" id="feature-climateWindow">
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${t('windowTitle')}</span></div>
+    </div>
+    <div class="card-status ${s.windowOpen ? '' : 'on'}">${s.windowOpen ? t('windowOpen') : t('windowClosed')}</div>
+    <button class="curtain-btn" style="margin-top:8px;width:100%" data-feature="climate" data-action="window-toggle">${s.windowOpen ? t('simulateClose') : t('simulateOpen')}</button>
+    ${featureIconsRow('climateWindow')}
+  </div>`;
+}
+
+function buildClimateAutoCard() {
+  const s = app._placeholder.climate;
+  return `<div class="device-card full-width" id="feature-climateAuto">
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-ico">⚙️</span><span class="card-label">${t('autoOffTitle')}</span></div>
+      <div class="toggle ${s.autoOff ? 'on' : ''}" data-feature="climate" data-action="auto-toggle"></div>
+    </div>
+    <div class="card-status">${t('autoOffDesc')}</div>
+    ${featureIconsRow('climateAuto')}
+  </div>`;
+}
+
 function renderClimateView() {
   const el = document.getElementById('climate-content');
 
@@ -2688,42 +2739,20 @@ function renderClimateView() {
     return;
   }
 
-  const s = app._placeholder.climate ?? (app._placeholder.climate = { acOn: false, temp: 22, windowOpen: false, autoOff: true });
+  app._placeholder.climate ?? (app._placeholder.climate = { acOn: false, temp: 22, windowOpen: false, autoOff: true });
 
   el.innerHTML = `
     <div class="section-label">${t('acSection')}</div>
-    <div class="device-grid">
-      <div class="device-card ${s.acOn ? 'on' : ''}" id="feature-ac">
-        <div class="card-head">
-          <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">${t('acTitle')}</span></div>
-          <div class="toggle ${s.acOn ? 'on' : ''}" data-feature="climate" data-action="ac-toggle"></div>
-        </div>
-        <div class="ac-temp-display"><div class="ac-temp-val ${s.acOn ? 'on' : ''}">${s.temp}°C</div></div>
-        <div class="ac-temp-btns">
-          <button class="ac-btn" data-feature="climate" data-action="ac-temp" data-delta="-1" ${s.acOn ? '' : 'disabled'}>−</button>
-          <span class="ac-range">16 – 30°C</span>
-          <button class="ac-btn" data-feature="climate" data-action="ac-temp" data-delta="1" ${s.acOn ? '' : 'disabled'}>+</button>
-        </div>
-      </div>
-      <div class="device-card ${s.windowOpen ? '' : 'on'}" id="feature-window">
-        <div class="card-head">
-          <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${t('windowTitle')}</span></div>
-        </div>
-        <div class="card-status ${s.windowOpen ? '' : 'on'}">${s.windowOpen ? t('windowOpen') : t('windowClosed')}</div>
-        <button class="curtain-btn" style="margin-top:8px;width:100%" data-feature="climate" data-action="window-toggle">${s.windowOpen ? t('simulateClose') : t('simulateOpen')}</button>
-      </div>
-    </div>
+    <div class="device-grid">${buildClimateACCard()}${buildClimateWindowCard()}</div>
     <div class="section-label" style="margin-top:18px">${t('autoSection')}</div>
-    <div class="device-grid">
-      <div class="device-card full-width">
-        <div class="card-head">
-          <div class="card-ico-name"><span class="card-ico">⚙️</span><span class="card-label">${t('autoOffTitle')}</span></div>
-          <div class="toggle ${s.autoOff ? 'on' : ''}" data-feature="climate" data-action="auto-toggle"></div>
-        </div>
-        <div class="card-status">${t('autoOffDesc')}</div>
-      </div>
-    </div>
+    <div class="device-grid">${buildClimateAutoCard()}</div>
   `;
+
+  // Si una de estas 3 tarjetas está agrandada, refrescar también el modal —
+  // mismo criterio que rerenderFeature() para tv/baño/bidé/alfombra.
+  if (['climateAc', 'climateWindow', 'climateAuto'].includes(enlargedKey)) {
+    document.getElementById('enlarge-modal-body').innerHTML = PLACEHOLDER_BUILDERS[enlargedKey]();
+  }
 }
 
 // ── EVENTOS: FUNCIONES DEL PLAN (placeholders) ───────────────────────────────
@@ -2731,9 +2760,18 @@ function renderClimateView() {
 // "funciones del plan" (no son dispositivos Tuya reales, viven en
 // app._placeholder en vez de app.config) tengan ayuda/reportar/agrandar igual
 // que cualquier tarjeta de Controles.
-const PLACEHOLDER_BUILDERS = { tv: buildTVCard, bathroom: buildBathroomCard, bidet: buildBidetCard, rug: buildRugCard };
-const PLACEHOLDER_TITLE_KEY = { tv: null, bathroom: 'bathTitle', bidet: 'bidetTitle', rug: 'rugTitle' };
-const HELP_TEXT_BY_FEATURE = { tv: 'helpTextTV', bathroom: 'helpTextBathroom', bidet: 'helpTextBidet', rug: 'helpTextRug' };
+const PLACEHOLDER_BUILDERS = {
+  tv: buildTVCard, bathroom: buildBathroomCard, bidet: buildBidetCard, rug: buildRugCard,
+  climateAc: buildClimateACCard, climateWindow: buildClimateWindowCard, climateAuto: buildClimateAutoCard,
+};
+const PLACEHOLDER_TITLE_KEY = {
+  tv: null, bathroom: 'bathTitle', bidet: 'bidetTitle', rug: 'rugTitle',
+  climateAc: 'acTitle', climateWindow: 'windowTitle', climateAuto: 'autoOffTitle',
+};
+const HELP_TEXT_BY_FEATURE = {
+  tv: 'helpTextTV', bathroom: 'helpTextBathroom', bidet: 'helpTextBidet', rug: 'helpTextRug',
+  climateAc: 'helpTextAC', climateWindow: 'helpTextClimateWindow', climateAuto: 'helpTextClimateAuto',
+};
 
 function featureOrDeviceLabel(key) {
   if (app.config[key]) return devLabel(key, app.config[key]);
