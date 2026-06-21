@@ -232,7 +232,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 .scene-card-ico   { font-size: 26px; line-height: 1; }
-.scene-card-title { font-size: 14px; font-weight: 700; color: #fff; padding-right: 44px; }
+.scene-card-title { font-size: 14px; font-weight: 700; color: #fff; }
 .scene-card-desc  { font-size: 11px; color: rgba(255,255,255,.75); line-height: 1.4; }
 .scene-card:hover, .scene-card:active {
   background: linear-gradient(135deg, #00B985, var(--teal));
@@ -240,9 +240,12 @@ body {
 }
 .scene-card.loading { opacity: .6; pointer-events: none; }
 
+/* Misma idea que .card-icons-row en las tarjetas de Controles: los botones de
+   acción van abajo, en su propia fila, no flotando sobre el título. */
 .scene-card-actions {
-  position: absolute; top: 10px; right: 10px;
-  display: flex; gap: 4px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  width: 100%; margin-top: 4px; padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.15);
 }
 .scene-action-btn {
   width: 26px; height: 26px; border-radius: 50%;

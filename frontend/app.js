@@ -93,7 +93,7 @@ const I18N = {
     hello: 'Hola, {name} 👋',
     welcome: 'Bienvenido',
     checkoutLine: '📅 Check-out: {date} a las {time}',
-    sectionControls: 'Controles',
+    sectionControls: 'Controles inteligentes',
     sectionScenes: 'Escenas',
     sectionSettings: 'Ajustes',
     sectionSupport: 'Soporte',
@@ -279,6 +279,10 @@ const I18N = {
     helpTextSwitch: 'Toca el interruptor para encender o apagar.',
     helpTextAC: 'Toca el interruptor para encender o apagar el aire acondicionado. Usa + y − para ajustar la temperatura.',
     helpTextGeneric: 'Toca el interruptor para encender o apagar este control.',
+    helpTextTV: 'Toca el interruptor para encender o apagar la TV. Ajusta el volumen con la barra y elige la fuente (cable, streaming o HDMI).',
+    helpTextBathroom: 'Toca el interruptor para encender o apagar la luz del baño. Con "Encendido automático" activado, se enciende sola al detectar presencia.',
+    helpTextBidet: 'Toca el interruptor para encender el bidé. Elige lavado o secado, y activa el asiento calefaccionado si lo necesitas.',
+    helpTextRug: 'Toca el interruptor para encender la alfombra calefaccionable y elige el nivel de calor.',
     scheduleTitle: 'Programar',
     scheduleDesc: 'Elige cuándo se debe encender o apagar: {device}.',
     scheduleDescScene: 'Elige cuándo activar esta escena: {device}.',
@@ -325,7 +329,7 @@ const I18N = {
     hello: 'Hello, {name} 👋',
     welcome: 'Welcome',
     checkoutLine: '📅 Check-out: {date} at {time}',
-    sectionControls: 'Controls',
+    sectionControls: 'Smart controls',
     sectionScenes: 'Scenes',
     sectionSettings: 'Settings',
     sectionSupport: 'Support',
@@ -516,6 +520,10 @@ const I18N = {
     helpTextSwitch: 'Tap the switch to turn it on or off.',
     helpTextAC: 'Tap the switch to turn the AC on or off. Use + and − to adjust the temperature.',
     helpTextGeneric: 'Tap the switch to turn this control on or off.',
+    helpTextTV: 'Tap the switch to turn the TV on or off. Adjust the volume with the bar and pick a source (cable, streaming, or HDMI).',
+    helpTextBathroom: 'Tap the switch to turn the bathroom light on or off. With "Auto on" enabled, it turns on by itself when it detects someone.',
+    helpTextBidet: 'Tap the switch to turn on the bidet. Choose wash or dry, and turn on the heated seat if you want it.',
+    helpTextRug: 'Tap the switch to turn on the heated rug and pick the heat level.',
     scheduleTitle: 'Schedule',
     scheduleDesc: 'Choose when it should turn on or off: {device}.',
     scheduleDescScene: 'Choose when to activate this scene: {device}.',
@@ -562,7 +570,7 @@ const I18N = {
     hello: 'Olá, {name} 👋',
     welcome: 'Bem-vindo',
     checkoutLine: '📅 Check-out: {date} às {time}',
-    sectionControls: 'Controles',
+    sectionControls: 'Controles inteligentes',
     sectionScenes: 'Cenas',
     sectionSettings: 'Ajustes',
     sectionSupport: 'Suporte',
@@ -753,6 +761,10 @@ const I18N = {
     helpTextSwitch: 'Toque no interruptor para ligar ou desligar.',
     helpTextAC: 'Toque no interruptor para ligar ou desligar o ar-condicionado. Use + e − para ajustar a temperatura.',
     helpTextGeneric: 'Toque no interruptor para ligar ou desligar este controle.',
+    helpTextTV: 'Toque no interruptor para ligar ou desligar a TV. Ajuste o volume na barra e escolha a fonte (cabo, streaming ou HDMI).',
+    helpTextBathroom: 'Toque no interruptor para ligar ou desligar a luz do banheiro. Com "Ligar automático" ativado, ela liga sozinha ao detectar presença.',
+    helpTextBidet: 'Toque no interruptor para ligar o bidê. Escolha lavar ou secar, e ative o assento aquecido se quiser.',
+    helpTextRug: 'Toque no interruptor para ligar o tapete aquecido e escolha o nível de calor.',
     scheduleTitle: 'Programar',
     scheduleDesc: 'Escolha quando deve ligar ou desligar: {device}.',
     scheduleDescScene: 'Escolha quando ativar esta cena: {device}.',
@@ -2119,6 +2131,13 @@ function cardIconsRow(key, scheduleHtml, channel) {
   return `<div class="card-icons-row">${favBtn(key, channel)}${scheduleHtml}${reportBtn(key)}${helpBtn(key)}${enlargeBtn(key)}</div>`;
 }
 
+// Para las "funciones del plan" (TV, baño inteligente, bidé, alfombra) — no son
+// dispositivos reales, así que no llevan favorito ni programar, solo
+// reportar/ayuda/agrandar, igual que cualquier otra tarjeta de Controles.
+function featureIconsRow(key) {
+  return `<div class="card-icons-row">${reportBtn(key)}${helpBtn(key)}${enlargeBtn(key)}</div>`;
+}
+
 const HELP_TEXT_BY_TYPE = {
   light: 'helpTextLight', light_rgb: 'helpTextLED', curtain: 'helpTextCurtain',
   switch: 'helpTextSwitch', switch_3ch: 'helpTextSwitch', ac: 'helpTextAC',
@@ -2126,8 +2145,9 @@ const HELP_TEXT_BY_TYPE = {
 
 window.openHelpModal = function(key) {
   const cfg = app.config[key];
-  document.getElementById('help-modal-title').textContent = devLabel(key, cfg);
-  document.getElementById('help-modal-body').textContent = t(HELP_TEXT_BY_TYPE[cfg?.type] || 'helpTextGeneric');
+  document.getElementById('help-modal-title').textContent = featureOrDeviceLabel(key);
+  const textKey = cfg ? HELP_TEXT_BY_TYPE[cfg.type] : HELP_TEXT_BY_FEATURE[key];
+  document.getElementById('help-modal-body').textContent = t(textKey || 'helpTextGeneric');
   document.getElementById('help-modal-overlay').classList.remove('hidden');
 };
 
@@ -2139,9 +2159,8 @@ let enlargedKey = null;
 
 window.openEnlargeModal = function(key) {
   enlargedKey = key;
-  const cfg = app.config[key];
-  document.getElementById('enlarge-modal-title').textContent = devLabel(key, cfg);
-  document.getElementById('enlarge-modal-body').innerHTML = buildCard(key);
+  document.getElementById('enlarge-modal-title').textContent = featureOrDeviceLabel(key);
+  document.getElementById('enlarge-modal-body').innerHTML = app.config[key] ? buildCard(key) : (PLACEHOLDER_BUILDERS[key]?.() || '');
   document.getElementById('enlarge-modal-overlay').classList.remove('hidden');
 };
 
@@ -2226,9 +2245,11 @@ const CARD_ORDER = ['luz_techo','luz_velador2','led_cama','luz_velador1','cortin
 
 function renderGrid() {
   const grid = document.getElementById('device-grid');
+  // El enchufe (Estufa/Aromatizador) se inserta a mano junto a TV, no en su
+  // posición de CARD_ORDER — ver más abajo.
   const keys = [
-    ...CARD_ORDER.filter(k => app.config[k]),
-    ...Object.keys(app.config).filter(k => !CARD_ORDER.includes(k) && k !== 'puerta'),
+    ...CARD_ORDER.filter(k => app.config[k] && k !== 'enchufe'),
+    ...Object.keys(app.config).filter(k => !CARD_ORDER.includes(k) && k !== 'puerta' && k !== 'enchufe'),
   ];
   if (!keys.length) {
     grid.innerHTML = `
@@ -2236,10 +2257,17 @@ function renderGrid() {
         <span class="support-card-ico">🛎️</span>
         <p>${t('noDevicesMsg')}</p>
         <button class="support-btn" onclick="switchView('support')">${t('noDevicesBtn')}</button>
-      </div>` + buildTVCard() + buildPlanFeatureCards();
+      </div>` + buildTVCard() + (app.config.enchufe ? buildCard('enchufe') : '') + buildPlanFeatureCards();
     return;
   }
-  grid.innerHTML = keys.map(buildCard).join('') + buildTVCard() + buildPlanFeatureCards();
+  // TV pareja con Cortina (misma fila en la grilla de 2 columnas), y el enchufe
+  // (Estufa/Aromatizador) va justo después de TV — si no hay cortina, ambos
+  // arrancan la grilla.
+  const cards = keys.map(buildCard);
+  const cortinaPos = keys.indexOf('cortina');
+  cards.splice(cortinaPos >= 0 ? cortinaPos + 1 : cards.length, 0,
+    buildTVCard() + (app.config.enchufe ? buildCard('enchufe') : ''));
+  grid.innerHTML = cards.join('') + buildPlanFeatureCards();
 }
 
 function updateCard(key) {
@@ -2536,6 +2564,7 @@ function buildTVCard() {
       <div class="source-row">
         ${sources.map(src => `<button class="source-btn ${s.source === src.id ? 'active' : ''}" data-feature="tv" data-action="source" data-source="${src.id}">${src.label}</button>`).join('')}
       </div>` : ''}
+    ${featureIconsRow('tv')}
   </div>`;
 }
 
@@ -2575,6 +2604,7 @@ function buildBathroomCard() {
       <div class="toggle toggle-sm ${manual ? 'on' : ''}" data-feature="bathroom" data-action="manual"></div>
     </div>
     ${manual ? `<div class="manual-note">${t('bathManualNote')}</div>` : ''}
+    ${featureIconsRow('bathroom')}
   </div>`;
 }
 
@@ -2598,6 +2628,7 @@ function buildBidetCard() {
       <button class="source-btn ${s.mode === 'wash' ? 'active' : ''}" data-feature="bidet" data-action="mode" data-mode="wash">${t('wash')}</button>
       <button class="source-btn ${s.mode === 'dry'  ? 'active' : ''}" data-feature="bidet" data-action="mode" data-mode="dry">${t('dry')}</button>
     </div>` : ''}
+    ${featureIconsRow('bidet')}
   </div>`;
 }
 
@@ -2617,6 +2648,7 @@ function buildRugCard() {
     <div class="level-row">
       ${levels.map(l => `<button class="level-btn ${s.level === l.id ? 'active' : ''}" data-feature="rug" data-action="level" data-level="${l.id}">${l.label}</button>`).join('')}
     </div>` : ''}
+    ${featureIconsRow('rug')}
   </div>`;
 }
 
@@ -2670,10 +2702,24 @@ function renderClimateView() {
 }
 
 // ── EVENTOS: FUNCIONES DEL PLAN (placeholders) ───────────────────────────────
+// Mismo mapa que usan openEnlargeModal()/featureOrDeviceLabel() para que las
+// "funciones del plan" (no son dispositivos Tuya reales, viven en
+// app._placeholder en vez de app.config) tengan ayuda/reportar/agrandar igual
+// que cualquier tarjeta de Controles.
+const PLACEHOLDER_BUILDERS = { tv: buildTVCard, bathroom: buildBathroomCard, bidet: buildBidetCard, rug: buildRugCard };
+const PLACEHOLDER_TITLE_KEY = { tv: null, bathroom: 'bathTitle', bidet: 'bidetTitle', rug: 'rugTitle' };
+const HELP_TEXT_BY_FEATURE = { tv: 'helpTextTV', bathroom: 'helpTextBathroom', bidet: 'helpTextBidet', rug: 'helpTextRug' };
+
+function featureOrDeviceLabel(key) {
+  if (app.config[key]) return devLabel(key, app.config[key]);
+  if (key in PLACEHOLDER_TITLE_KEY) return PLACEHOLDER_TITLE_KEY[key] ? t(PLACEHOLDER_TITLE_KEY[key]) : 'TV';
+  return key;
+}
+
 function rerenderFeature(key) {
-  const builders = { tv: buildTVCard, bathroom: buildBathroomCard, bidet: buildBidetCard, rug: buildRugCard };
   const el = document.getElementById(`feature-${key}`);
-  if (el && builders[key]) el.outerHTML = builders[key]();
+  if (el && PLACEHOLDER_BUILDERS[key]) el.outerHTML = PLACEHOLDER_BUILDERS[key]();
+  if (enlargedKey === key) document.getElementById('enlarge-modal-body').innerHTML = PLACEHOLDER_BUILDERS[key]();
 }
 
 function showPreviewToast() {
@@ -3019,10 +3065,10 @@ function renderScenes() {
     // inválido en HTML5 y el navegador cierra el externo antes de tiempo,
     // dejando ícono/título/descripción como hijos sueltos de la grilla.
     return `<div class="scene-card" role="button" tabindex="0" data-scene="${scene.id}" aria-label="${scene.title}">
-      <div class="scene-card-actions">${actions}</div>
       <span class="scene-card-ico">${scene.icon}</span>
       <span class="scene-card-title">${scene.title}</span>
       <span class="scene-card-desc">${scene.desc}</span>
+      <div class="scene-card-actions">${actions}</div>
     </div>`;
   }).join('');
 }
