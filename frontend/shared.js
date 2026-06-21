@@ -68,7 +68,7 @@ const SHARED_I18N = {
     climateAlertMsg: 'Aire acondicionado encendido con la ventana abierta — se está desperdiciando energía',
     devices: {
       led_cama: 'LED Bajo Cama', luz_techo: 'Luz Techo', luz_velador1: 'Luz Velador 1',
-      luz_velador2: 'Luz Velador 2', cortina: 'Cortina', enchufe: 'Enchufe USB', puerta: 'Puerta',
+      luz_velador2: 'Luz Velador 2', cortina: 'Cortina', puerta: 'Puerta',
     },
   },
   en: {
@@ -122,7 +122,7 @@ const SHARED_I18N = {
     climateAlertMsg: 'Air conditioning is on with the window open — energy is being wasted',
     devices: {
       led_cama: 'Under-bed LED', luz_techo: 'Ceiling Light', luz_velador1: 'Bedside Lamp 1',
-      luz_velador2: 'Bedside Lamp 2', cortina: 'Curtain', enchufe: 'USB Outlet', puerta: 'Door',
+      luz_velador2: 'Bedside Lamp 2', cortina: 'Curtain', puerta: 'Door',
     },
   },
   pt: {
@@ -176,7 +176,7 @@ const SHARED_I18N = {
     climateAlertMsg: 'Ar-condicionado ligado com a janela aberta — há desperdício de energia',
     devices: {
       led_cama: 'LED Sob a Cama', luz_techo: 'Luz do Teto', luz_velador1: 'Abajur 1',
-      luz_velador2: 'Abajur 2', cortina: 'Cortina', enchufe: 'Tomada USB', puerta: 'Porta',
+      luz_velador2: 'Abajur 2', cortina: 'Cortina', puerta: 'Porta',
     },
   },
 };

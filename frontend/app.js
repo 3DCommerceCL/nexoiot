@@ -44,8 +44,8 @@ const STATIC_DEMO = {
       state: { control: 'stop', position: 45 }
     },
     enchufe: {
-      label: 'Enchufe USB', type: 'switch_3ch', available: true,
-      channels: ['Entrada 1', 'Entrada 2'],
+      label: 'Enchufe inteligente', type: 'switch_3ch', available: true,
+      channels: ['🔥 Estufa', '🌸 Aromatizador'],
       state: { ch1: false, ch2: false }
     },
   },
@@ -2086,9 +2086,14 @@ const deviceIcon = (key, fallback) => DEVICE_ICON_OVERRIDES[key] || fallback;
 // ── FAVORITOS (accesos directos) ─────────────────────────────────────────────
 const FAV_MAX = 3;
 
-function favBtn(key) {
-  const active = app.favorites.includes(key);
-  return `<button type="button" class="fav-btn ${active ? 'active' : ''}" data-key="${key}" data-action="toggle-favorite" aria-label="${t('favToggle')}">${active ? '★' : '☆'}</button>`;
+// channel: índice de canal para dispositivos multi-canal (enchufe con Estufa/
+// Aromatizador en canales separados) — sin esto, favoritear cualquier canal
+// marcaba el mismo "enchufe" genérico y la barra de accesos rápidos no podía
+// saber cuál de los dos era ni mostrar su nombre real.
+function favBtn(key, channel) {
+  const favId = channel != null ? `${key}:${channel}` : key;
+  const active = app.favorites.includes(favId);
+  return `<button type="button" class="fav-btn ${active ? 'active' : ''}" data-key="${key}" ${channel != null ? `data-channel="${channel}"` : ''} data-action="toggle-favorite" aria-label="${t('favToggle')}">${active ? '★' : '☆'}</button>`;
 }
 
 function reportBtn(key) {
@@ -2110,8 +2115,8 @@ function enlargeBtn(key) {
 // Fila de iconos común a toda tarjeta de dispositivo — separada de card-head para
 // que el interruptor principal nunca se vea forzado a compartir espacio con ellos
 // (eso era lo que rompía el layout cuando la etiqueta del dispositivo era larga).
-function cardIconsRow(key, scheduleHtml) {
-  return `<div class="card-icons-row">${favBtn(key)}${scheduleHtml}${reportBtn(key)}${helpBtn(key)}${enlargeBtn(key)}</div>`;
+function cardIconsRow(key, scheduleHtml, channel) {
+  return `<div class="card-icons-row">${favBtn(key, channel)}${scheduleHtml}${reportBtn(key)}${helpBtn(key)}${enlargeBtn(key)}</div>`;
 }
 
 const HELP_TEXT_BY_TYPE = {
@@ -2153,7 +2158,10 @@ function renderFavorites() {
   const bar = document.getElementById('favorites-bar');
   if (!bar) return;
   const items = app.favorites
-    .map(key => ({ key, cfg: app.config[key] }))
+    .map(favId => {
+      const [key, channel] = favId.split(':');
+      return { key, channel: channel !== undefined ? Number(channel) : null, cfg: app.config[key] };
+    })
     .filter(({ key, cfg }) => cfg && app.devices[key]);
 
   if (!items.length) {
@@ -2165,16 +2173,19 @@ function renderFavorites() {
   bar.classList.remove('hidden');
   bar.innerHTML = `
     <div class="favorites-label">${t('sectionFavorites')}</div>
-    <div class="favorites-row">${items.map(({ key, cfg }) => buildFavChip(key, cfg)).join('')}</div>`;
+    <div class="favorites-row">${items.map(({ key, cfg, channel }) => buildFavChip(key, cfg, channel)).join('')}</div>`;
 }
 
-function buildFavChip(key, cfg) {
+function buildFavChip(key, cfg, channel) {
   const s = app.devices[key] || {};
-  const prop = cfg.type === 'switch_3ch' ? 'ch1' : 'on';
+  const prop = channel != null ? `ch${channel + 1}` : (cfg.type === 'switch_3ch' ? 'ch1' : 'on');
   const on = !!s[prop];
-  const ico = cfg.type === 'ac' ? '❄️' : cfg.type === 'switch' || cfg.type === 'switch_3ch' ? '🔌' : deviceIcon(key, '💡');
+  // El nombre de cada canal (ej. "🔥 Estufa") ya trae su propio emoji — un ícono
+  // genérico aparte se vería duplicado, así que el chip de canal no lleva uno.
+  const label = channel != null ? (cfg.channels?.[channel] || devLabel(key, cfg)) : devLabel(key, cfg);
+  const icoHtml = channel != null ? '' : `<span class="fav-chip-ico">${cfg.type === 'ac' ? '❄️' : cfg.type === 'switch' || cfg.type === 'switch_3ch' ? '🔌' : deviceIcon(key, '💡')}</span>`;
   return `<button type="button" class="fav-chip ${on ? 'on' : ''}" data-key="${key}" data-prop="${prop}" data-action="fav-toggle">
-    <span class="fav-chip-ico">${ico}</span><span class="fav-chip-label">${devLabel(key, cfg)}</span>
+    ${icoHtml}<span class="fav-chip-label">${label}</span>
   </button>`;
 }
 
@@ -2446,7 +2457,7 @@ function buildSwitchChannelCard(key, i, label) {
       <div class="toggle ${vals[i] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch${i + 1}"></div>
     </div>
     ${manualRow(key)}
-    ${cardIconsRow(key, `<button type="button" class="report-btn" onclick="event.stopPropagation();scheduleChannel('${key}', ${i})" aria-label="${t('scheduleBtn')}">🕐</button>`)}
+    ${cardIconsRow(key, `<button type="button" class="report-btn" onclick="event.stopPropagation();scheduleChannel('${key}', ${i})" aria-label="${t('scheduleBtn')}">🕐</button>`, i)}
   </div>`;
 }
 
@@ -2824,7 +2835,9 @@ function handleGridClick(e) {
   const favBtnEl = e.target.closest('[data-action="toggle-favorite"]');
   if (favBtnEl) {
     const key = favBtnEl.dataset.key;
-    const idx = app.favorites.indexOf(key);
+    const channel = favBtnEl.dataset.channel;
+    const favId = channel !== undefined ? `${key}:${channel}` : key;
+    const idx = app.favorites.indexOf(favId);
     if (idx >= 0) {
       app.favorites.splice(idx, 1);
     } else {
@@ -2832,7 +2845,7 @@ function handleGridClick(e) {
         showToast(t('toastFavMax'), '');
         return;
       }
-      app.favorites.push(key);
+      app.favorites.push(favId);
     }
     saveFavorites();
     updateCard(key);
