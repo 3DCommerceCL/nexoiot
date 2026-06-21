@@ -94,7 +94,6 @@ const I18N = {
     welcome: 'Bienvenido',
     checkoutLine: '📅 Check-out: {date} a las {time}',
     sectionControls: 'Controles',
-    sectionPlan: 'Funciones del plan',
     sectionScenes: 'Escenas',
     sectionSettings: 'Ajustes',
     sectionSupport: 'Soporte',
@@ -256,6 +255,15 @@ const I18N = {
     themeActivateDark: 'Activar modo oscuro',
     themeDeactivateDark: 'Desactivar modo oscuro',
     scheduleBtn: 'Programar',
+    helpBtn: 'Cómo se usa',
+    enlargeBtn: 'Agrandar',
+    helpCloseBtn: 'Volver',
+    helpTextLight: 'Toca el interruptor para encender o apagar la luz. Cuando está encendida, desliza la barra para ajustar la intensidad y elige cálido, neutro o frío para el tono.',
+    helpTextLED: 'Toca el interruptor para encender o apagar. Ajusta la intensidad con la barra, o toca "Color" para elegir un color desde la rueda.',
+    helpTextCurtain: 'Usa ▲ para abrir, ⏹ para detener en cualquier punto, y ▼ para cerrar. La barra vertical muestra qué tan abierta está.',
+    helpTextSwitch: 'Toca el interruptor para encender o apagar.',
+    helpTextAC: 'Toca el interruptor para encender o apagar el aire acondicionado. Usa + y − para ajustar la temperatura.',
+    helpTextGeneric: 'Toca el interruptor para encender o apagar este control.',
     scheduleTitle: 'Programar',
     scheduleDesc: 'Elige cuándo se debe encender o apagar: {device}.',
     scheduleDescScene: 'Elige cuándo activar esta escena: {device}.',
@@ -303,7 +311,6 @@ const I18N = {
     welcome: 'Welcome',
     checkoutLine: '📅 Check-out: {date} at {time}',
     sectionControls: 'Controls',
-    sectionPlan: 'Plan features',
     sectionScenes: 'Scenes',
     sectionSettings: 'Settings',
     sectionSupport: 'Support',
@@ -470,6 +477,15 @@ const I18N = {
     themeActivateDark: 'Turn on dark mode',
     themeDeactivateDark: 'Turn off dark mode',
     scheduleBtn: 'Schedule',
+    helpBtn: 'How to use',
+    enlargeBtn: 'Enlarge',
+    helpCloseBtn: 'Back',
+    helpTextLight: 'Tap the switch to turn the light on or off. While on, drag the bar to adjust brightness, and pick warm, neutral or cool for the tone.',
+    helpTextLED: 'Tap the switch to turn it on or off. Adjust brightness with the bar, or tap "Color" to pick a color from the wheel.',
+    helpTextCurtain: 'Use ▲ to open, ⏹ to stop at any point, and ▼ to close. The vertical bar shows how open it is.',
+    helpTextSwitch: 'Tap the switch to turn it on or off.',
+    helpTextAC: 'Tap the switch to turn the AC on or off. Use + and − to adjust the temperature.',
+    helpTextGeneric: 'Tap the switch to turn this control on or off.',
     scheduleTitle: 'Schedule',
     scheduleDesc: 'Choose when it should turn on or off: {device}.',
     scheduleDescScene: 'Choose when to activate this scene: {device}.',
@@ -517,7 +533,6 @@ const I18N = {
     welcome: 'Bem-vindo',
     checkoutLine: '📅 Check-out: {date} às {time}',
     sectionControls: 'Controles',
-    sectionPlan: 'Funções do plano',
     sectionScenes: 'Cenas',
     sectionSettings: 'Ajustes',
     sectionSupport: 'Suporte',
@@ -684,6 +699,15 @@ const I18N = {
     themeActivateDark: 'Ativar modo escuro',
     themeDeactivateDark: 'Desativar modo escuro',
     scheduleBtn: 'Programar',
+    helpBtn: 'Como usar',
+    enlargeBtn: 'Ampliar',
+    helpCloseBtn: 'Voltar',
+    helpTextLight: 'Toque no interruptor para ligar ou desligar a luz. Quando ligada, arraste a barra para ajustar a intensidade e escolha quente, neutro ou frio para o tom.',
+    helpTextLED: 'Toque no interruptor para ligar ou desligar. Ajuste a intensidade com a barra, ou toque em "Cor" para escolher uma cor na roda.',
+    helpTextCurtain: 'Use ▲ para abrir, ⏹ para parar em qualquer ponto, e ▼ para fechar. A barra vertical mostra o quanto está aberta.',
+    helpTextSwitch: 'Toque no interruptor para ligar ou desligar.',
+    helpTextAC: 'Toque no interruptor para ligar ou desligar o ar-condicionado. Use + e − para ajustar a temperatura.',
+    helpTextGeneric: 'Toque no interruptor para ligar ou desligar este controle.',
     scheduleTitle: 'Programar',
     scheduleDesc: 'Escolha quando deve ligar ou desligar: {device}.',
     scheduleDescScene: 'Escolha quando ativar esta cena: {device}.',
@@ -1011,14 +1035,11 @@ function renderApp(data) {
   // Banner demo
   if (data.demoMode) document.getElementById('demo-banner').style.display = 'block';
 
-  // Grid de dispositivos
+  // Grid de dispositivos (incluye funciones del plan y TV) y vista de clima
   renderGrid();
   renderFavorites();
   renderScenes();
   loadDirectorioServicios();
-
-  // Funciones del plan (placeholders) y vista de clima
-  renderPlanGrid();
   renderClimateView();
 
   // Ocultar la sección "Clima" del menú si el plan de la habitación no la incluye
@@ -1058,14 +1079,15 @@ function renderApp(data) {
   grid.addEventListener('input',  handlePlanGridInput);
   grid.addEventListener('change', handlePlanGridInput);
 
+  // El control agrandado (modal de accesibilidad) reusa los mismos manejadores
+  // — es la misma tarjeta, solo más grande, con la misma data-key/data-action.
+  const enlargeBody = document.getElementById('enlarge-modal-body');
+  enlargeBody.addEventListener('click',  handleGridClick);
+  enlargeBody.addEventListener('input',  handleGridInput);
+  enlargeBody.addEventListener('change', handleGridInput);
+
   // Delegación de eventos para la barra de favoritos
   document.getElementById('favorites-bar')?.addEventListener('click', handleFavBarClick);
-
-  // Delegación de eventos para las funciones del plan (placeholders)
-  const planGrid = document.getElementById('plan-grid');
-  planGrid.addEventListener('click',  handlePlanGridClick);
-  planGrid.addEventListener('input',  handlePlanGridInput);
-  planGrid.addEventListener('change', handlePlanGridInput);
 
   // Delegación de eventos para la vista de Clima (Premium)
   const climateContent = document.getElementById('climate-content');
@@ -1251,7 +1273,6 @@ function setLang(lang) {
   document.documentElement.lang = lang;
   applyTexts();
   renderGrid();
-  renderPlanGrid();
   renderClimateView();
   renderScenes();
   renderHomeServices();
@@ -1994,6 +2015,52 @@ function scheduleBtn(key) {
   return `<button type="button" class="report-btn" onclick="event.stopPropagation();scheduleOnOff('${key}')" aria-label="${t('scheduleBtn')}">🕐</button>`;
 }
 
+function helpBtn(key) {
+  return `<button type="button" class="report-btn" onclick="event.stopPropagation();openHelpModal('${key}')" aria-label="${t('helpBtn')}">❓</button>`;
+}
+
+function enlargeBtn(key) {
+  return `<button type="button" class="report-btn" onclick="event.stopPropagation();openEnlargeModal('${key}')" aria-label="${t('enlargeBtn')}">🔍</button>`;
+}
+
+// Fila de iconos común a toda tarjeta de dispositivo — separada de card-head para
+// que el interruptor principal nunca se vea forzado a compartir espacio con ellos
+// (eso era lo que rompía el layout cuando la etiqueta del dispositivo era larga).
+function cardIconsRow(key, scheduleHtml) {
+  return `<div class="card-icons-row">${favBtn(key)}${scheduleHtml}${reportBtn(key)}${helpBtn(key)}${enlargeBtn(key)}</div>`;
+}
+
+const HELP_TEXT_BY_TYPE = {
+  light: 'helpTextLight', light_rgb: 'helpTextLED', curtain: 'helpTextCurtain',
+  switch: 'helpTextSwitch', switch_3ch: 'helpTextSwitch', ac: 'helpTextAC',
+};
+
+window.openHelpModal = function(key) {
+  const cfg = app.config[key];
+  document.getElementById('help-modal-title').textContent = devLabel(key, cfg);
+  document.getElementById('help-modal-body').textContent = t(HELP_TEXT_BY_TYPE[cfg?.type] || 'helpTextGeneric');
+  document.getElementById('help-modal-overlay').classList.remove('hidden');
+};
+
+window.closeHelpModal = function() {
+  document.getElementById('help-modal-overlay').classList.add('hidden');
+};
+
+let enlargedKey = null;
+
+window.openEnlargeModal = function(key) {
+  enlargedKey = key;
+  const cfg = app.config[key];
+  document.getElementById('enlarge-modal-title').textContent = devLabel(key, cfg);
+  document.getElementById('enlarge-modal-body').innerHTML = buildCard(key);
+  document.getElementById('enlarge-modal-overlay').classList.remove('hidden');
+};
+
+window.closeEnlargeModal = function() {
+  enlargedKey = null;
+  document.getElementById('enlarge-modal-overlay').classList.add('hidden');
+};
+
 function saveFavorites() {
   try { localStorage.setItem(`nexo_favs_${app.token || 'static'}`, JSON.stringify(app.favorites)); } catch {}
 }
@@ -2074,10 +2141,10 @@ function renderGrid() {
         <span class="support-card-ico">🛎️</span>
         <p>${t('noDevicesMsg')}</p>
         <button class="support-btn" onclick="switchView('support')">${t('noDevicesBtn')}</button>
-      </div>` + buildTVCard();
+      </div>` + buildTVCard() + buildPlanFeatureCards();
     return;
   }
-  grid.innerHTML = keys.map(buildCard).join('') + buildTVCard();
+  grid.innerHTML = keys.map(buildCard).join('') + buildTVCard() + buildPlanFeatureCards();
 }
 
 function updateCard(key) {
@@ -2095,6 +2162,7 @@ function updateCard(key) {
   }
   const el = document.getElementById(`card-${key}`);
   if (el) el.outerHTML = buildCard(key);
+  if (enlargedKey === key) document.getElementById('enlarge-modal-body').innerHTML = buildCard(key);
 }
 
 function buildCard(key) {
@@ -2116,9 +2184,9 @@ function buildOfflineCard(key, cfg) {
   return `<div class="device-card offline" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">⚠️</span><span class="card-label">${devLabel(key, cfg)}</span></div>
-      <div class="card-head-actions">${reportBtn(key)}</div>
     </div>
     <div class="offline-label">${t('offlineDevice')}</div>
+    <div class="card-icons-row">${reportBtn(key)}${helpBtn(key)}</div>
   </div>`;
 }
 
@@ -2138,9 +2206,6 @@ function buildLightCard(key) {
         <span class="card-label">${devLabel(key, cfg)}</span>
       </div>
       <div class="card-head-actions">
-        ${favBtn(key)}
-        ${reportBtn(key)}
-        ${scheduleBtn(key)}
         <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
       </div>
     </div>
@@ -2158,6 +2223,7 @@ function buildLightCard(key) {
         <button class="ct-btn ${ct >= 66 ? 'active' : ''}" data-key="${key}" data-ct="95">${t('cold')}</button>
       </div>` : ''}
     ${manualRow(key)}
+    ${cardIconsRow(key, scheduleBtn(key))}
   </div>`;
 }
 
@@ -2192,9 +2258,6 @@ function buildLEDCard(key) {
         <span class="card-label">${devLabel(key, cfg)}</span>
       </div>
       <div class="card-head-actions">
-        ${favBtn(key)}
-        ${reportBtn(key)}
-        ${scheduleBtn(key)}
         <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-light"></div>
       </div>
     </div>
@@ -2222,6 +2285,7 @@ function buildLEDCard(key) {
         </div>
       </div>` : ''}` : ''}
     ${manualRow(key)}
+    ${cardIconsRow(key, scheduleBtn(key))}
   </div>`;
 }
 
@@ -2236,11 +2300,7 @@ function buildCurtainCard(key) {
   return `<div class="device-card" id="card-${key}">
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${devLabel(key, cfg)}</span></div>
-      <div class="card-head-actions">
-        ${reportBtn(key)}
-        <button type="button" class="report-btn" onclick="event.stopPropagation();scheduleCurtain('${key}')" aria-label="${t('scheduleBtn')}">🕐</button>
-        <span class="card-status" style="margin:0">${unlocked ? t('manualShort') : lbl}</span>
-      </div>
+      <span class="card-status" style="margin:0">${unlocked ? t('manualShort') : lbl}</span>
     </div>
     <div class="curtain-vcontrol">
       <div class="curtain-vbtns">
@@ -2257,6 +2317,7 @@ function buildCurtainCard(key) {
       </div>
     </div>
     ${unlockRow(key)}
+    ${cardIconsRow(key, `<button type="button" class="report-btn" onclick="event.stopPropagation();scheduleCurtain('${key}')" aria-label="${t('scheduleBtn')}">🕐</button>`)}
   </div>`;
 }
 
@@ -2271,14 +2332,12 @@ function buildSwitchCard(key) {
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">${on ? '🔌' : '⬜'}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
       <div class="card-head-actions">
-        ${favBtn(key)}
-        ${reportBtn(key)}
-        ${scheduleBtn(key)}
         <div class="toggle ${on ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-switch"></div>
       </div>
     </div>
     <div class="card-status ${on && !manual ? 'on' : ''}">${manual ? t('manualMode') : (on ? t('onM') : t('offM'))}</div>
     ${manualRow(key)}
+    ${cardIconsRow(key, scheduleBtn(key))}
   </div>`;
 }
 
@@ -2302,14 +2361,12 @@ function buildSwitchChannelCard(key, i, label) {
     <div class="card-head">
       <div class="card-ico-name"><span class="card-label">${label}</span></div>
       <div class="card-head-actions">
-        ${favBtn(key)}
-        ${reportBtn(key)}
-        <button type="button" class="report-btn" onclick="event.stopPropagation();scheduleChannel('${key}', ${i})" aria-label="${t('scheduleBtn')}">🕐</button>
         <div class="toggle ${vals[i] ? 'on' : ''} ${manual ? 'disabled' : ''}" data-key="${key}" data-action="toggle-ch${i + 1}"></div>
       </div>
     </div>
     <div class="card-status ${on ? 'on' : ''}">${manual ? t('manualMode') : (vals[i] ? t('onM') : t('offM'))}</div>
     ${manualRow(key)}
+    ${cardIconsRow(key, `<button type="button" class="report-btn" onclick="event.stopPropagation();scheduleChannel('${key}', ${i})" aria-label="${t('scheduleBtn')}">🕐</button>`)}
   </div>`;
 }
 
@@ -2324,9 +2381,6 @@ function buildACCard(key) {
     <div class="card-head">
       <div class="card-ico-name"><span class="card-ico">❄️</span><span class="card-label">${devLabel(key, cfg)}</span></div>
       <div class="card-head-actions">
-        ${favBtn(key)}
-        ${reportBtn(key)}
-        ${scheduleBtn(key)}
         <div class="toggle ${on ? 'on' : ''}" data-key="${key}" data-action="toggle-ac"></div>
       </div>
     </div>
@@ -2338,6 +2392,7 @@ function buildACCard(key) {
       <span class="ac-range">16 – 30°C</span>
       <button class="ac-btn" data-key="${key}" data-temp="+1" ${on ? '' : 'disabled'}>+</button>
     </div>
+    ${cardIconsRow(key, scheduleBtn(key))}
   </div>`;
 }
 
@@ -2348,9 +2403,8 @@ const PLAN_FEATURES_INFO = {
   rug:      { minPlan: 'max_comfort' },
 };
 
-function renderPlanGrid() {
-  const grid = document.getElementById('plan-grid');
-  grid.innerHTML = [
+function buildPlanFeatureCards() {
+  return [
     buildFeatureCard('bathroom', PLAN_FEATURES_INFO.bathroom, buildBathroomCard),
     buildFeatureCard('bidet',    PLAN_FEATURES_INFO.bidet,    buildBidetCard),
     buildFeatureCard('rug',      PLAN_FEATURES_INFO.rug,      buildRugCard),

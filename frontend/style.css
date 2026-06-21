@@ -368,9 +368,17 @@ body {
 
 .card-head {
   display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 8px; margin-bottom: 10px;
 }
-.card-head-actions { display: flex; align-items: center; gap: 10px; }
+/* Solo el interruptor principal vive en card-head ahora — favorito, programar,
+   reportar, ayuda y agrandar bajaron a card-icons-row para que una etiqueta
+   larga (ej. en portugués) no empuje al interruptor fuera de la tarjeta. */
+.card-head-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.card-icons-row {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.15);
+}
 .fav-btn {
   background: none; border: none; cursor: pointer; padding: 0;
   font-size: 18px; line-height: 1; color: rgba(255,255,255,.5);
@@ -384,7 +392,7 @@ body {
   transition: color .2s, transform .15s;
 }
 .report-btn:active { transform: scale(1.15); }
-.card-ico-name  { display: flex; align-items: center; gap: 10px; }
+.card-ico-name  { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .card-ico {
   width: 36px; height: 36px; border-radius: 10px;
   background: rgba(255,255,255,.20); color: #fff;
@@ -392,7 +400,7 @@ body {
   font-size: 17px; line-height: 1; flex-shrink: 0;
 }
 .card-ico svg   { display: block; }
-.card-label     { font-size: 13px; font-weight: 600; color: #fff; }
+.card-label     { font-size: 13px; font-weight: 600; color: #fff; min-width: 0; }
 .card-status    { font-size: 11px; color: rgba(255,255,255,.75); margin-bottom: 10px; }
 .card-status.on { color: #fff; }
 .offline-label  { font-size: 11px; color: rgba(255,255,255,.65); margin-top: 6px; }
@@ -595,6 +603,18 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 }
 .onboarding-ico { font-size: 40px; margin-bottom: 8px; }
 .onboarding-card h2 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+.onboarding-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+.onboarding-card p  { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 18px; text-align: left; }
+.enlarge-card { max-width: 420px; position: relative; }
+.enlarge-close {
+  position: absolute; top: 12px; right: 12px;
+  background: var(--border); border: none; border-radius: 50%;
+  width: 28px; height: 28px; font-size: 14px; cursor: pointer; color: var(--text2);
+}
+.enlarge-body {
+  width: 260px; margin: 14px auto 30px;
+  transform: scale(1.3); transform-origin: top center;
+}
 .onboarding-list {
   list-style: none; display: flex; flex-direction: column; gap: 14px;
   margin-bottom: 22px; text-align: left;

@@ -94,8 +94,6 @@
     <div class="favorites-bar hidden" id="favorites-bar"></div>
     <div class="section-label" data-i18n="sectionControls">Controles</div>
     <div class="device-grid" id="device-grid" role="main" aria-label="Controles de habitación"></div>
-    <div class="section-label" style="margin-top:18px" data-i18n="sectionPlan">Funciones del plan</div>
-    <div class="device-grid" id="plan-grid" role="group" aria-label="Funciones según el plan del hotel"></div>
     <div class="section-label" style="margin-top:18px" data-i18n="sectionServices">Servicios</div>
     <div id="home-services"></div>
   </div>
@@ -245,6 +243,24 @@
 <!-- ── MODAL: PROGRAMAR ENCENDIDO/APAGADO ──────────────────────────────────── -->
 <div class="onboarding-overlay hidden" id="schedule-modal-overlay">
   <div class="onboarding-card" id="schedule-modal-card"></div>
+</div>
+
+<!-- ── MODAL: CÓMO SE USA ESTE CONTROL ─────────────────────────────────────── -->
+<div class="onboarding-overlay hidden" id="help-modal-overlay">
+  <div class="onboarding-card">
+    <h3 id="help-modal-title"></h3>
+    <p id="help-modal-body"></p>
+    <button class="support-btn" onclick="closeHelpModal()" data-i18n="helpCloseBtn">Volver</button>
+  </div>
+</div>
+
+<!-- ── MODAL: CONTROL AGRANDADO (accesibilidad) ────────────────────────────── -->
+<div class="onboarding-overlay hidden" id="enlarge-modal-overlay">
+  <div class="onboarding-card enlarge-card">
+    <button class="enlarge-close" onclick="closeEnlargeModal()" aria-label="Cerrar">✕</button>
+    <h3 id="enlarge-modal-title"></h3>
+    <div id="enlarge-modal-body" class="enlarge-body"></div>
+  </div>
 </div>
 
 <!-- ── ALARMA: SE ABRIÓ LA PUERTA ───────────────────────────────────────────── -->
