@@ -174,6 +174,19 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_alarmas_hotel ON alarmas_puerta(hotel_id, reconocida);
 
+  CREATE TABLE IF NOT EXISTS mensajes_staff (
+    id            TEXT PRIMARY KEY,
+    hotel_id      TEXT NOT NULL,
+    room_id       TEXT,
+    de_usuario_id TEXT NOT NULL,
+    de_nombre     TEXT NOT NULL,
+    para_rol      TEXT NOT NULL,
+    texto         TEXT NOT NULL,
+    leido         INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_mensajes_staff_destino ON mensajes_staff(hotel_id, para_rol, leido);
+
   CREATE TABLE IF NOT EXISTS facturacion_config (
     hotel_id        TEXT PRIMARY KEY,
     tupana_api_url  TEXT,

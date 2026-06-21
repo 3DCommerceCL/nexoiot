@@ -998,6 +998,15 @@ select.form-input option{background:var(--card);color:var(--text)}
         <div class="modal-section-title" data-i18n="devicesSection">Control de dispositivos</div>
         <div class="dev-grid" id="dev-grid"></div>
       </div>
+      <div class="modal-section hidden" id="mr-msg-section">
+        <div class="modal-section-title">📨 Avisar a un rol</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start">
+          <select class="form-input" id="mr-msg-rol" style="flex:0 0 160px"></select>
+          <input class="form-input" id="mr-msg-texto" placeholder="Ej: Habitación liberada, lista para limpiar" style="flex:1 1 200px">
+          <button class="btn btn-primary btn-sm" id="mr-msg-send">Enviar</button>
+        </div>
+      </div>
+
       <div class="modal-section hidden" id="mr-qr-section">
         <div class="modal-section-title" data-i18n="qrSection">Acceso QR de la estadía</div>
         <div class="qr-section" id="qr-section"></div>

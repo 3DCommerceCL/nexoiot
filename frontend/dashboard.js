@@ -7,10 +7,14 @@
 
 const API_URL      = 'https://nexoiot-production.up.railway.app/api';
 const FRONTEND_URL = 'https://3dcommercecl.github.io/nexoiot';
-const SESSION_STORAGE = 'nexo_session'; // { token, rol, hotelId, nombre, email }
+const SESSION_STORAGE = 'nexo_session'; // { token, rol, hotelId, nombre, email, permisos }
 let HOTEL_ID = null; // se fija tras login: hotelId de la sesión (owner/recepcion) o ?hotel= de la URL (superadmin)
-let currentRol = null; // 'superadmin' | 'owner' | 'recepcion', fijado tras login
+let currentRol = null; // 'superadmin' | 'owner' | 'recepcion' | id de rol personalizado, fijado tras login
+let currentPermisos = []; // permisos del rol personalizado (vacío para los 3 roles fijos)
 const isOwnerOrSuper = () => currentRol === 'owner' || currentRol === 'superadmin';
+// Espejo de requireRoleOrPermiso() en el backend — para que la UI nunca muestre algo
+// que el backend luego va a rechazar.
+const hasPermiso = (p) => isOwnerOrSuper() || currentRol === 'recepcion' || currentPermisos.includes(p);
 
 // Canales OTA: el código (channel-manager.js, canales.js, esta misma vista) está
 // completo y funciona en modo simulación, pero certificarse con SiteMinder es un
@@ -513,7 +517,7 @@ async function login() {
       ? new URLSearchParams(location.search).get('hotel')
       : body.hotelId;
 
-    applyRoleVisibility(body.rol);
+    applyRoleVisibility(body.rol, body.permisos);
     await loadRooms();
     $('login-screen').classList.add('hidden');
     $('sidebar').classList.remove('hidden');
@@ -525,8 +529,9 @@ async function login() {
   }
 }
 
-function applyRoleVisibility(rol) {
+function applyRoleVisibility(rol, permisos) {
   currentRol = rol;
+  currentPermisos = permisos || [];
   const fullAccess = isOwnerOrSuper();
   document.querySelectorAll('.nav-item[data-role]').forEach(el => {
     el.classList.toggle('hidden', !fullAccess);
@@ -926,10 +931,23 @@ window.openRoomModal = async function(roomId) {
 
   $('mr-title').textContent    = dt('roomTitle', { name: room.name });
   $('mr-subtitle').textContent = `${room.guest.guestName} · ${dt('checkoutPrefix')}: ${checkoutInfo(room.guest.checkout).label}`;
-  $('dev-grid').innerHTML = `<div class="form-note">${dt('loadingDevices')}</div>`;
   $('climate-alert').classList.add('hidden');
-  renderPrefsSection(room);
   $('modal-room').classList.remove('hidden');
+
+  // Roles personalizados (ej. "Aseo") no ven la grilla completa de dispositivos —
+  // solo lo que su rol permite. Owner/recepción siguen viendo todo, sin cambios.
+  if (!isOwnerOrSuper() && currentRol !== 'recepcion') {
+    $('prefs-section').innerHTML = '';
+    $('mr-msg-section').classList.add('hidden');
+    renderSimplifiedRoomView(room);
+    renderActivitySection(room);
+    return;
+  }
+
+  $('dev-grid').innerHTML = `<div class="form-note">${dt('loadingDevices')}</div>`;
+  renderPrefsSection(room);
+  mrMsgRoomId = room.id;
+  await initMensajeStaffComposer();
 
   try {
     const data = await apiFetch(`/room/${room.guest.token}`, { headers: {} });
@@ -948,6 +966,60 @@ window.openRoomModal = async function(roomId) {
   }
   renderActivitySection(room);
 };
+
+function renderSimplifiedRoomView(room) {
+  const sceneBtn = hasPermiso('housekeeping.gestionar')
+    ? `<button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="activarEscenaAseo('${room.id}')">🧹 Activar escena Aseo</button>
+       <p class="form-note" style="margin-top:6px">Abre las cortinas y enciende las luces en blanco para limpiar la habitación.</p>`
+    : '';
+  $('dev-grid').innerHTML = `
+    <div class="analytics-card" style="grid-column:1/-1">
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px">Estado de aseo</div>
+      ${housekeepingControlHtml(room)}
+      ${sceneBtn}
+    </div>`;
+}
+
+window.activarEscenaAseo = async function(roomId) {
+  try {
+    await apiFetch(`/admin/rooms/${roomId}/scene`, { method: 'POST', body: JSON.stringify({ scene: 'aseo' }) });
+    showToast('Escena de aseo activada', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
+
+// ── MENSAJE A UN ROL (desde el modal de habitación, owner/recepción) ─────────
+let mrMsgRoomId = null;
+
+async function initMensajeStaffComposer() {
+  if (!rolesCache.length) {
+    try { rolesCache = (await apiFetch('/admin/roles')).roles; } catch { /* se reintenta la próxima vez */ }
+  }
+  if (!rolesCache.length) {
+    $('mr-msg-section').classList.add('hidden');
+    return;
+  }
+  $('mr-msg-rol').innerHTML = rolesCache.map(r => `<option value="${r.id}">${r.nombre}</option>`).join('');
+  $('mr-msg-texto').value = '';
+  $('mr-msg-section').classList.remove('hidden');
+}
+
+async function enviarMensajeStaff() {
+  const paraRol = $('mr-msg-rol').value;
+  const texto = $('mr-msg-texto').value.trim();
+  if (!texto) return;
+  try {
+    await apiFetch('/admin/mensajes-staff', {
+      method: 'POST',
+      body: JSON.stringify({ roomId: mrMsgRoomId, paraRol, texto }),
+    });
+    $('mr-msg-texto').value = '';
+    showToast('Mensaje enviado', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
 
 // ── PREFERENCIAS DEL HUÉSPED (idioma + accesibilidad de la estadía) ──────────
 function renderPrefsSection(room) {
@@ -4028,6 +4100,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('eqm-save').addEventListener('click', saveNuevoMiembro);
   $('eq-nuevo-rol').addEventListener('click', openNuevoRolModal);
   $('eqr-save').addEventListener('click', saveRol);
+  $('mr-msg-send').addEventListener('click', enviarMensajeStaff);
 
   // Pagos
   $('pg-filtrar').addEventListener('click', loadTransacciones);
@@ -4069,7 +4142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     HOTEL_ID = session.rol === 'superadmin'
       ? new URLSearchParams(location.search).get('hotel')
       : session.hotelId;
-    applyRoleVisibility(session.rol);
+    applyRoleVisibility(session.rol, session.permisos);
     loadRooms()
       .then(() => {
         $('login-screen').classList.add('hidden');
@@ -4093,6 +4166,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Alarmas de puerta armadas por el huésped: aviso de respaldo a recepción
   // (la app del huésped ya muestra su propia alerta si la tiene abierta).
   setInterval(() => { if (getSession() && HOTEL_ID) checkDoorAlarms(); }, 20_000);
+
+  // Avisos de recepción/owner hacia el rol propio (ej. "Aseo") — corre para
+  // cualquier sesión; para owner/recepción/superadmin el backend siempre
+  // devuelve [] (a ellos no se les puede dirigir un mensaje por este sistema).
+  setInterval(() => { if (getSession() && HOTEL_ID) checkMensajesStaff(); }, 20_000);
 });
 
 async function checkDoorAlarms() {
@@ -4102,6 +4180,18 @@ async function checkDoorAlarms() {
       const room = rooms.find(r => r.id === a.room_id);
       showToast(`🚨 Se abrió la puerta — ${room?.name || a.room_id}`, 'error');
       apiFetch(`/admin/door-alarms/${a.id}/ack`, { method: 'POST' }).catch(() => {});
+    }
+  } catch { /* siguiente ciclo reintenta solo */ }
+}
+
+async function checkMensajesStaff() {
+  try {
+    const mensajes = await apiFetch('/admin/mensajes-staff');
+    for (const m of mensajes) {
+      const room = m.room_id ? rooms.find(r => r.id === m.room_id) : null;
+      const prefijo = room ? `${room.name}: ` : '';
+      showToast(`📨 ${prefijo}${m.texto}`, '');
+      apiFetch(`/admin/mensajes-staff/${m.id}/leido`, { method: 'PATCH' }).catch(() => {});
     }
   } catch { /* siguiente ciclo reintenta solo */ }
 }

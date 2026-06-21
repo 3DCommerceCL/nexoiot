@@ -24,6 +24,7 @@ const facturacionConfig = require('./facturacion-config');
 const facturacion       = require('./facturacion');
 const programados       = require('./programados');
 const alarmasPuerta     = require('./alarmas-puerta');
+const mensajesStaff     = require('./mensajes-staff');
 const pagos         = require('./pagos');
 const transacciones = require('./transacciones');
 const auth          = require('./auth');
@@ -255,7 +256,9 @@ app.post('/api/auth/login', loginLimiter, (req, res) => {
 
   const { token } = auth.createSesion(usuario.id);
   auth.marcarLogin(usuario.id);
-  res.json({ token, rol: usuario.rol, hotelId: usuario.hotel_id, nombre: usuario.nombre, email: usuario.email });
+  const FIJOS = ['superadmin', 'owner', 'recepcion'];
+  const permisos = FIJOS.includes(usuario.rol) ? [] : (roles.getById(usuario.rol)?.permisos || []);
+  res.json({ token, rol: usuario.rol, hotelId: usuario.hotel_id, nombre: usuario.nombre, email: usuario.email, permisos });
 });
 
 // ── AUTH: POST /api/auth/bootstrap-superadmin ─────────────────────────────────
@@ -518,6 +521,14 @@ function sceneCommandForDevice(type, scene) {
       default: return null; // cortinas y sensores no aplican
     }
   }
+  if (scene === 'aseo') {
+    switch (type) {
+      case 'light':
+      case 'light_rgb': return { on: true, intensity: 100, colorTemp: 50 };
+      case 'curtain':   return { control: 'open' };
+      default: return null; // enchufes no se tocan (no prender una estufa sin querer)
+    }
+  }
   return null;
 }
 
@@ -647,6 +658,38 @@ app.post('/api/admin/door-alarms/:id/ack', requireAuth('owner', 'recepcion'), (r
   if (!row) return res.status(404).json({ error: 'No encontrada' });
   if (!assertHotelAccess(req, row.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
   alarmasPuerta.reconocer(req.params.id);
+  res.json({ success: true });
+});
+
+// ── ADMIN: MENSAJES ENTRE ROLES (recepción/owner → un rol personalizado completo) ──
+// Body: { roomId?, paraRol, texto } — solo owner/recepción inician el aviso.
+app.post('/api/admin/mensajes-staff', requireAuth('owner', 'recepcion'), (req, res) => {
+  const { roomId, paraRol, texto } = req.body || {};
+  const rol = roles.getById(paraRol);
+  if (!rol || rol.hotel_id !== req.user.hotelId) {
+    return res.status(400).json({ error: 'paraRol debe ser un rol personalizado de tu hotel' });
+  }
+  try {
+    const msg = mensajesStaff.crear(req.user.hotelId, {
+      roomId, paraRol, deUsuarioId: req.user.id, deNombre: req.user.nombre, texto,
+    });
+    res.status(201).json(msg);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Cualquier autenticado (incluidos roles personalizados) puede leer los avisos
+// dirigidos a SU rol — para los 3 roles fijos esto siempre devuelve [] (nadie les
+// envía mensajes a ellos por este sistema).
+app.get('/api/admin/mensajes-staff', requireAuth(), (req, res) => {
+  res.json(mensajesStaff.listarNoLeidosParaRol(req.user.hotelId, req.user.rol));
+});
+
+app.patch('/api/admin/mensajes-staff/:id/leido', requireAuth(), (req, res) => {
+  const msg = mensajesStaff.getById(req.params.id);
+  if (!msg || msg.hotel_id !== req.user.hotelId) return res.status(404).json({ error: 'No encontrado' });
+  mensajesStaff.marcarLeido(req.params.id);
   res.json({ success: true });
 });
 
@@ -910,9 +953,9 @@ app.get('/api/admin/rooms', requireAuth('superadmin', 'owner', 'recepcion'), (re
 // Aplica una escena a todos los dispositivos controlables de una habitación.
 // Por ahora solo soporta scene: 'off' (apagar luces y enchufes), usada para
 // acciones masivas como "apagar todo" en habitaciones que hacen checkout hoy.
-app.post('/api/admin/rooms/:roomId/scene', requireAuth('owner', 'recepcion'), async (req, res) => {
+app.post('/api/admin/rooms/:roomId/scene', requireRoleOrPermiso(['owner', 'recepcion'], 'housekeeping.gestionar'), async (req, res) => {
   const { scene } = req.body;
-  if (scene !== 'off') {
+  if (!['off', 'aseo'].includes(scene)) {
     return res.status(400).json({ error: 'Escena no reconocida' });
   }
 
