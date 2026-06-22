@@ -3407,6 +3407,7 @@ async function loadBookingConfig() {
   $('bk-embed-code').textContent =
 `<div id="smartrooms-widget" data-hotel="${HOTEL_ID}"></div>
 <script src="${PUBLIC_BOOKING_URL}/widget.js" async><\/script>`;
+  $('bk-preview-frame').src = `${PUBLIC_BOOKING_URL}/reservar/${HOTEL_ID}`;
 
   await loadTarifas();
   await loadReglas();
@@ -4298,6 +4299,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Motor de reservas
   $('bk-save').addEventListener('click', saveBookingConfig);
   $('bk-copy').addEventListener('click', copyEmbedCode);
+  $('bk-preview-refresh').addEventListener('click', () => {
+    if (HOTEL_ID) $('bk-preview-frame').src = `${PUBLIC_BOOKING_URL}/reservar/${HOTEL_ID}?t=${Date.now()}`;
+  });
   $('enc-save').addEventListener('click', saveEncuestaConfig);
   $('cc-save').addEventListener('click', saveContactoConfig);
   $('cc-metodo').addEventListener('change', () => {
