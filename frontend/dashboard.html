@@ -821,6 +821,17 @@ select.form-input option{background:var(--card);color:var(--text)}
 
       <div class="analytics-card" style="margin-bottom:14px">
         <div class="sec-header" style="margin-bottom:10px">
+          <span class="sec-title">Preguntas de la encuesta de satisfacción</span>
+          <button class="btn btn-primary btn-sm" id="enc-save">Guardar</button>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Se envían por email al huésped desde su perfil en Huéspedes — las respuestas quedan guardadas ahí.</div>
+        <div id="enc-preguntas-list"></div>
+        <button type="button" class="btn btn-outline btn-sm" style="margin-top:8px" onclick="agregarPreguntaEncuesta()">+ Agregar pregunta</button>
+        <div class="form-error" id="enc-save-err"></div>
+      </div>
+
+      <div class="analytics-card" style="margin-bottom:14px">
+        <div class="sec-header" style="margin-bottom:10px">
           <span class="sec-title">Contacto con recepción</span>
           <button class="btn btn-primary btn-sm" id="cc-save">Guardar</button>
         </div>

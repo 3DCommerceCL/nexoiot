@@ -890,7 +890,7 @@ function navigate(view) {
   if (view === 'rooms') { loadHousekeeping(); renderRooms('rooms', state.filter); }
   if (view === 'calendar') initCalendar();
   if (view === 'channels') { OTA_ENABLED ? loadCanales() : renderChannelsComingSoon(); }
-  if (view === 'booking') { loadBookingConfig(); loadContactoConfig(); }
+  if (view === 'booking') { loadBookingConfig(); loadContactoConfig(); loadEncuestaConfig(); }
   if (view === 'pagos') loadTransacciones();
   if (view === 'facturacion') { loadFacturacionConfig(); loadDocumentos(); }
   if (view === 'categorias') loadCategorias();
@@ -2465,8 +2465,11 @@ function renderCRMList() {
     </div>`).join('');
 }
 
+let huespedModalGuest = null;
+
 window.openHuespedModal = function(i) {
   const g = crmCache[i];
+  huespedModalGuest = g;
   $('huesped-modal-nombre').textContent = g.nombre;
   const packHtml = g.packSugerido
     ? `<div class="analytics-card" style="margin-bottom:14px">
@@ -2486,11 +2489,85 @@ window.openHuespedModal = function(i) {
   $('huesped-modal-body').innerHTML = `
     <div style="font-size:12px;color:var(--text2);margin-bottom:14px">${g.email || ''} ${g.telefono ? '· ' + g.telefono : ''}</div>
     ${packHtml}
+    <div class="analytics-card" style="margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:8px">Notas</div>
+      <div id="huesped-notas-list" class="form-note">Cargando…</div>
+      <textarea id="huesped-nota-texto" class="report-other-textarea" rows="2" placeholder="Agregar una nota…" style="margin-top:8px"></textarea>
+      <button type="button" class="support-btn" style="width:100%;justify-content:center;margin-top:6px" onclick="guardarNotaHuesped()">Agregar nota</button>
+    </div>
+    <div class="analytics-card" style="margin-bottom:14px">
+      <div style="font-weight:600;margin-bottom:8px">Encuestas</div>
+      <div id="huesped-encuestas-list" class="form-note">Cargando…</div>
+      <button type="button" class="support-btn" style="width:100%;justify-content:center;margin-top:8px" ${g.email ? '' : 'disabled'} onclick="enviarEncuestaHuesped()">Enviar encuesta</button>
+      ${g.email ? '' : '<div class="form-note" style="margin-top:6px">El huésped no tiene email registrado.</div>'}
+    </div>
     <table class="rl-table">
       <thead><tr><th>Estado</th><th>Habitación</th><th>Check-in</th><th>Check-out</th></tr></thead>
       <tbody>${filas}</tbody>
     </table>`;
   $('modal-huesped').classList.remove('hidden');
+  loadGuestNotes(g.guestKey);
+  loadGuestEncuestas(g.guestKey);
+};
+
+async function loadGuestNotes(guestKey) {
+  try {
+    const notas = await apiFetch(`/admin/guest-notes?hotel=${encodeURIComponent(HOTEL_ID)}&guestKey=${encodeURIComponent(guestKey)}`);
+    const el = $('huesped-notas-list');
+    if (!el) return;
+    el.innerHTML = notas.length
+      ? notas.map(n => `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+          <div style="font-size:13px">${n.nota}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${n.creado_por || 'Staff'} · ${(n.created_at || '').slice(0, 10)}</div>
+        </div>`).join('')
+      : 'Sin notas todavía.';
+  } catch (err) { /* el modal ya quedó abierto, no bloquear por esto */ }
+}
+
+window.guardarNotaHuesped = async function() {
+  const texto = $('huesped-nota-texto').value.trim();
+  if (!texto || !huespedModalGuest) return;
+  try {
+    await apiFetch('/admin/guest-notes', {
+      method: 'POST',
+      body: JSON.stringify({ hotel: HOTEL_ID, guestKey: huespedModalGuest.guestKey, nota: texto }),
+    });
+    $('huesped-nota-texto').value = '';
+    loadGuestNotes(huespedModalGuest.guestKey);
+  } catch (err) { showToast(err.message, 'error'); }
+};
+
+async function loadGuestEncuestas(guestKey) {
+  try {
+    const respuestas = await apiFetch(`/admin/encuestas?hotel=${encodeURIComponent(HOTEL_ID)}&guestKey=${encodeURIComponent(guestKey)}`);
+    const el = $('huesped-encuestas-list');
+    if (!el) return;
+    el.innerHTML = respuestas.length
+      ? respuestas.map(r => {
+          let datos = {};
+          try { datos = JSON.parse(r.respuestas || '{}'); } catch {}
+          const filas = Object.values(datos).map(v => `<div style="font-size:12px">${v}</div>`).join('');
+          return `<div style="margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border)">
+            ${filas}
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">Respondida: ${(r.respondida_at || '').slice(0, 10)}</div>
+          </div>`;
+        }).join('')
+      : 'Sin respuestas todavía.';
+  } catch (err) { /* no bloquear el modal */ }
+}
+
+window.enviarEncuestaHuesped = async function() {
+  if (!huespedModalGuest) return;
+  try {
+    await apiFetch('/admin/encuestas/enviar', {
+      method: 'POST',
+      body: JSON.stringify({
+        hotel: HOTEL_ID, guestKey: huespedModalGuest.guestKey,
+        guestName: huespedModalGuest.nombre, guestEmail: huespedModalGuest.email,
+      }),
+    });
+    showToast('Encuesta enviada', 'success');
+  } catch (err) { showToast(err.message, 'error'); }
 };
 
 // ── EQUIPO (staff del hotel + roles personalizados) ──────────────────────────
@@ -3277,6 +3354,65 @@ async function saveBookingConfig() {
     showToast('Configuración guardada', 'success');
   } catch (err) {
     $('bk-save-err').textContent = err.message;
+  }
+}
+
+let encuestaPreguntas = [];
+
+async function loadEncuestaConfig() {
+  if (!HOTEL_ID) return;
+  $('enc-save-err').textContent = '';
+  try {
+    const cfg = await apiFetch(`/admin/encuesta-config/${HOTEL_ID}`);
+    encuestaPreguntas = cfg.preguntas || [];
+  } catch (err) {
+    $('enc-save-err').textContent = err.message;
+    encuestaPreguntas = [];
+  }
+  renderEncuestaPreguntas();
+}
+
+function renderEncuestaPreguntas() {
+  $('enc-preguntas-list').innerHTML = encuestaPreguntas.length
+    ? encuestaPreguntas.map((p, i) => `
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+          <input class="form-input" style="flex:1" data-enc-texto="${i}" value="${p.texto || ''}" placeholder="Texto de la pregunta">
+          <select class="form-input" style="width:120px" data-enc-tipo="${i}">
+            <option value="rating" ${p.tipo === 'rating' ? 'selected' : ''}>Puntaje 1-5</option>
+            <option value="texto" ${p.tipo === 'texto' ? 'selected' : ''}>Texto libre</option>
+          </select>
+          <button type="button" class="mapping-del" onclick="quitarPreguntaEncuesta(${i})" title="Quitar">✕</button>
+        </div>`).join('')
+    : '<div class="form-note">Sin preguntas todavía.</div>';
+}
+
+window.agregarPreguntaEncuesta = function() {
+  encuestaPreguntas.push({ id: Math.random().toString(36).slice(2, 10), texto: '', tipo: 'rating' });
+  renderEncuestaPreguntas();
+};
+
+window.quitarPreguntaEncuesta = function(i) {
+  encuestaPreguntas.splice(i, 1);
+  renderEncuestaPreguntas();
+};
+
+async function saveEncuestaConfig() {
+  if (!HOTEL_ID) return;
+  $('enc-save-err').textContent = '';
+  encuestaPreguntas.forEach((p, i) => {
+    p.texto = document.querySelector(`[data-enc-texto="${i}"]`)?.value.trim() || '';
+    p.tipo  = document.querySelector(`[data-enc-tipo="${i}"]`)?.value || 'rating';
+  });
+  encuestaPreguntas = encuestaPreguntas.filter(p => p.texto);
+  try {
+    await apiFetch(`/admin/encuesta-config/${HOTEL_ID}`, {
+      method: 'PUT',
+      body: JSON.stringify({ preguntas: encuestaPreguntas }),
+    });
+    renderEncuestaPreguntas();
+    showToast('Preguntas guardadas', 'success');
+  } catch (err) {
+    $('enc-save-err').textContent = err.message;
   }
 }
 
@@ -4085,6 +4221,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Motor de reservas
   $('bk-save').addEventListener('click', saveBookingConfig);
   $('bk-copy').addEventListener('click', copyEmbedCode);
+  $('enc-save').addEventListener('click', saveEncuestaConfig);
   $('cc-save').addEventListener('click', saveContactoConfig);
   $('cc-metodo').addEventListener('change', () => {
     $('cc-otro-wrap').classList.toggle('hidden', $('cc-metodo').value !== 'otro');

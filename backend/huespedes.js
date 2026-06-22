@@ -4,15 +4,22 @@
 
 const db = require('./db');
 
-// Agrupa filas de reservas por huésped (email > teléfono > nombre, en ese orden de
-// prioridad como identificador, porque el nombre solo puede repetirse entre personas).
+// Identificador estable de huésped (email > teléfono > nombre, en ese orden de prioridad,
+// porque el nombre solo puede repetirse entre personas). Normaliza trim+lowercase porque
+// reservas.js guarda el email/teléfono tal cual los tipea recepción, sin normalizar — esta
+// es la única fuente de verdad para agrupar reservas y para asociar notas/encuestas.
+function guestKey(row) {
+  return (row.guest_email || row.guest_phone || row.guest_name || '').trim().toLowerCase();
+}
+
+// Agrupa filas de reservas por huésped.
 function agrupar(rows) {
   const grupos = new Map();
   for (const r of rows) {
-    const key = r.guest_email || r.guest_phone || r.guest_name;
+    const key = guestKey(r);
     if (!grupos.has(key)) {
       grupos.set(key, {
-        nombre: r.guest_name, email: r.guest_email, telefono: r.guest_phone,
+        guestKey: key, nombre: r.guest_name, email: r.guest_email, telefono: r.guest_phone,
         totalEstadias: 0, ultimaEstadia: null, reservas: [],
       });
     }
@@ -75,4 +82,4 @@ const DATOS_DEMO = agrupar([
   { id: 'demo10', room_id: '101', status: 'confirmed',  guest_name: 'Felipe Castro', guest_email: 'felipe.castro@example.com', guest_phone: '+56944444444', checkin: '2026-06-01', checkout: '2026-06-04' },
 ]);
 
-module.exports = { buscar, listarTop, sugerirPack, DATOS_DEMO };
+module.exports = { buscar, listarTop, sugerirPack, guestKey, DATOS_DEMO };

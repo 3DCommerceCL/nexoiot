@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0F0F0F">
+<meta name="description" content="Encuesta de satisfacción">
+<title>Encuesta de satisfacción</title>
+<link rel="stylesheet" href="./style.css">
+<style>
+  body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+  .encuesta-card {
+    background: var(--card); border-radius: var(--r); padding: 28px 24px;
+    max-width: 440px; width: 100%; box-shadow: 0 8px 30px rgba(0,0,0,.12);
+  }
+  .encuesta-card h1 { font-size: 18px; margin-bottom: 6px; color: var(--text); }
+  .encuesta-card p.encuesta-sub { font-size: 13px; color: var(--text2); margin-bottom: 22px; }
+  .encuesta-pregunta { margin-bottom: 20px; }
+  .encuesta-pregunta label { display: block; font-size: 14px; color: var(--text); margin-bottom: 8px; font-weight: 600; }
+  .encuesta-rating { display: flex; gap: 8px; }
+  .encuesta-rating .pref-btn { flex: 1; text-align: center; padding: 10px 0; font-size: 16px; }
+  .encuesta-ico { font-size: 36px; text-align: center; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div class="encuesta-card" id="encuesta-card">
+  <p class="encuesta-sub">Cargando…</p>
+</div>
+
+<script src="./encuesta.js"></script>
+</body>
+</html>

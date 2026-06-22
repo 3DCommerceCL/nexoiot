@@ -35,8 +35,11 @@ const servicios     = require('./servicios');
 const email         = require('./email');
 const informes      = require('./informes');
 const huespedes     = require('./huespedes');
+const guestNotes    = require('./guest-notes');
 const checkinPrevio = require('./checkin-previo');
 const encuestas     = require('./encuestas');
+const encuestaConfig     = require('./encuesta-config');
+const encuestaRespuestas = require('./encuesta-respuestas');
 const voz           = require('./voz');
 const trial          = require('./trial');
 const verificacionRut = require('./verificacion-rut');
@@ -1964,6 +1967,62 @@ app.get('/api/admin/huespedes', requireAuth('owner', 'recepcion'), (req, res) =>
   res.json({ demo: false, huespedes: top });
 });
 
+// ── ADMIN: notas de huésped (perfil dentro del CRM) ───────────────────────────
+app.get('/api/admin/guest-notes', requireAuth('owner', 'recepcion'), (req, res) => {
+  const { hotel, guestKey } = req.query;
+  if (!hotel || !guestKey) return res.status(400).json({ error: 'Requerido: hotel, guestKey' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(guestNotes.listar(hotel, guestKey));
+});
+
+app.post('/api/admin/guest-notes', requireAuth('owner', 'recepcion'), (req, res) => {
+  const { hotel, guestKey, nota } = req.body || {};
+  if (!hotel || !guestKey || !nota || !nota.trim()) {
+    return res.status(400).json({ error: 'Requerido: hotel, guestKey, nota' });
+  }
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(guestNotes.crear(hotel, guestKey, nota.trim(), req.user.nombre));
+});
+
+// ── ADMIN: encuestas de satisfacción con respuestas guardadas en el perfil ────
+app.get('/api/admin/encuestas', requireAuth('owner', 'recepcion'), (req, res) => {
+  const { hotel, guestKey } = req.query;
+  if (!hotel || !guestKey) return res.status(400).json({ error: 'Requerido: hotel, guestKey' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(encuestaRespuestas.listarRespondidas(hotel, guestKey));
+});
+
+app.post('/api/admin/encuestas/enviar', requireAuth('owner', 'recepcion'), async (req, res) => {
+  const { hotel, guestKey, guestName, guestEmail, reservaId } = req.body || {};
+  if (!hotel || !guestKey) return res.status(400).json({ error: 'Requerido: hotel, guestKey' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  try {
+    const hotelNombre = (rooms.getHotels()[hotel] || {}).name;
+    const row = await encuestaRespuestas.enviar(hotel, { guestKey, guestName, guestEmail, reservaId, hotelNombre });
+    res.json(row);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ── PÚBLICO: encuesta respondida por el huésped (sin auth, token de un solo uso) ──
+app.get('/api/encuesta/:token', (req, res) => {
+  const row = encuestaRespuestas.getByToken(req.params.token);
+  if (!row) return res.status(404).json({ error: 'Encuesta no encontrada' });
+  if (row.respondida_at) return res.status(410).json({ error: 'Esta encuesta ya fue respondida', respondida: true });
+  const { preguntas } = encuestaConfig.getConfig(row.hotel_id);
+  const hotelNombre = (rooms.getHotels()[row.hotel_id] || {}).name;
+  res.json({ hotelNombre, guestName: row.guest_name, preguntas });
+});
+
+app.post('/api/encuesta/:token', (req, res) => {
+  const row = encuestaRespuestas.getByToken(req.params.token);
+  if (!row) return res.status(404).json({ error: 'Encuesta no encontrada' });
+  if (row.respondida_at) return res.status(410).json({ error: 'Esta encuesta ya fue respondida' });
+  encuestaRespuestas.responder(req.params.token, (req.body || {}).respuestas);
+  res.json({ success: true });
+});
+
 // ── ADMIN: GET /api/admin/servicios ───────────────────────────────────────────
 app.get('/api/admin/servicios', requireAuth('owner', 'recepcion'), (req, res) => {
   const { hotel } = req.query;
@@ -2047,6 +2106,18 @@ app.put('/api/admin/booking-config/:hotelId', requireAuth('owner'), (req, res) =
   if (!assertHotelAccess(req, req.params.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
   const cfg = bookingConfig.upsertConfig(req.params.hotelId, req.body);
   res.json(cfg);
+});
+
+// ── ADMIN: GET/PUT /api/admin/encuesta-config/:hotelId ────────────────────────
+// Preguntas de la encuesta de satisfacción propia del hotel (no el link de reseñas).
+app.get('/api/admin/encuesta-config/:hotelId', requireAuth('owner'), (req, res) => {
+  if (!assertHotelAccess(req, req.params.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(encuestaConfig.getConfig(req.params.hotelId));
+});
+
+app.put('/api/admin/encuesta-config/:hotelId', requireAuth('owner'), (req, res) => {
+  if (!assertHotelAccess(req, req.params.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  res.json(encuestaConfig.upsertConfig(req.params.hotelId, (req.body || {}).preguntas));
 });
 
 // ── ADMIN: GET/PUT /api/admin/contacto-config/:hotelId ────────────────────────

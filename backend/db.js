@@ -141,6 +141,34 @@ db.exec(`
     updated_at        TEXT NOT NULL
   );
 
+  CREATE TABLE IF NOT EXISTS guest_notes (
+    id          TEXT PRIMARY KEY,
+    hotel_id    TEXT NOT NULL,
+    guest_key   TEXT NOT NULL,
+    nota        TEXT NOT NULL,
+    creado_por  TEXT,
+    created_at  TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_guest_notes_key ON guest_notes(hotel_id, guest_key);
+
+  CREATE TABLE IF NOT EXISTS encuesta_config (
+    hotel_id    TEXT PRIMARY KEY,
+    preguntas   TEXT NOT NULL DEFAULT '[]',
+    updated_at  TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS encuesta_respuestas (
+    id             TEXT PRIMARY KEY,
+    hotel_id       TEXT NOT NULL,
+    guest_key      TEXT NOT NULL,
+    guest_name     TEXT,
+    reserva_id     TEXT,
+    respuestas     TEXT,
+    enviada_at     TEXT NOT NULL,
+    respondida_at  TEXT
+  );
+  CREATE INDEX IF NOT EXISTS idx_encuesta_resp_key ON encuesta_respuestas(hotel_id, guest_key);
+
   CREATE TABLE IF NOT EXISTS comandos_programados (
     id            TEXT PRIMARY KEY,
     hotel_id      TEXT NOT NULL,
