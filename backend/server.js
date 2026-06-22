@@ -1135,6 +1135,47 @@ app.get('/api/admin/reservas', requireRoleOrPermiso(['owner', 'recepcion'], 'res
   res.json(reservas.getByHotel(hotel, from, to));
 });
 
+// ── ADMIN: GET /api/admin/reservas/precio ─────────────────────────────────────
+// Total estimado (UF y CLP referencial) para una habitación entre checkin/checkout,
+// misma resolución que el motor de reservas público (override de grid > tarifa de
+// rango/categoría/general). Para precargar el monto al crear una estadía — no es
+// owner-only como /tarifas/grid porque recepción también crea estadías.
+app.get('/api/admin/reservas/precio', requireRoleOrPermiso(['owner', 'recepcion'], 'reservas.gestionar'), (req, res) => {
+  const { roomId, checkin, checkout } = req.query;
+  if (!roomId || !checkin || !checkout) {
+    return res.status(400).json({ error: 'Requeridos: roomId, checkin, checkout' });
+  }
+  const room = rooms.getRooms()[roomId];
+  if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
+  if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+
+  const desde = checkin.slice(0, 10);
+  const hasta = checkout.slice(0, 10);
+  if (desde >= hasta) return res.status(400).json({ error: 'checkin debe ser anterior a checkout' });
+
+  const tarifasActivas    = tarifas.getActivasEnRango(room.hotelId, desde, hasta);
+  const overridesRoom      = tarifasDia.getEnRango(room.hotelId, 'room', [roomId], desde, hasta);
+  const overridesCategoria = tarifasDia.getEnRango(room.hotelId, 'categoria', room.categoriaId ? [room.categoriaId] : [], desde, hasta);
+
+  let totalUF = 0;
+  let d = new Date(desde + 'T00:00:00Z');
+  const end = new Date(hasta + 'T00:00:00Z');
+  while (d < end) {
+    const fecha = d.toISOString().slice(0, 10);
+    const override    = tarifasDia.resolverOverride(roomId, room.categoriaId, fecha, overridesRoom, overridesCategoria);
+    const tarifaRango  = tarifas.resolverTarifaRango(roomId, room.categoriaId, fecha, tarifasActivas);
+    const precioNoche  = override?.precio_uf ?? tarifaRango?.precio_uf ?? null;
+    if (precioNoche === null) { totalUF = null; break; }
+    totalUF += precioNoche;
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+
+  res.json({
+    totalUF: totalUF !== null ? +totalUF.toFixed(2) : null,
+    totalCLP: totalUF !== null ? Math.round(totalUF * valorUF) : null,
+  });
+});
+
 // ── ADMIN: POST /api/admin/reservas ──────────────────────────────────────────
 app.post('/api/admin/reservas', requireRoleOrPermiso(['owner', 'recepcion'], 'reservas.gestionar'), (req, res) => {
   const { hotelId, roomId, guestName, checkin, checkout, guestEmail, guestPhone, notes, plan, source, lang, accessibility } = req.body;

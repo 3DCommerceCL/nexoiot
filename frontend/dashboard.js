@@ -105,6 +105,7 @@ const DT = {
     qrActive: 'QR activo',
     viewBtn: 'Ver →',
     assignStay: '+ Asignar estadía',
+    needCategoriaFirst: 'Asigna primero el tipo de habitación (categoría) para poder crear una estadía.',
     coToday: 'Hoy {t}',
     coTomorrow: 'Mañana {t}',
     coDays: 'En {n} días',
@@ -151,6 +152,16 @@ const DT = {
     fCheckout: 'Check-out',
     fErrFields: 'Completa nombre, check-in y check-out.',
     fErrDates: 'El check-out debe ser posterior al check-in.',
+    fPayment: 'Forma de pago',
+    fPayAfter: 'Cobrar después',
+    fPayCash: 'Efectivo',
+    fPayTransfer: 'Transferencia',
+    fPayCard: 'Tarjeta (Webpay)',
+    fPayMP: 'Mercado Pago (link)',
+    fAmount: 'Monto a cobrar (CLP)',
+    fErrAmount: 'Ingresa un monto válido en CLP.',
+    fErrNoCategoria: 'Esta habitación no tiene tipo (categoría) asignado. Ve a Habitaciones y asígnale una antes de crear la estadía.',
+    fErrNoTarifa: 'No hay tarifa definida para esta habitación/categoría en esas fechas. Ve a Categorías o Grid de tarifas para configurarla.',
     fSubmit: 'Crear estadía y generar QR',
     fCreating: 'Creando estadía...',
     fNote: 'El QR queda disponible para enviar por WhatsApp una vez creada la estadía.',
@@ -232,6 +243,7 @@ const DT = {
     qrActive: 'QR active',
     viewBtn: 'View →',
     assignStay: '+ Assign stay',
+    needCategoriaFirst: 'Assign a room type (category) first to create a stay.',
     coToday: 'Today {t}',
     coTomorrow: 'Tomorrow {t}',
     coDays: 'In {n} days',
@@ -278,6 +290,16 @@ const DT = {
     fCheckout: 'Check-out',
     fErrFields: 'Fill in name, check-in and check-out.',
     fErrDates: 'Check-out must be after check-in.',
+    fPayment: 'Payment method',
+    fPayAfter: 'Charge later',
+    fPayCash: 'Cash',
+    fPayTransfer: 'Bank transfer',
+    fPayCard: 'Card (Webpay)',
+    fPayMP: 'Mercado Pago (link)',
+    fAmount: 'Amount to charge (CLP)',
+    fErrAmount: 'Enter a valid amount in CLP.',
+    fErrNoCategoria: 'This room has no type (category) assigned. Go to Rooms and assign one before creating the stay.',
+    fErrNoTarifa: 'No rate is defined for this room/category on those dates. Go to Categories or Rate grid to set it up.',
     fSubmit: 'Create stay and generate QR',
     fCreating: 'Creating stay...',
     fNote: 'The QR becomes available to send via WhatsApp once the stay is created.',
@@ -359,6 +381,7 @@ const DT = {
     qrActive: 'QR ativo',
     viewBtn: 'Ver →',
     assignStay: '+ Atribuir estadia',
+    needCategoriaFirst: 'Atribua primeiro o tipo de quarto (categoria) para poder criar uma estadia.',
     coToday: 'Hoje {t}',
     coTomorrow: 'Amanhã {t}',
     coDays: 'Em {n} dias',
@@ -405,6 +428,16 @@ const DT = {
     fCheckout: 'Check-out',
     fErrFields: 'Preencha nome, check-in e check-out.',
     fErrDates: 'O check-out deve ser depois do check-in.',
+    fPayment: 'Forma de pagamento',
+    fPayAfter: 'Cobrar depois',
+    fPayCash: 'Dinheiro',
+    fPayTransfer: 'Transferência',
+    fPayCard: 'Cartão (Webpay)',
+    fPayMP: 'Mercado Pago (link)',
+    fAmount: 'Valor a cobrar (CLP)',
+    fErrAmount: 'Informe um valor válido em CLP.',
+    fErrNoCategoria: 'Este quarto não tem tipo (categoria) atribuído. Vá em Quartos e atribua um antes de criar a estadia.',
+    fErrNoTarifa: 'Não há tarifa definida para este quarto/categoria nessas datas. Vá em Categorias ou Grade de tarifas para configurá-la.',
     fSubmit: 'Criar estadia e gerar QR',
     fCreating: 'Criando estadia...',
     fNote: 'O QR fica disponível para enviar por WhatsApp assim que a estadia for criada.',
@@ -812,7 +845,9 @@ function buildRoomCard(room) {
     <div class="rc-badges"><span class="badge badge-available">${dt('badgeAvailable')}</span>${planBadge}${categoriaBadge}</div>
     ${hkRow}
     <div class="rc-empty">${dt('noGuest', { n: room.floor })}</div>
-    <button class="btn btn-sm btn-outline-teal" style="margin-top:auto" onclick="openNewStayModal('${room.id}')">${dt('assignStay')}</button>
+    ${room.categoriaId
+      ? `<button class="btn btn-sm btn-outline-teal" style="margin-top:auto" onclick="openNewStayModal('${room.id}')">${dt('assignStay')}</button>`
+      : `<button class="btn btn-sm btn-outline-teal" style="margin-top:auto" disabled title="${dt('needCategoriaFirst')}">${dt('assignStay')}</button>`}
   </div>`;
 }
 
@@ -2026,6 +2061,20 @@ function renderNewStayForm(preselectId) {
         <label class="form-label">${dt('guestA11y')}</label>
         <select class="form-input" id="ns-a11y">${a11yOpts}</select>
       </div>
+      <div class="form-group">
+        <label class="form-label">${dt('fPayment')}</label>
+        <select class="form-input" id="ns-pago-tipo">
+          <option value="despues">${dt('fPayAfter')}</option>
+          <option value="efectivo">${dt('fPayCash')}</option>
+          <option value="transferencia">${dt('fPayTransfer')}</option>
+          <option value="webpay">${dt('fPayCard')}</option>
+          <option value="mercadopago">${dt('fPayMP')}</option>
+        </select>
+      </div>
+      <div class="form-group" id="ns-monto-wrap" style="display:none">
+        <label class="form-label">${dt('fAmount')}</label>
+        <input class="form-input" id="ns-monto" type="number" min="1" step="1">
+      </div>
     </div>
     <div class="form-error" id="ns-error"></div>
     <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px" id="ns-submit">
@@ -2037,6 +2086,28 @@ function renderNewStayForm(preselectId) {
   `;
 
   $('ns-submit').addEventListener('click', submitNewStay);
+  $('ns-pago-tipo').addEventListener('change', () => {
+    const necesitaMonto = $('ns-pago-tipo').value !== 'despues';
+    $('ns-monto-wrap').style.display = necesitaMonto ? '' : 'none';
+    if (necesitaMonto) actualizarMontoEstimadoNuevaEstadia();
+  });
+  $('ns-room').addEventListener('change', actualizarMontoEstimadoNuevaEstadia);
+  $('ns-checkin').addEventListener('change', actualizarMontoEstimadoNuevaEstadia);
+  $('ns-checkout').addEventListener('change', actualizarMontoEstimadoNuevaEstadia);
+  $('ns-monto').addEventListener('input', () => { $('ns-monto').dataset.manual = '1'; });
+}
+
+async function actualizarMontoEstimadoNuevaEstadia() {
+  const montoInput = $('ns-monto');
+  if ($('ns-pago-tipo').value === 'despues' || montoInput.dataset.manual === '1') return;
+  const roomId   = $('ns-room').value;
+  const checkin  = $('ns-checkin').value;
+  const checkout = $('ns-checkout').value;
+  if (!roomId || !checkin || !checkout || checkout <= checkin) return;
+  try {
+    const { totalCLP } = await apiFetch(`/admin/reservas/precio?roomId=${encodeURIComponent(roomId)}&checkin=${encodeURIComponent(checkin)}&checkout=${encodeURIComponent(checkout)}`);
+    if (totalCLP !== null && montoInput.dataset.manual !== '1') montoInput.value = totalCLP;
+  } catch { /* sin tarifa definida — el staff completa el monto a mano */ }
 }
 
 async function submitNewStay() {
@@ -2050,6 +2121,8 @@ async function submitNewStay() {
   const checkout = $('ns-checkout').value;
   const lang     = $('ns-lang').value;
   const accessibility = $('ns-a11y').value;
+  const pagoTipo = $('ns-pago-tipo').value;
+  const montoCLP = pagoTipo !== 'despues' ? parseInt($('ns-monto').value, 10) : null;
 
   if (!guest || !checkin || !checkout) {
     error.textContent = dt('fErrFields');
@@ -2059,19 +2132,74 @@ async function submitNewStay() {
     error.textContent = dt('fErrDates');
     return;
   }
+  if (pagoTipo !== 'despues' && (!montoCLP || montoCLP < 1)) {
+    error.textContent = dt('fErrAmount');
+    return;
+  }
+
+  const selRoom = rooms.find(rm => rm.id === roomId);
+  if (!selRoom?.categoriaId) {
+    error.textContent = dt('fErrNoCategoria');
+    return;
+  }
 
   const btn = $('ns-submit');
   btn.innerHTML = `<span class="spinner"></span> ${dt('fCreating')}`;
   btn.disabled = true;
 
   try {
-    await apiFetch('/admin/reservas', {
+    const { totalUF } = await apiFetch(`/admin/reservas/precio?roomId=${encodeURIComponent(roomId)}&checkin=${encodeURIComponent(checkin)}&checkout=${encodeURIComponent(checkout)}`);
+    if (totalUF === null) {
+      error.textContent = dt('fErrNoTarifa');
+      btn.textContent = dt('fSubmit');
+      btn.disabled = false;
+      return;
+    }
+  } catch (err) {
+    error.textContent = err.message;
+    btn.textContent = dt('fSubmit');
+    btn.disabled = false;
+    return;
+  }
+
+  try {
+    const r = await apiFetch('/admin/reservas', {
       method: 'POST',
       body: JSON.stringify({
         hotelId: HOTEL_ID, roomId, guestName: guest, guestPhone: phone, checkin, checkout,
         lang, accessibility, source: 'walk_in',
       }),
     });
+
+    if (pagoTipo === 'efectivo' || pagoTipo === 'transferencia') {
+      await apiFetch(`/admin/reservas/${r.id}/pago/manual`, {
+        method: 'POST', body: JSON.stringify({ montoCLP, tipo: pagoTipo }),
+      });
+    } else if (pagoTipo === 'mercadopago') {
+      const { linkPago } = await apiFetch(`/admin/reservas/${r.id}/pago/link-mp`, {
+        method: 'POST', body: JSON.stringify({ montoCLP }),
+      });
+      const phoneDigits = phone.replace(/\D/g, '');
+      const waPhone = phoneDigits ? (phoneDigits.startsWith('56') ? phoneDigits : '56' + phoneDigits.replace(/^0/, '')) : '';
+      const msg = `Hola ${guest}, puedes completar el pago de tu reserva aquí: ${linkPago}`;
+      window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+    } else if (pagoTipo === 'webpay') {
+      const { url, token } = await apiFetch(`/admin/reservas/${r.id}/pago/webpay`, {
+        method: 'POST', body: JSON.stringify({ montoCLP }),
+      });
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = url;
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'token_ws';
+      input.value = token;
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+      return; // la página navega a Transbank — no sigue ejecutando
+    }
+
     closeModal('modal-new-stay');
     await loadRooms();
     fcInstance?.refetchEvents();
@@ -2379,6 +2507,11 @@ async function submitReservaModal(existingId) {
   if (!guest || !checkin || !checkout) { error.textContent = 'Completa nombre, check-in y check-out.'; return; }
   if (checkin >= checkout)             { error.textContent = 'El check-out debe ser posterior al check-in.'; return; }
 
+  if (!existingId) {
+    const selRoom = rooms.find(rm => rm.id === roomId);
+    if (!selRoom?.categoriaId) { error.textContent = dt('fErrNoCategoria'); return; }
+  }
+
   const hotelId      = HOTEL_ID || rooms[0]?.hotel || '';
   const activeStatus = $('rv-status-row').querySelector('.status-btn.active')?.dataset.status || 'confirmed';
   const email        = $('rv-email').value.trim() || undefined;
@@ -2394,6 +2527,15 @@ async function submitReservaModal(existingId) {
   saveBtn.innerHTML = '<span class="spinner"></span>';
 
   try {
+    if (!existingId) {
+      const { totalUF } = await apiFetch(`/admin/reservas/precio?roomId=${encodeURIComponent(roomId)}&checkin=${encodeURIComponent(checkin)}&checkout=${encodeURIComponent(checkout)}`);
+      if (totalUF === null) {
+        error.textContent = dt('fErrNoTarifa');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Guardar';
+        return;
+      }
+    }
     if (existingId) {
       await apiFetch(`/admin/reservas/${existingId}`, { method: 'PATCH', body: JSON.stringify(patchBody) });
     } else {
@@ -4228,6 +4370,13 @@ function startClock() {
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
+// Cierra el selector nativo de fecha/hora apenas se elige un valor — sin esto,
+// los inputs datetime-local (ns-checkin/out, rv-checkin/out) se quedan abiertos
+// hasta hacer click afuera, porque el navegador espera que también ajustes la hora.
+document.addEventListener('change', e => {
+  if (e.target.matches('input[type="date"], input[type="datetime-local"]')) e.target.blur();
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   $('login-btn').addEventListener('click', login);
   $('login-email').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
