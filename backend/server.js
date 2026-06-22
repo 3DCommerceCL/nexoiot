@@ -67,7 +67,7 @@ const corsRestricted = cors({
     );
     cb(allowed ? null : new Error(`CORS bloqueado: ${origin}`), allowed);
   },
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false,
 });
