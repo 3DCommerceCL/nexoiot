@@ -2753,7 +2753,7 @@ window.aplicarPlantillaRol = function(plantillaId) {
   document.querySelectorAll('#eqr-permisos input[type=checkbox]').forEach(cb => {
     cb.checked = permisos.includes(cb.value);
   });
-  if (plantilla && !$('eqr-nombre').value.trim()) {
+  if (plantilla) {
     $('eqr-nombre').value = plantilla.nombre;
   }
 };
