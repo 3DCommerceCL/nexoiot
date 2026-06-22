@@ -462,6 +462,7 @@ function statusToState(type, statuses) {
         mode: get('mode')     ?? 'cold',
       };
     case 'door_sensor':
+    case 'window_sensor':
       return { open: get('doorcontact_state') ?? false };
     default:
       return Object.fromEntries(statuses.map(s => [s.code, s.value]));
@@ -583,7 +584,7 @@ app.get('/api/room/:token', async (req, res) => {
     lang:          entry.lang || 'es',
     accessibility: entry.accessibility || 'none',
     dnd:       entry.dnd || false,
-    doorAlarm: entry.doorAlarm || false,
+    alarmSensors: entry.alarmSensors || {},
     demoMode:  room.demo === true || tuya.isDemoMode(),
     plan:      room.plan || 'base',
     devices,
@@ -632,16 +633,22 @@ app.post('/api/room/:token/prefs', (req, res) => {
 });
 
 // ── API: POST /api/room/:token/door-alarm-triggered ───────────────────────────
-// El cliente llama esto cuando detecta (por polling) que la puerta pasó de
-// cerrada a abierta y el huésped tiene la alarma armada — registra el aviso
-// para recepción. No requiere que el huésped reciba nada más: la alerta visual
-// y sonora ya la maneja el cliente directamente al detectar el cambio.
+// El cliente llama esto cuando detecta (por polling) que un sensor de puerta o
+// ventana pasó de cerrado a abierto y el huésped tiene esa alarma armada —
+// registra el aviso para recepción. No requiere que el huésped reciba nada
+// más: la alerta visual y sonora ya la maneja el cliente directamente al
+// detectar el cambio.
 app.post('/api/room/:token/door-alarm-triggered', (req, res) => {
   const result = rooms.getRoomByToken(req.params.token);
   if (!result) return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
   const { room, entry } = result;
-  alarmasPuerta.registrarDisparo(room.hotelId, entry.roomId);
-  rooms.addActivity(entry.roomId, 'door_alarm', '');
+  const { deviceKey } = req.body || {};
+  const dev = deviceKey && room.devices[deviceKey];
+  if (!dev || !['door_sensor', 'window_sensor'].includes(dev.type)) {
+    return res.status(400).json({ error: 'deviceKey inválido' });
+  }
+  alarmasPuerta.registrarDisparo(room.hotelId, entry.roomId, deviceKey, dev.label);
+  rooms.addActivity(entry.roomId, 'door_alarm', dev.label);
   res.json({ success: true });
 });
 

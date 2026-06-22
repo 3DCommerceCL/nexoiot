@@ -61,6 +61,7 @@ const app = {
   a11y:    'none', // accesibilidad: 'none' | 'vision' | 'hearing'
   theme:   'auto', // tema: 'auto' | 'light' | 'dark'
   dnd:     false,  // No molestar
+  alarmSensors: {}, // { deviceKey: bool } — alarma armada por sensor (puerta/ventana)
   favorites: [],  // claves de dispositivos marcados como favoritos (accesos directos)
   scenes:  {},    // escenas personalizadas/sobrescritas por el huésped (desde la API)
   data:    null,   // respuesta completa de la API (para re-render al cambiar idioma)
@@ -84,6 +85,7 @@ const I18N = {
     errServerTitle: 'Sin conexión con el servidor',
     errServerSub: 'No se pudo conectar con el sistema. Verifica tu conexión WiFi o comunícate con recepción.',
     navRoom: 'Habitación',
+    navSecurity: 'Seguridad',
     navScenes: 'Escenas',
     navClimate: 'Clima',
     navSettings: 'Ajustes',
@@ -94,16 +96,20 @@ const I18N = {
     welcome: 'Bienvenido',
     checkoutLine: '📅 Check-out: {date} a las {time}',
     sectionControls: 'Controles inteligentes',
+    sectionSecurity: 'Seguridad',
+    sensorOpen: 'Abierta',
+    sensorClosed: 'Cerrada',
+    alarmSensorTitle: 'Avisarme si se abre',
+    alarmSensorNote: 'Si tienes la app abierta, sonará una alerta apenas se abra este sensor',
+    noSecuritySensorsMsg: 'Esta habitación no tiene sensores de puerta o ventana configurados.',
     sectionScenes: 'Escenas',
     sectionSettings: 'Ajustes',
     sectionSupport: 'Soporte',
     sectionServices: 'Servicios',
     dndTitle: 'No molestar',
     dndDesc: 'El personal de limpieza no ingresará a tu habitación mientras esté activo',
-    doorAlarmTitle: 'Avisarme si se abre la puerta',
-    doorAlarmDesc: 'Si tienes la app abierta, sonará una alerta apenas se abra la puerta de tu habitación',
-    doorAlarmTriggeredTitle: '¡Se abrió la puerta!',
-    doorAlarmTriggeredDesc: 'Activaste el aviso de puerta para esta estadía.',
+    doorAlarmTriggeredTitle: '¡Se abrió: {device}!',
+    doorAlarmTriggeredDesc: 'Activaste el aviso para este sensor durante tu estadía.',
     doorAlarmDismissBtn: 'Entendido',
     requestTowels: '🧺 Pedir toallas / amenities',
     requestRoomService: '🍽 Pedir room service',
@@ -125,8 +131,8 @@ const I18N = {
     toastRequestSent: 'Solicitud enviada a recepción',
     toastDndOn: 'No molestar activado',
     toastDndOff: 'No molestar desactivado',
-    toastDoorAlarmOn: 'Aviso de puerta activado',
-    toastDoorAlarmOff: 'Aviso de puerta desactivado',
+    toastSensorAlarmOn: 'Aviso de sensor activado',
+    toastSensorAlarmOff: 'Aviso de sensor desactivado',
     toastAcAutoOff: 'Ventana abierta detectada: el aire acondicionado se apagó automáticamente',
     onbTitle: '¡Bienvenido!',
     onbScenes: 'Activa tus aparatos inteligentes desde aquí',
@@ -283,7 +289,6 @@ const I18N = {
     helpTextBathroom: 'Toca el interruptor para encender o apagar la luz del baño. Con "Encendido automático" activado, se enciende sola al detectar presencia.',
     helpTextBidet: 'Toca el interruptor para precalentar el asiento del baño japonés antes de levantarte. El resto de las funciones se controla desde el panel del baño.',
     helpTextRug: 'Toca el interruptor para encender la alfombra calefaccionable y elige el nivel de calor.',
-    helpTextClimateWindow: 'Este sensor detecta si la ventana está abierta o cerrada. Usa el botón para simular el cambio y ver cómo reacciona el aire acondicionado.',
     helpTextClimateAuto: 'Si está activado, el aire acondicionado se apaga automáticamente al detectar que la ventana se abrió, para ahorrar energía.',
     heatedSeatOn: 'Asiento calefaccionado — encendido',
     heatedSeatOff: 'Asiento calefaccionado — apagado',
@@ -325,6 +330,7 @@ const I18N = {
     errServerTitle: 'No connection to the server',
     errServerSub: 'We could not reach the system. Check your WiFi connection or contact the front desk.',
     navRoom: 'Room',
+    navSecurity: 'Security',
     navScenes: 'Scenes',
     navClimate: 'Climate',
     navSettings: 'Settings',
@@ -335,16 +341,20 @@ const I18N = {
     welcome: 'Welcome',
     checkoutLine: '📅 Check-out: {date} at {time}',
     sectionControls: 'Smart controls',
+    sectionSecurity: 'Security',
+    sensorOpen: 'Open',
+    sensorClosed: 'Closed',
+    alarmSensorTitle: 'Alert me if this opens',
+    alarmSensorNote: 'If you have the app open, an alert will sound as soon as this sensor opens',
+    noSecuritySensorsMsg: 'This room has no door or window sensors configured.',
     sectionScenes: 'Scenes',
     sectionSettings: 'Settings',
     sectionSupport: 'Support',
     sectionServices: 'Services',
     dndTitle: 'Do Not Disturb',
     dndDesc: 'Housekeeping will not enter your room while this is active',
-    doorAlarmTitle: 'Alert me if the door opens',
-    doorAlarmDesc: 'If you have the app open, an alert will sound as soon as your room door opens',
-    doorAlarmTriggeredTitle: 'The door opened!',
-    doorAlarmTriggeredDesc: 'You turned on the door alert for this stay.',
+    doorAlarmTriggeredTitle: '{device} opened!',
+    doorAlarmTriggeredDesc: 'You turned on the alert for this sensor during this stay.',
     doorAlarmDismissBtn: 'Got it',
     requestTowels: '🧺 Request towels / amenities',
     requestRoomService: '🍽 Request room service',
@@ -366,8 +376,8 @@ const I18N = {
     toastRequestSent: 'Request sent to the front desk',
     toastDndOn: 'Do Not Disturb on',
     toastDndOff: 'Do Not Disturb off',
-    toastDoorAlarmOn: 'Door alert turned on',
-    toastDoorAlarmOff: 'Door alert turned off',
+    toastSensorAlarmOn: 'Sensor alert turned on',
+    toastSensorAlarmOff: 'Sensor alert turned off',
     toastAcAutoOff: 'Open window detected: the AC turned off automatically',
     onbTitle: 'Welcome!',
     onbScenes: 'Control your smart devices from here',
@@ -529,7 +539,6 @@ const I18N = {
     helpTextBathroom: 'Tap the switch to turn the bathroom light on or off. With "Auto on" enabled, it turns on by itself when it detects someone.',
     helpTextBidet: 'Tap the switch to pre-heat the bidet seat before getting up. Everything else is controlled from the bathroom panel.',
     helpTextRug: 'Tap the switch to turn on the heated rug and pick the heat level.',
-    helpTextClimateWindow: 'This sensor detects whether the window is open or closed. Use the button to simulate the change and see how the AC reacts.',
     helpTextClimateAuto: 'When enabled, the AC turns off automatically as soon as the window is detected open, to save energy.',
     heatedSeatOn: 'Heated seat — on',
     heatedSeatOff: 'Heated seat — off',
@@ -571,6 +580,7 @@ const I18N = {
     errServerTitle: 'Sem conexão com o servidor',
     errServerSub: 'Não foi possível conectar ao sistema. Verifique sua conexão WiFi ou fale com a recepção.',
     navRoom: 'Quarto',
+    navSecurity: 'Segurança',
     navScenes: 'Cenas',
     navClimate: 'Clima',
     navSettings: 'Ajustes',
@@ -581,16 +591,20 @@ const I18N = {
     welcome: 'Bem-vindo',
     checkoutLine: '📅 Check-out: {date} às {time}',
     sectionControls: 'Controles inteligentes',
+    sectionSecurity: 'Segurança',
+    sensorOpen: 'Aberta',
+    sensorClosed: 'Fechada',
+    alarmSensorTitle: 'Avisar se isto abrir',
+    alarmSensorNote: 'Se você tiver o app aberto, soará um alerta assim que este sensor abrir',
+    noSecuritySensorsMsg: 'Este quarto não tem sensores de porta ou janela configurados.',
     sectionScenes: 'Cenas',
     sectionSettings: 'Ajustes',
     sectionSupport: 'Suporte',
     sectionServices: 'Serviços',
     dndTitle: 'Não perturbe',
     dndDesc: 'A equipe de limpeza não entrará no seu quarto enquanto estiver ativo',
-    doorAlarmTitle: 'Avisar se a porta abrir',
-    doorAlarmDesc: 'Se você tiver o app aberto, soará um alerta assim que a porta do seu quarto abrir',
-    doorAlarmTriggeredTitle: 'A porta abriu!',
-    doorAlarmTriggeredDesc: 'Você ativou o aviso de porta para esta estadia.',
+    doorAlarmTriggeredTitle: '{device} abriu!',
+    doorAlarmTriggeredDesc: 'Você ativou o aviso para este sensor durante esta estadia.',
     doorAlarmDismissBtn: 'Entendi',
     requestTowels: '🧺 Pedir toalhas / amenities',
     requestRoomService: '🍽 Pedir room service',
@@ -612,8 +626,8 @@ const I18N = {
     toastRequestSent: 'Solicitação enviada à recepção',
     toastDndOn: 'Não perturbe ativado',
     toastDndOff: 'Não perturbe desativado',
-    toastDoorAlarmOn: 'Aviso de porta ativado',
-    toastDoorAlarmOff: 'Aviso de porta desativado',
+    toastSensorAlarmOn: 'Aviso de sensor ativado',
+    toastSensorAlarmOff: 'Aviso de sensor desativado',
     toastAcAutoOff: 'Janela aberta detectada: o ar-condicionado desligou automaticamente',
     onbTitle: 'Bem-vindo!',
     onbScenes: 'Controle seus dispositivos inteligentes a partir daqui',
@@ -775,7 +789,6 @@ const I18N = {
     helpTextBathroom: 'Toque no interruptor para ligar ou desligar a luz do banheiro. Com "Ligar automático" ativado, ela liga sozinha ao detectar presença.',
     helpTextBidet: 'Toque no interruptor para pré-aquecer o assento antes de levantar. O resto das funções é controlado pelo painel do banheiro.',
     helpTextRug: 'Toque no interruptor para ligar o tapete aquecido e escolha o nível de calor.',
-    helpTextClimateWindow: 'Este sensor detecta se a janela está aberta ou fechada. Use o botão para simular a mudança e ver como o ar-condicionado reage.',
     helpTextClimateAuto: 'Se ativado, o ar-condicionado desliga automaticamente ao detectar que a janela foi aberta, para economizar energia.',
     heatedSeatOn: 'Assento aquecido — ligado',
     heatedSeatOff: 'Assento aquecido — desligado',
@@ -1090,7 +1103,7 @@ function renderApp(data) {
   app.a11y = (window.location.protocol === 'file:' && localStorage.getItem('nexo_a11y'))
     || data.accessibility || 'none';
   app.dnd = data.dnd || false;
-  app.doorAlarm = data.doorAlarm || false;
+  app.alarmSensors = data.alarmSensors || {};
 
   try {
     app.favorites = JSON.parse(localStorage.getItem(`nexo_favs_${app.token || 'static'}`) || '[]');
@@ -1116,10 +1129,16 @@ function renderApp(data) {
   renderScenes();
   loadDirectorioServicios();
   renderClimateView();
+  renderSecurityView();
 
   // Ocultar la sección "Clima" del menú si el plan de la habitación no la incluye
   if (planLevel(app.plan) < PLAN_TIERS.premium) {
     document.querySelector('.nav-item[data-view="climate"]')?.classList.add('hidden');
+  }
+
+  // Sin sensores de puerta/ventana: ocultar Seguridad del menú (no hay nada que armar).
+  if (!securityDeviceKeys().length) {
+    document.querySelector('.nav-item[data-view="security"]')?.classList.add('hidden');
   }
 
   // Sin dispositivos inteligentes instalados: ocultar Habitación/Escenas/Clima del menú
@@ -1184,6 +1203,9 @@ function renderApp(data) {
   climateContent.addEventListener('input',  handlePlanGridInput);
   climateContent.addEventListener('change', handlePlanGridInput);
 
+  // Delegación de eventos para la vista de Seguridad (armar/desarmar alarma)
+  document.getElementById('security-content').addEventListener('click', handleGridClick);
+
   // Navegación (sidebar y vistas)
   initNav();
 
@@ -1241,7 +1263,6 @@ function applyTexts() {
   updateConnStatus();
 
   document.querySelectorAll('[data-action="toggle-dnd"]').forEach(el => el.classList.toggle('on', app.dnd));
-  document.querySelectorAll('[data-action="toggle-door-alarm"]').forEach(el => el.classList.toggle('on', app.doorAlarm));
   renderHomeServices();
   applyContactMethod();
 
@@ -1269,11 +1290,11 @@ function applyContactMethod() {
 }
 
 // ── SELECTORES DE IDIOMA Y ACCESIBILIDAD (vista Ajustes) ─────────────────────
-// Copia de la sección "Servicios" (no molestar, alarma de puerta, solicitudes)
-// directo en la página de Inicio, debajo de los dispositivos — sin el bloque de
-// contactar a recepción, que sigue viviendo solo en la pestaña Soporte. Los ids
-// llevan sufijo -home y se sincronizan con sus pares en Soporte vía toggleDnd/
-// toggleDoorAlarm (que ya no asumen un único elemento por acción).
+// Copia de la sección "Servicios" (no molestar, solicitudes) directo en la
+// página de Inicio, debajo de los dispositivos — sin el bloque de contactar a
+// recepción, que sigue viviendo solo en la pestaña Soporte. Los ids llevan
+// sufijo -home y se sincronizan con su par en Soporte vía toggleDnd. La
+// alarma de puerta/ventana se mudó completa a la pestaña Seguridad.
 function renderHomeServices() {
   const el = document.getElementById('home-services');
   if (!el) return;
@@ -1285,13 +1306,6 @@ function renderHomeServices() {
       </div>
       <div class="card-status">${t('dndDesc')}</div>
     </div>
-    <div class="device-card full-width" id="door-alarm-card-home">
-      <div class="card-head">
-        <div class="card-ico-name"><span class="card-ico">🚨</span><span class="card-label">${t('doorAlarmTitle')}</span></div>
-        <div class="toggle ${app.doorAlarm ? 'on' : ''}" id="door-alarm-toggle-home" data-action="toggle-door-alarm"></div>
-      </div>
-      <div class="card-status">${t('doorAlarmDesc')}</div>
-    </div>
     <div class="support-card" style="padding:24px 32px;gap:10px">
       <button class="support-btn" id="request-towels-btn-home" style="width:100%">${t('requestTowels')}</button>
       <button class="support-btn" id="request-roomservice-btn-home" style="width:100%">${t('requestRoomService')}</button>
@@ -1302,13 +1316,60 @@ function renderHomeServices() {
     </div>`;
 
   document.getElementById('dnd-toggle-home').addEventListener('click', toggleDnd);
-  document.getElementById('door-alarm-toggle-home').addEventListener('click', toggleDoorAlarm);
   document.getElementById('request-towels-btn-home').addEventListener('click', () => sendServiceRequest('towels'));
   document.getElementById('request-roomservice-btn-home').addEventListener('click', () => sendServiceRequest('roomservice'));
   document.getElementById('request-cleaning-btn-home').addEventListener('click', () => sendServiceRequest('cleaning'));
   document.getElementById('request-late-checkout-btn-home').addEventListener('click', () => sendServiceRequest('late_checkout'));
   document.getElementById('request-maintenance-btn-home').addEventListener('click', () => sendServiceRequestWithNote('maintenance'));
   document.getElementById('request-other-btn-home').addEventListener('click', () => sendServiceRequestWithNote('other'));
+}
+
+// ── SEGURIDAD (sensores de puerta/ventana) ───────────────────────────────────
+function securityDeviceKeys() {
+  return Object.keys(app.config).filter(k => ['door_sensor', 'window_sensor'].includes(app.config[k].type));
+}
+
+function buildSecuritySensorCard(key) {
+  const cfg   = app.config[key];
+  const open  = !!app.devices[key]?.open;
+  const armed = !!app.alarmSensors[key];
+  return `<div class="device-card full-width" id="security-card-${key}">
+    <div class="card-head">
+      <div class="card-ico-name"><span class="card-ico">${cfg.type === 'door_sensor' ? '🚪' : '🪟'}</span><span class="card-label">${devLabel(key, cfg)}</span></div>
+    </div>
+    <div class="card-status-row">
+      <span class="card-status ${open ? 'on' : ''}">${open ? t('sensorOpen') : t('sensorClosed')}</span>
+    </div>
+    <div class="manual-row">
+      <span>${t('alarmSensorTitle')}</span>
+      <div class="toggle toggle-sm ${armed ? 'on' : ''}" data-key="${key}" data-action="toggle-sensor-alarm"></div>
+    </div>
+    ${armed ? `<div class="manual-note">${t('alarmSensorNote')}</div>` : ''}
+  </div>`;
+}
+
+function renderSecurityView() {
+  const el = document.getElementById('security-content');
+  if (!el) return;
+  const keys = securityDeviceKeys();
+  el.innerHTML = `
+    <div class="section-label">${t('sectionSecurity')}</div>
+    ${keys.length
+      ? `<div class="device-grid">${keys.map(buildSecuritySensorCard).join('')}</div>`
+      : `<div class="support-card" style="text-align:center"><span class="support-card-ico">🛡️</span><p>${t('noSecuritySensorsMsg')}</p></div>`}
+  `;
+}
+
+function rerenderSecurityCard(key) {
+  const el = document.getElementById(`security-card-${key}`);
+  if (el) el.outerHTML = buildSecuritySensorCard(key);
+}
+
+function toggleSensorAlarm(key) {
+  app.alarmSensors[key] = !app.alarmSensors[key];
+  rerenderSecurityCard(key);
+  showToast(app.alarmSensors[key] ? t('toastSensorAlarmOn') : t('toastSensorAlarmOff'), '');
+  savePrefs({ alarmSensors: { [key]: app.alarmSensors[key] } });
 }
 
 function renderPrefsRows() {
@@ -1363,6 +1424,7 @@ function setLang(lang) {
   applyTexts();
   renderGrid();
   renderClimateView();
+  renderSecurityView();
   renderScenes();
   renderHomeServices();
   applyContactMethod();
@@ -1377,38 +1439,52 @@ function toggleDnd() {
   savePrefs({ dnd: app.dnd });
 }
 
-// ── ALARMA DE PUERTA ──────────────────────────────────────────────────────────
+// ── ALARMA DE SENSORES DE SEGURIDAD (puerta/ventana) ─────────────────────────
 // La app no recibe push real (sin Service Worker con Web Push) — mientras la
-// tenga abierta, un polling cada 20s detecta si la puerta pasó de cerrada a
-// abierta y, si la alarma está armada, dispara un aviso visual+sonoro local y
-// avisa al backend para que recepción también lo vea (door-alarm-triggered).
+// tenga abierta, un polling cada 20s detecta si algún sensor armado pasó de
+// cerrado a abierto y dispara un aviso visual+sonoro local, más un aviso al
+// backend para que recepción también lo vea (door-alarm-triggered).
 let doorAlarmAudioCtx  = null;
 let doorAlarmBeepTimer = null;
 
-function toggleDoorAlarm() {
-  app.doorAlarm = !app.doorAlarm;
-  document.querySelectorAll('[data-action="toggle-door-alarm"]').forEach(el => el.classList.toggle('on', app.doorAlarm));
-  showToast(app.doorAlarm ? t('toastDoorAlarmOn') : t('toastDoorAlarmOff'), '');
-  savePrefs({ doorAlarm: app.doorAlarm });
-}
-
 async function refreshRoomState() {
   if (window.location.protocol === 'file:' || !app.token) return;
-  const wasOpen = !!app.devices?.puerta?.open;
+  const prevDevices = app.devices;
   try {
     const data = await apiGet(app.token);
     app.data    = data;
     app.devices = data.devices;
     renderGrid();
-    const isOpenNow = !!app.devices?.puerta?.open;
-    if (!wasOpen && isOpenNow && app.doorAlarm) {
-      triggerDoorAlarmUI();
-      fetch(`${API}/room/${app.token}/door-alarm-triggered`, { method: 'POST' }).catch(() => {});
+    if (!document.getElementById('view-security').classList.contains('hidden')) renderSecurityView();
+
+    for (const key of securityDeviceKeys()) {
+      const wasOpen   = !!prevDevices[key]?.open;
+      const isOpenNow = !!app.devices[key]?.open;
+      if (!wasOpen && isOpenNow && app.alarmSensors[key]) {
+        triggerDoorAlarmUI(key);
+        fetch(`${API}/room/${app.token}/door-alarm-triggered`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceKey: key }),
+        }).catch(() => {});
+      }
+    }
+
+    // Automatización de Clima: ventana abierta + apagado automático activo + AC encendido.
+    const s = app._placeholder.climate;
+    const anyWindowOpen = securityDeviceKeys().some(k => app.config[k].type === 'window_sensor' && app.devices[k]?.open);
+    if (s?.autoOff && s?.acOn && anyWindowOpen) {
+      s.acOn = false;
+      if (!document.getElementById('view-climate').classList.contains('hidden')) renderClimateView();
+      showToast(t('toastAcAutoOff'), '');
     }
   } catch { /* la próxima vuelta del polling reintenta sola */ }
 }
 
-function triggerDoorAlarmUI() {
+function triggerDoorAlarmUI(key) {
+  const label = devLabel(key, app.config[key]);
+  document.getElementById('door-alarm-overlay-title').textContent = t('doorAlarmTriggeredTitle', { device: label });
+  document.getElementById('door-alarm-overlay-desc').textContent  = t('doorAlarmTriggeredDesc', { device: label });
   document.getElementById('door-alarm-overlay')?.classList.remove('hidden');
   playDoorAlarmBeep();
   doorAlarmBeepTimer = setInterval(playDoorAlarmBeep, 1500);
@@ -2267,11 +2343,12 @@ const CARD_ORDER = ['luz_techo','luz_velador2','led_cama','luz_velador1','cortin
 
 function renderGrid() {
   const grid = document.getElementById('device-grid');
+  const securityKeys = securityDeviceKeys();
   // El enchufe (Estufa/Aromatizador) se inserta a mano junto a TV, no en su
   // posición de CARD_ORDER — ver más abajo.
   const keys = [
     ...CARD_ORDER.filter(k => app.config[k] && k !== 'enchufe'),
-    ...Object.keys(app.config).filter(k => !CARD_ORDER.includes(k) && k !== 'puerta' && k !== 'enchufe'),
+    ...Object.keys(app.config).filter(k => !CARD_ORDER.includes(k) && k !== 'enchufe' && !securityKeys.includes(k)),
   ];
   if (!keys.length) {
     grid.innerHTML = `
@@ -2705,18 +2782,6 @@ function buildClimateACCard() {
   </div>`;
 }
 
-function buildClimateWindowCard() {
-  const s = app._placeholder.climate;
-  return `<div class="device-card ${s.windowOpen ? '' : 'on'}" id="feature-climateWindow">
-    <div class="card-head">
-      <div class="card-ico-name"><span class="card-ico">🪟</span><span class="card-label">${t('windowTitle')}</span></div>
-    </div>
-    <div class="card-status ${s.windowOpen ? '' : 'on'}">${s.windowOpen ? t('windowOpen') : t('windowClosed')}</div>
-    <button class="curtain-btn" style="margin-top:8px;width:100%" data-feature="climate" data-action="window-toggle">${s.windowOpen ? t('simulateClose') : t('simulateOpen')}</button>
-    ${featureIconsRow('climateWindow')}
-  </div>`;
-}
-
 function buildClimateAutoCard() {
   const s = app._placeholder.climate;
   return `<div class="device-card full-width" id="feature-climateAuto">
@@ -2739,18 +2804,18 @@ function renderClimateView() {
     return;
   }
 
-  app._placeholder.climate ?? (app._placeholder.climate = { acOn: false, temp: 22, windowOpen: false, autoOff: true });
+  app._placeholder.climate ?? (app._placeholder.climate = { acOn: false, temp: 22, autoOff: true });
 
   el.innerHTML = `
     <div class="section-label">${t('acSection')}</div>
-    <div class="device-grid">${buildClimateACCard()}${buildClimateWindowCard()}</div>
+    <div class="device-grid">${buildClimateACCard()}</div>
     <div class="section-label" style="margin-top:18px">${t('autoSection')}</div>
     <div class="device-grid">${buildClimateAutoCard()}</div>
   `;
 
-  // Si una de estas 3 tarjetas está agrandada, refrescar también el modal —
+  // Si una de estas tarjetas está agrandada, refrescar también el modal —
   // mismo criterio que rerenderFeature() para tv/baño/bidé/alfombra.
-  if (['climateAc', 'climateWindow', 'climateAuto'].includes(enlargedKey)) {
+  if (['climateAc', 'climateAuto'].includes(enlargedKey)) {
     document.getElementById('enlarge-modal-body').innerHTML = PLACEHOLDER_BUILDERS[enlargedKey]();
   }
 }
@@ -2762,15 +2827,15 @@ function renderClimateView() {
 // que cualquier tarjeta de Controles.
 const PLACEHOLDER_BUILDERS = {
   tv: buildTVCard, bathroom: buildBathroomCard, bidet: buildBidetCard, rug: buildRugCard,
-  climateAc: buildClimateACCard, climateWindow: buildClimateWindowCard, climateAuto: buildClimateAutoCard,
+  climateAc: buildClimateACCard, climateAuto: buildClimateAutoCard,
 };
 const PLACEHOLDER_TITLE_KEY = {
   tv: null, bathroom: 'bathTitle', bidet: 'bidetTitle', rug: 'rugTitle',
-  climateAc: 'acTitle', climateWindow: 'windowTitle', climateAuto: 'autoOffTitle',
+  climateAc: 'acTitle', climateAuto: 'autoOffTitle',
 };
 const HELP_TEXT_BY_FEATURE = {
   tv: 'helpTextTV', bathroom: 'helpTextBathroom', bidet: 'helpTextBidet', rug: 'helpTextRug',
-  climateAc: 'helpTextAC', climateWindow: 'helpTextClimateWindow', climateAuto: 'helpTextClimateAuto',
+  climateAc: 'helpTextAC', climateAuto: 'helpTextClimateAuto',
 };
 
 function featureOrDeviceLabel(key) {
@@ -2907,21 +2972,6 @@ function handlePlanGridClick(e) {
     return;
   }
 
-  const winTog = e.target.closest('[data-action="window-toggle"]');
-  if (winTog) {
-    const s = app._placeholder.climate;
-    s.windowOpen = !s.windowOpen;
-    if (s.windowOpen && s.autoOff && s.acOn) {
-      s.acOn = false;
-      renderClimateView();
-      showToast(t('toastAcAutoOff'), '');
-      return;
-    }
-    renderClimateView();
-    showPreviewToast();
-    return;
-  }
-
   const autoTog = e.target.closest('[data-action="auto-toggle"]');
   if (autoTog) {
     app._placeholder.climate.autoOff = !app._placeholder.climate.autoOff;
@@ -3003,6 +3053,13 @@ function handleGridClick(e) {
     app._unlocked[key] = !app._unlocked[key];
     updateCard(key);
     showToast(app._unlocked[key] ? t('toastUnlockOn') : t('toastUnlockOff'), '');
+    return;
+  }
+
+  // Armar/desarmar alarma de un sensor de puerta/ventana (pestaña Seguridad)
+  const sensorAlarmTog = e.target.closest('[data-action="toggle-sensor-alarm"]');
+  if (sensorAlarmTog) {
+    toggleSensorAlarm(sensorAlarmTog.dataset.key);
     return;
   }
 
@@ -3241,9 +3298,10 @@ async function apiDeleteScene(id) {
 let scenesConfigMode = null;
 
 function scenesConfigDeviceKeys() {
+  const securityKeys = securityDeviceKeys();
   return [
     ...CARD_ORDER.filter(k => app.config[k]),
-    ...Object.keys(app.config).filter(k => !CARD_ORDER.includes(k) && k !== 'puerta'),
+    ...Object.keys(app.config).filter(k => !CARD_ORDER.includes(k) && !securityKeys.includes(k)),
   ];
 }
 

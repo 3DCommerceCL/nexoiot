@@ -40,6 +40,9 @@
     <button class="nav-item active" data-view="room">
       <span class="nav-ico">🏠</span><span data-i18n="navRoom">Habitación</span>
     </button>
+    <button class="nav-item" data-view="security">
+      <span class="nav-ico">🛡️</span><span data-i18n="navSecurity">Seguridad</span>
+    </button>
     <button class="nav-item" data-view="scenes">
       <span class="nav-ico">🎬</span><span data-i18n="navScenes">Escenas</span>
     </button>
@@ -98,6 +101,11 @@
     <div id="home-services"></div>
     <div class="section-label" style="margin-top:18px" data-i18n="sectionDirectorio">Qué ofrece el hotel</div>
     <div id="servicios-directorio"></div>
+  </div>
+
+  <!-- ── VISTA: SEGURIDAD (sensores de puerta/ventana) ───────────────────────── -->
+  <div class="view hidden" id="view-security">
+    <div id="security-content"></div>
   </div>
 
   <!-- ── VISTA: ESCENAS ───────────────────────────────────────────────────── -->
@@ -251,12 +259,12 @@
   </div>
 </div>
 
-<!-- ── ALARMA: SE ABRIÓ LA PUERTA ───────────────────────────────────────────── -->
+<!-- ── ALARMA: SE ABRIÓ UN SENSOR DE SEGURIDAD ─────────────────────────────── -->
 <div class="door-alarm-overlay hidden" id="door-alarm-overlay">
   <div class="door-alarm-card">
     <div class="door-alarm-ico">🚨</div>
-    <h2 data-i18n="doorAlarmTriggeredTitle">¡Se abrió la puerta!</h2>
-    <p data-i18n="doorAlarmTriggeredDesc">Activaste el aviso de puerta para esta estadía.</p>
+    <h2 id="door-alarm-overlay-title"></h2>
+    <p id="door-alarm-overlay-desc"></p>
     <button class="support-btn" id="door-alarm-dismiss" data-i18n="doorAlarmDismissBtn">Entendido</button>
   </div>
 </div>

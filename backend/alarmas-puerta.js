@@ -1,21 +1,22 @@
 'use strict';
-// backend/alarmas-puerta.js — Aviso a recepción cuando se abre la puerta de una
-// habitación con la alarma armada por el huésped (ver rooms.js:updateTokenPrefs,
-// campo doorAlarm). El huésped detecta la apertura por polling en el cliente
-// (frontend/app.js) y llama a registrarDisparo(); esto solo guarda el aviso
-// para que recepción lo vea, no dispara nada del lado del huésped.
+// backend/alarmas-puerta.js — Aviso a recepción cuando se abre un sensor de
+// seguridad (puerta o ventana) de una habitación con la alarma armada por el
+// huésped (ver rooms.js:updateTokenPrefs, campo alarmSensors). El huésped
+// detecta la apertura por polling en el cliente (frontend/app.js) y llama a
+// registrarDisparo(); esto solo guarda el aviso para que recepción lo vea, no
+// dispara nada del lado del huésped.
 
 const crypto = require('crypto');
 const db     = require('./db');
 
 const genId = () => crypto.randomBytes(8).toString('hex');
 
-function registrarDisparo(hotelId, roomId) {
+function registrarDisparo(hotelId, roomId, deviceKey, deviceLabel) {
   const id = genId();
   db.prepare(`
-    INSERT INTO alarmas_puerta (id, hotel_id, room_id, disparada_at, reconocida)
-    VALUES (?,?,?,?,0)
-  `).run(id, hotelId, roomId, new Date().toISOString());
+    INSERT INTO alarmas_puerta (id, hotel_id, room_id, disparada_at, reconocida, device_key, device_label)
+    VALUES (?,?,?,?,0,?,?)
+  `).run(id, hotelId, roomId, new Date().toISOString(), deviceKey, deviceLabel);
   return db.prepare('SELECT * FROM alarmas_puerta WHERE id = ?').get(id);
 }
 

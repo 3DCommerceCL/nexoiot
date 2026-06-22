@@ -233,7 +233,7 @@ function generateToken(roomId, guestName, checkin, checkout, phone = '', lang = 
 }
 
 // ── ACTUALIZAR PREFERENCIAS (idioma / accesibilidad) ─────────────────────────
-function updateTokenPrefs(token, { lang, accessibility, dnd, doorAlarm } = {}) {
+function updateTokenPrefs(token, { lang, accessibility, dnd, alarmSensors } = {}) {
   const tokens = getTokens();
   const entry  = tokens[token];
   if (!entry || !entry.active) return false;
@@ -250,9 +250,13 @@ function updateTokenPrefs(token, { lang, accessibility, dnd, doorAlarm } = {}) {
     entry.dnd = dnd;
     changes.push(dnd ? 'No molestar activado' : 'No molestar desactivado');
   }
-  if (typeof doorAlarm === 'boolean' && doorAlarm !== entry.doorAlarm) {
-    entry.doorAlarm = doorAlarm;
-    changes.push(doorAlarm ? 'Alarma de puerta activada' : 'Alarma de puerta desactivada');
+  if (alarmSensors && typeof alarmSensors === 'object') {
+    entry.alarmSensors = entry.alarmSensors || {};
+    for (const [key, armed] of Object.entries(alarmSensors)) {
+      if (typeof armed !== 'boolean' || armed === entry.alarmSensors[key]) continue;
+      entry.alarmSensors[key] = armed;
+      changes.push(`Alarma de ${key} ${armed ? 'activada' : 'desactivada'}`);
+    }
   }
   writeJSON(TOKENS_FILE, tokens);
   if (changes.length) addActivity(entry.roomId, 'prefs_changed', changes.join(', '));
@@ -484,6 +488,26 @@ function resolveRequest(id) {
   if (changed) {
     writeJSON(ROOMS_FILE, allRooms);
     console.log('[rooms] Migración: etiquetas de enchufe actualizadas a funciones (Estufa/Aromatizador)');
+  }
+})();
+
+// Migración única: doorAlarm (boolean único, asumía una sola puerta) pasó a
+// alarmSensors (mapa por deviceKey, soporta puerta + N ventanas armadas
+// independientemente). Tokens activos en producción ya tienen doorAlarm
+// guardado — se traduce su valor a alarmSensors.puerta antes de que nada más
+// lea tokens.json, sin perder la preferencia que el huésped ya eligió.
+(function migrarAlarmaPuertaAAlarmSensors() {
+  const tokens = getTokens();
+  let changed = false;
+  for (const entry of Object.values(tokens)) {
+    if (entry.alarmSensors) continue;
+    entry.alarmSensors = { puerta: entry.doorAlarm === true };
+    delete entry.doorAlarm;
+    changed = true;
+  }
+  if (changed) {
+    writeJSON(TOKENS_FILE, tokens);
+    console.log('[rooms] Migración: doorAlarm → alarmSensors (por dispositivo)');
   }
 })();
 

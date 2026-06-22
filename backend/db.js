@@ -378,6 +378,8 @@ try { db.exec('ALTER TABLE tarifas ADD COLUMN dias_semana TEXT'); } catch { /* y
 try { db.exec('ALTER TABLE booking_config ADD COLUMN link_resenas TEXT'); } catch { /* ya existe */ }
 try { db.exec('ALTER TABLE housekeeping ADD COLUMN usuario_id TEXT'); } catch { /* ya existe */ }
 try { db.exec('ALTER TABLE housekeeping ADD COLUMN usuario_nombre TEXT'); } catch { /* ya existe */ }
+try { db.exec('ALTER TABLE alarmas_puerta ADD COLUMN device_key TEXT'); } catch { /* ya existe */ }
+try { db.exec('ALTER TABLE alarmas_puerta ADD COLUMN device_label TEXT'); } catch { /* ya existe */ }
 
 console.log('[db] SQLite listo:', DB_PATH);
 module.exports = db;

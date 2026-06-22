@@ -1074,7 +1074,7 @@ window.updateStayPrefs = async function(roomId, prop, value) {
 };
 
 const DEV_ICONS = {
-  light: '💡', light_rgb: '💡', curtain: '🪟', switch_3ch: '🔌', switch: '🔌', door_sensor: '🚪',
+  light: '💡', light_rgb: '💡', curtain: '🪟', switch_3ch: '🔌', switch: '🔌', door_sensor: '🚪', window_sensor: '🪟',
 };
 
 function renderDevGrid() {
@@ -1357,6 +1357,7 @@ function buildDeviceCard(key, dev) {
     case 'switch':
       return buildSwitchCard(key, dev, ico);
     case 'door_sensor':
+    case 'window_sensor':
       return buildDoorCard(dev, ico, key);
     default:
       return '';
@@ -4220,7 +4221,8 @@ async function checkDoorAlarms() {
     const alarmas = await apiFetch(`/admin/door-alarms?hotel=${encodeURIComponent(HOTEL_ID)}`);
     for (const a of alarmas) {
       const room = rooms.find(r => r.id === a.room_id);
-      showToast(`🚨 Se abrió la puerta — ${room?.name || a.room_id}`, 'error');
+      const sensorLabel = a.device_label || 'la puerta';
+      showToast(`🚨 Se abrió ${sensorLabel} — ${room?.name || a.room_id}`, 'error');
       apiFetch(`/admin/door-alarms/${a.id}/ack`, { method: 'POST' }).catch(() => {});
     }
   } catch { /* siguiente ciclo reintenta solo */ }
