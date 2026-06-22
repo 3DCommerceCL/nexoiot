@@ -2296,8 +2296,12 @@ function openReservaModal(reserva = null, prefill = {}) {
   $('rv-guest').value    = reserva?.guest_name   || '';
   $('rv-email').value    = reserva?.guest_email  || '';
   $('rv-phone').value    = reserva?.guest_phone  || '';
-  $('rv-checkin').value  = (reserva?.checkin  || prefill.date || '').slice(0, 10);
-  $('rv-checkout').value = (reserva?.checkout || '').slice(0, 10);
+  $('rv-checkin').value  = reserva?.checkin
+    ? toLocalInputValue(new Date(reserva.checkin))
+    : (prefill.date ? `${prefill.date.slice(0, 10)}T15:00` : '');
+  $('rv-checkout').value = reserva?.checkout
+    ? toLocalInputValue(new Date(reserva.checkout))
+    : (prefill.date ? `${new Date(new Date(prefill.date).getTime() + 86400000).toISOString().slice(0, 10)}T11:00` : '');
   $('rv-notes').value    = reserva?.notes        || '';
   $('rv-error').textContent = '';
 
