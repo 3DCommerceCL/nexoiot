@@ -14,7 +14,24 @@ const genId = () => 'role_' + crypto.randomBytes(8).toString('hex');
 // Catálogo cerrado — el dueño elige permisos de esta lista, no escribe texto libre.
 // Se amplía sin migración (es código + ids guardados como JSON en la fila del rol).
 const PERMISOS_CATALOGO = [
-  { id: 'housekeeping.gestionar', label: 'Gestionar aseo', desc: 'Ver y cambiar el estado de limpieza de las habitaciones' },
+  { id: 'housekeeping.gestionar',  label: 'Gestionar aseo',              desc: 'Ver y cambiar el estado de limpieza de las habitaciones' },
+  { id: 'solicitudes.gestionar',   label: 'Gestionar solicitudes',       desc: 'Ver y resolver pedidos de huéspedes (toallas, room service, late checkout, etc.)' },
+  { id: 'dispositivos.controlar',  label: 'Controlar dispositivos',      desc: 'Escenas, desbloqueo manual, ocultar dispositivos, programar encendido/apagado' },
+  { id: 'reservas.gestionar',      label: 'Gestionar reservas',          desc: 'Crear/editar/cancelar reservas, check-in/out, bloqueos de disponibilidad' },
+  { id: 'tarifas.gestionar',       label: 'Gestionar tarifas',           desc: 'Precios, grilla de tarifas, categorías, reglas de rendimiento' },
+  { id: 'pagos.gestionar',         label: 'Gestionar pagos',             desc: 'Cobros, boletas, facturas, documentos tributarios' },
+  { id: 'huespedes.gestionar',     label: 'Gestionar huéspedes',         desc: 'Perfiles, notas y encuestas del CRM' },
+  { id: 'alarmas.ver',             label: 'Ver alarmas',                 desc: 'Ver y reconocer alarmas de puerta/ventana' },
+  { id: 'canales.gestionar',       label: 'Gestionar canales de venta',  desc: 'Booking.com/Airbnb, mapeos, sincronización' },
+  { id: 'configuracion.gestionar', label: 'Gestionar configuración',     desc: 'Marca, contacto, facturación, encuesta, directorio de servicios' },
+  { id: 'informes.ver',            label: 'Ver informes',                desc: 'Reportes de rendimiento y actividad' },
+];
+
+const PLANTILLAS = [
+  { id: 'aseo',       nombre: 'Personal de aseo',             permisos: ['housekeeping.gestionar'] },
+  { id: 'mayordomo',  nombre: 'Mayordomo / Conserje',         permisos: ['solicitudes.gestionar', 'dispositivos.controlar'] },
+  { id: 'revenue',    nombre: 'Revenue manager',              permisos: ['tarifas.gestionar', 'informes.ver', 'canales.gestionar'] },
+  { id: 'supervisor', nombre: 'Supervisor / Gerente de turno', permisos: ['solicitudes.gestionar', 'dispositivos.controlar', 'reservas.gestionar', 'pagos.gestionar', 'huespedes.gestionar', 'alarmas.ver'] },
 ];
 
 function row(r) {
@@ -79,4 +96,4 @@ function tienePermiso(rolUsuario, permiso) {
   return !!rol && rol.permisos.includes(permiso);
 }
 
-module.exports = { PERMISOS_CATALOGO, listByHotel, getById, create, update, remove, tienePermiso };
+module.exports = { PERMISOS_CATALOGO, PLANTILLAS, listByHotel, getById, create, update, remove, tienePermiso };

@@ -12,9 +12,13 @@ let HOTEL_ID = null; // se fija tras login: hotelId de la sesión (owner/recepci
 let currentRol = null; // 'superadmin' | 'owner' | 'recepcion' | id de rol personalizado, fijado tras login
 let currentPermisos = []; // permisos del rol personalizado (vacío para los 3 roles fijos)
 const isOwnerOrSuper = () => currentRol === 'owner' || currentRol === 'superadmin';
+// Dominios donde recepción (rol fijo) ya tenía acceso de fábrica en server.js antes de
+// que existieran los roles personalizados — tarifas/canales/configuración/informes
+// siempre fueron solo-owner, recepción nunca los vio.
+const RECEPCION_PERMISOS = ['housekeeping.gestionar', 'solicitudes.gestionar', 'dispositivos.controlar', 'reservas.gestionar', 'pagos.gestionar', 'huespedes.gestionar', 'alarmas.ver'];
 // Espejo de requireRoleOrPermiso() en el backend — para que la UI nunca muestre algo
 // que el backend luego va a rechazar.
-const hasPermiso = (p) => isOwnerOrSuper() || currentRol === 'recepcion' || currentPermisos.includes(p);
+const hasPermiso = (p) => isOwnerOrSuper() || (currentRol === 'recepcion' && RECEPCION_PERMISOS.includes(p)) || currentPermisos.includes(p);
 
 // Canales OTA: el código (channel-manager.js, canales.js, esta misma vista) está
 // completo y funciona en modo simulación, pero certificarse con SiteMinder es un
@@ -543,7 +547,9 @@ function applyRoleVisibility(rol, permisos) {
   currentPermisos = permisos || [];
   const fullAccess = isOwnerOrSuper();
   document.querySelectorAll('.nav-item[data-role]').forEach(el => {
-    el.classList.toggle('hidden', !fullAccess);
+    const permiso = el.dataset.permiso;
+    const visible = fullAccess || (permiso && hasPermiso(permiso));
+    el.classList.toggle('hidden', !visible);
   });
   const back = $('back-to-nexo');
   if (back) back.classList.toggle('hidden', rol !== 'superadmin');
@@ -982,13 +988,54 @@ function renderSimplifiedRoomView(room) {
     ? `<button class="btn btn-primary" style="width:100%;margin-top:14px" onclick="activarEscenaAseo('${room.id}')">🧹 Activar escena Aseo</button>
        <p class="form-note" style="margin-top:6px">Abre las cortinas y enciende las luces en blanco para limpiar la habitación.</p>`
     : '';
+  const solicitudesSeccion = hasPermiso('solicitudes.gestionar')
+    ? `<div class="analytics-card" style="grid-column:1/-1;margin-top:14px">
+        <div style="font-size:14px;font-weight:600;margin-bottom:10px">Solicitudes pendientes</div>
+        <div id="simple-room-requests">Cargando…</div>
+      </div>`
+    : '';
   $('dev-grid').innerHTML = `
     <div class="analytics-card" style="grid-column:1/-1">
       <div style="font-size:14px;font-weight:600;margin-bottom:10px">Estado de aseo</div>
       ${housekeepingControlHtml(room)}
       ${sceneBtn}
-    </div>`;
+    </div>
+    ${solicitudesSeccion}`;
+  if (hasPermiso('solicitudes.gestionar')) loadSimplifiedRoomRequests(room.id);
 }
+
+async function loadSimplifiedRoomRequests(roomId) {
+  const el = $('simple-room-requests');
+  if (!el) return;
+  try {
+    const list = await apiFetch(`/admin/requests?hotel=${encodeURIComponent(HOTEL_ID)}&status=pending`);
+    const propias = list.filter(r => r.roomId === roomId);
+    el.innerHTML = propias.length
+      ? propias.map(r => `
+        <div class="request-item" id="simple-req-${r.id}">
+          <span class="request-ico">${REQUEST_ICONS[r.type] || '🔔'}</span>
+          <div class="request-body">
+            <div class="request-title">${dt(REQUEST_TITLE_KEY[r.type] || 'requestOther')}</div>
+            <div class="request-sub">${dt('requestSub', { room: r.roomName, guest: r.guestName, time: timeAgo(r.createdAt) })}</div>
+            ${r.note ? `<div class="request-note">${r.note}</div>` : ''}
+          </div>
+          <button class="btn btn-sm btn-outline-teal" onclick="resolveSimplifiedRequest('${r.id}', '${roomId}')">${dt('requestResolveBtn')}</button>
+        </div>`).join('')
+      : `<div class="request-empty">${dt('noRequests')}</div>`;
+  } catch (err) {
+    el.innerHTML = `<div class="request-empty">Error: ${err.message}</div>`;
+  }
+}
+
+window.resolveSimplifiedRequest = async function(id, roomId) {
+  try {
+    await apiFetch(`/admin/requests/${id}/resolve`, { method: 'POST' });
+    showToast(dt('requestResolved'), 'success');
+    loadSimplifiedRoomRequests(roomId);
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+};
 
 window.activarEscenaAseo = async function(roomId) {
   try {
@@ -2574,6 +2621,7 @@ window.enviarEncuestaHuesped = async function() {
 let equipoCache = [];
 let rolesCache  = [];
 let permisosCatalogoCache = [];
+let plantillasCache = [];
 
 async function loadEquipo() {
   try {
@@ -2584,6 +2632,7 @@ async function loadEquipo() {
     equipoCache = staff;
     rolesCache = rolesRes.roles;
     permisosCatalogoCache = rolesRes.catalogo;
+    plantillasCache = rolesRes.plantillas || [];
     renderStaffTable();
     renderRolesList();
     populateEqmRolSelect();
@@ -2687,12 +2736,35 @@ function renderPermisosCheckboxes(seleccionados = []) {
     </label>`).join('');
 }
 
+function renderPlantillasRol() {
+  const el = $('eqr-plantillas');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="font-size:11px;color:var(--text2);margin-bottom:6px;text-transform:uppercase">Plantillas</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      ${plantillasCache.map(t => `<button type="button" class="btn btn-outline btn-sm" onclick="aplicarPlantillaRol('${t.id}')">${t.nombre}</button>`).join('')}
+      <button type="button" class="btn btn-outline btn-sm" onclick="aplicarPlantillaRol('')">Personalizado</button>
+    </div>`;
+}
+
+window.aplicarPlantillaRol = function(plantillaId) {
+  const plantilla = plantillasCache.find(t => t.id === plantillaId);
+  const permisos = plantilla ? plantilla.permisos : [];
+  document.querySelectorAll('#eqr-permisos input[type=checkbox]').forEach(cb => {
+    cb.checked = permisos.includes(cb.value);
+  });
+  if (plantilla && !$('eqr-nombre').value.trim()) {
+    $('eqr-nombre').value = plantilla.nombre;
+  }
+};
+
 function openNuevoRolModal() {
   $('eqr-titulo').textContent = 'Nuevo rol';
   $('eqr-id').value = '';
   $('eqr-nombre').value = '';
   $('eqr-error').textContent = '';
   renderPermisosCheckboxes();
+  renderPlantillasRol();
   $('modal-eq-rol').classList.remove('hidden');
 }
 
@@ -2704,6 +2776,7 @@ window.openEditarRolModal = function(id) {
   $('eqr-nombre').value = r.nombre;
   $('eqr-error').textContent = '';
   renderPermisosCheckboxes(r.permisos);
+  renderPlantillasRol();
   $('modal-eq-rol').classList.remove('hidden');
 };
 

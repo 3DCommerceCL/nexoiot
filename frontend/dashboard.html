@@ -504,23 +504,23 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">📋</span>
       <span class="nav-label">Reservas</span>
     </div>
-    <div class="nav-item" data-view="servicios" data-role="owner">
+    <div class="nav-item" data-view="servicios" data-role="owner" data-permiso="configuracion.gestionar">
       <span class="nav-icon">🛎️</span>
       <span class="nav-label">Servicios</span>
     </div>
-    <div class="nav-item" data-view="grid-tarifas" data-role="owner">
+    <div class="nav-item" data-view="grid-tarifas" data-role="owner" data-permiso="tarifas.gestionar">
       <span class="nav-icon">🧮</span>
       <span class="nav-label">Grid de tarifas</span>
     </div>
-    <div class="nav-item" data-view="informes" data-role="owner">
+    <div class="nav-item" data-view="informes" data-role="owner" data-permiso="informes.ver">
       <span class="nav-icon">📊</span>
       <span class="nav-label">Informes</span>
     </div>
-    <div class="nav-item" data-view="log" data-role="owner">
+    <div class="nav-item" data-view="log" data-role="owner" data-permiso="informes.ver">
       <span class="nav-icon">📜</span>
       <span class="nav-label">Log</span>
     </div>
-    <div class="nav-item" data-view="crm">
+    <div class="nav-item" data-view="crm" data-role="owner" data-permiso="huespedes.gestionar">
       <span class="nav-icon">👥</span>
       <span class="nav-label">CRM</span>
     </div>
@@ -532,20 +532,20 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">💬</span>
       <span class="nav-label">Mensajes</span>
     </div>
-    <div class="nav-item" data-view="channels" data-role="owner">
+    <div class="nav-item" data-view="channels" data-role="owner" data-permiso="canales.gestionar">
       <span class="nav-icon">🔗</span>
       <span class="nav-label">Canales OTA</span>
       <span class="nav-badge-soon">Próximamente</span>
     </div>
-    <div class="nav-item" data-view="booking" data-role="owner">
+    <div class="nav-item" data-view="booking" data-role="owner" data-permiso="configuracion.gestionar">
       <span class="nav-icon">🛒</span>
       <span class="nav-label">Motor Reservas</span>
     </div>
-    <div class="nav-item" data-view="pagos" data-role="owner">
+    <div class="nav-item" data-view="pagos" data-role="owner" data-permiso="pagos.gestionar">
       <span class="nav-icon">💳</span>
       <span class="nav-label">Pagos</span>
     </div>
-    <div class="nav-item" data-view="facturacion" data-role="owner">
+    <div class="nav-item" data-view="facturacion" data-role="owner" data-permiso="pagos.gestionar">
       <span class="nav-icon">🧾</span>
       <span class="nav-label">Facturación</span>
     </div>
@@ -1474,19 +1474,20 @@ select.form-input option{background:var(--card);color:var(--text)}
 
 <!-- MODAL: Nuevo rol personalizado -->
 <div class="modal-overlay hidden" id="modal-eq-rol">
-  <div class="modal" style="max-width:420px">
+  <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <div class="modal-title" id="eqr-titulo">Nuevo rol</div>
       <button class="modal-close" onclick="closeModal('modal-eq-rol')">✕</button>
     </div>
     <input type="hidden" id="eqr-id">
+    <div id="eqr-plantillas" style="margin-bottom:14px"></div>
     <div class="modal-field" style="margin-top:0">
       <span class="modal-label">Nombre del rol</span>
       <input class="form-input" id="eqr-nombre" placeholder="Ej: Aseo, Mayordomo">
     </div>
     <div class="modal-field">
       <span class="modal-label">Permisos</span>
-      <div id="eqr-permisos"></div>
+      <div id="eqr-permisos" style="max-height:280px;overflow-y:auto;padding-right:4px"></div>
     </div>
     <div class="modal-error" id="eqr-error"></div>
     <div class="modal-actions">
