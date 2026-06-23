@@ -586,6 +586,7 @@ function applyRoleVisibility(rol, permisos) {
   });
   const back = $('back-to-nexo');
   if (back) back.classList.toggle('hidden', rol !== 'superadmin');
+  $('btn-bulk-toggle')?.classList.toggle('hidden', !fullAccess);
 }
 
 function logout() {
@@ -828,10 +829,65 @@ function categoriaControlHtml(room) {
   return `<select class="form-input" style="font-size:10px;padding:3px 6px;height:auto;width:auto" onclick="event.stopPropagation()" onchange="assignCategoria('${room.id}', this.value)">${opts.join('')}</select>`;
 }
 
+// ── SELECCIÓN MÚLTIPLE (asignar categoría a varias habitaciones a la vez) ───────
+let bulkMode = false;
+const bulkSelected = new Set();
+
+function bulkCheckHtml(room) {
+  if (!bulkMode || !isOwnerOrSuper() || state.view !== 'rooms') return '';
+  const checked = bulkSelected.has(room.id) ? 'checked' : '';
+  return `<input type="checkbox" class="rc-select-check" ${checked} onclick="event.stopPropagation()" onchange="toggleBulkSelect('${room.id}', this.checked)">`;
+}
+
+window.toggleBulkSelect = function(roomId, checked) {
+  if (checked) bulkSelected.add(roomId); else bulkSelected.delete(roomId);
+  $(`rc-${roomId}`)?.classList.toggle('rc-selected', checked);
+  updateBulkBar();
+};
+
+function updateBulkBar() {
+  $('bulk-count').textContent = `${bulkSelected.size} seleccionada${bulkSelected.size !== 1 ? 's' : ''}`;
+  $('bulk-apply').disabled = bulkSelected.size === 0 || !$('bulk-categoria').value;
+}
+
+function setBulkMode(on) {
+  bulkMode = on;
+  if (!on) bulkSelected.clear();
+  $('bulk-bar').classList.toggle('hidden', !on);
+  $('btn-bulk-toggle').classList.toggle('active', on);
+  $('bulk-categoria').innerHTML = categoriasCache.length
+    ? '<option value="">Elige categoría…</option>' + categoriasCache.map(c => `<option value="${c.id}">${c.nombre} (${c.camas} cama${c.camas !== 1 ? 's' : ''})</option>`).join('')
+    : '<option value="">Sin categorías creadas</option>';
+  updateBulkBar();
+  renderRooms('rooms', state.filter);
+}
+
+async function applyBulkCategoria() {
+  const categoriaId = $('bulk-categoria').value;
+  if (!categoriaId || !bulkSelected.size) return;
+  const btn = $('bulk-apply');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    await Promise.all([...bulkSelected].map(roomId =>
+      apiFetch(`/admin/rooms/${roomId}/categoria`, { method: 'PATCH', body: JSON.stringify({ categoriaId }) })
+    ));
+    showToast(`Categoría aplicada a ${bulkSelected.size} habitación(es)`, 'success');
+    setBulkMode(false);
+    await loadRooms();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Aplicar categoría';
+  }
+}
+
 function buildRoomCard(room) {
   const planBadge = `<span class="badge badge-plan">${PLAN_LABELS[room.plan] || 'Base'}</span>`;
   const categoriaBadge = categoriaControlHtml(room);
   const hkRow = housekeepingControlHtml(room);
+  const bulkCheck = bulkCheckHtml(room);
   if (room.guest) {
     const co = checkoutInfo(room.guest.checkout);
     // Badges de idioma y accesibilidad del huésped (solo cuando no son los predeterminados)
@@ -842,7 +898,8 @@ function buildRoomCard(room) {
     const dndBadge = room.guest.dnd
       ? `<span class="badge" title="${dt('dndBadge')}">🔕</span>` : '';
     return `
-    <div class="room-card" id="rc-${room.id}">
+    <div class="room-card ${bulkSelected.has(room.id) ? 'rc-selected' : ''}" id="rc-${room.id}">
+      ${bulkCheck}
       <div class="rc-top">
         <span class="rc-num">${room.name}</span>
       </div>
@@ -857,7 +914,8 @@ function buildRoomCard(room) {
     </div>`;
   }
   return `
-  <div class="room-card" id="rc-${room.id}" style="border-style:dashed">
+  <div class="room-card ${bulkSelected.has(room.id) ? 'rc-selected' : ''}" id="rc-${room.id}" style="border-style:dashed">
+    ${bulkCheck}
     <div class="rc-top">
       <span class="rc-num">${room.name}</span>
     </div>
@@ -942,6 +1000,7 @@ function closeMobileSidebar() {
 }
 
 function navigate(view) {
+  if (bulkMode && view !== 'rooms') setBulkMode(false);
   state.view = view;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.toggle('active', el.dataset.view === view));
   document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === `view-${view}`));
@@ -3037,23 +3096,47 @@ async function gtEditarCelda(td) {
   input.focus();
   input.select();
 
-  const guardar = async () => {
+  const mostrarOpciones = () => {
     const nuevo = parseFloat(input.value);
     if (!nuevo || nuevo <= 0) { renderGridTarifas(); return; }
-    try {
-      await apiFetch('/admin/tarifas/grid/celda', {
-        method: 'PUT',
-        body: JSON.stringify({ hotelId: HOTEL_ID, ambito: gtData.ambito, ambitoId, fecha, precioUF: nuevo }),
-      });
-      gtData.precios[ambitoId][fecha] = { precioUF: nuevo, esOverride: true };
+
+    td.innerHTML = `
+      <div class="gt-cell-opciones">
+        <button type="button" class="btn btn-primary btn-sm" data-accion="dia">Solo este día</button>
+        <button type="button" class="btn btn-outline btn-sm" data-accion="rango">Hasta fecha…</button>
+      </div>`;
+
+    const onOutsideClick = e => {
+      if (!td.contains(e.target)) { document.removeEventListener('click', onOutsideClick); renderGridTarifas(); }
+    };
+    setTimeout(() => document.addEventListener('click', onOutsideClick), 0);
+
+    td.querySelector('[data-accion="dia"]').addEventListener('click', async e => {
+      e.stopPropagation();
+      document.removeEventListener('click', onOutsideClick);
+      try {
+        await apiFetch('/admin/tarifas/grid/celda', {
+          method: 'PUT',
+          body: JSON.stringify({ hotelId: HOTEL_ID, ambito: gtData.ambito, ambitoId, fecha, precioUF: nuevo }),
+        });
+        gtData.precios[ambitoId][fecha] = { precioUF: nuevo, esOverride: true };
+        renderGridTarifas();
+        showToast('Precio actualizado', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+        renderGridTarifas();
+      }
+    });
+
+    td.querySelector('[data-accion="rango"]').addEventListener('click', e => {
+      e.stopPropagation();
+      document.removeEventListener('click', onOutsideClick);
       renderGridTarifas();
-      showToast('Precio actualizado', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-      renderGridTarifas();
-    }
+      openAddTarifaModal({ ambito: gtData.ambito, ambitoId, precioUF: nuevo, desde: fecha });
+    });
   };
-  input.addEventListener('blur', guardar, { once: true });
+
+  input.addEventListener('blur', mostrarOpciones, { once: true });
   input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); });
 }
 
@@ -3843,14 +3926,14 @@ function updateTarifaAmbitoFields() {
   $('tf-room-field').classList.toggle('hidden', ambito !== 'room');
 }
 
-async function openAddTarifaModal() {
+async function openAddTarifaModal(prefill = {}) {
   $('tf-error').textContent = '';
-  $('tf-nombre').value = '';
-  $('tf-precio').value = '';
-  $('tf-desde').value  = new Date().toISOString().slice(0, 10);
+  $('tf-nombre').value = prefill.precioUF ? 'Ajuste de tarifa' : '';
+  $('tf-precio').value = prefill.precioUF ?? '';
+  $('tf-desde').value  = prefill.desde || new Date().toISOString().slice(0, 10);
   $('tf-hasta').value  = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
   $('tf-min').value    = 1;
-  $('tf-ambito').value = 'general';
+  $('tf-ambito').value = prefill.ambito || 'general';
   updateTarifaAmbitoFields();
   renderDiasSemanaSelector('tf-dias-semana');
 
@@ -3862,6 +3945,9 @@ async function openAddTarifaModal() {
     const roomsList = await apiFetch(`/admin/rooms?hotel=${encodeURIComponent(HOTEL_ID)}`);
     $('tf-room').innerHTML = roomsList.map(r => `<option value="${r.id}">${r.name} (${r.id})</option>`).join('');
   } catch { $('tf-room').innerHTML = ''; }
+
+  if (prefill.ambito === 'categoria' && prefill.ambitoId) $('tf-categoria').value = prefill.ambitoId;
+  if (prefill.ambito === 'room' && prefill.ambitoId)      $('tf-room').value      = prefill.ambitoId;
 
   $('modal-tarifa').classList.remove('hidden');
 }
@@ -4404,6 +4490,15 @@ document.addEventListener('DOMContentLoaded', () => {
   $('logout-btn').addEventListener('click', logout);
   $('btn-new-stay').addEventListener('click', () => openNewStayModal());
   $('btn-refresh').addEventListener('click', manualRefresh);
+  $('btn-bulk-toggle').addEventListener('click', () => setBulkMode(!bulkMode));
+  $('bulk-apply').addEventListener('click', applyBulkCategoria);
+  $('bulk-categoria').addEventListener('change', updateBulkBar);
+  $('bulk-clear').addEventListener('click', () => {
+    bulkSelected.clear();
+    updateBulkBar();
+    renderRooms('rooms', state.filter);
+  });
+  $('bulk-cancel').addEventListener('click', () => setBulkMode(false));
 
   $('sb-toggle').addEventListener('click', () => {
     if (window.innerWidth <= 900) {
