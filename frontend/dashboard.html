@@ -61,6 +61,7 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .top-bar .btn-outline{color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.4)}
 .top-bar .btn-outline:hover{color:#fff;border-color:#fff}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;border:1.5px solid transparent;font-family:var(--font);white-space:nowrap}
+.btn:disabled{opacity:.4;cursor:not-allowed;pointer-events:none}
 .btn-primary{background:var(--teal);color:#fff;border-color:var(--teal)}
 .btn-primary:hover{background:var(--teal-d);border-color:var(--teal-d)}
 .btn-outline{background:transparent;color:var(--text2);border-color:var(--border)}

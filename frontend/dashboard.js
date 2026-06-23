@@ -847,7 +847,8 @@ function buildRoomCard(room) {
     <div class="rc-empty">${dt('noGuest', { n: room.floor })}</div>
     ${room.categoriaId
       ? `<button class="btn btn-sm btn-outline-teal" style="margin-top:auto" onclick="openNewStayModal('${room.id}')">${dt('assignStay')}</button>`
-      : `<button class="btn btn-sm btn-outline-teal" style="margin-top:auto" disabled title="${dt('needCategoriaFirst')}">${dt('assignStay')}</button>`}
+      : `<div style="margin-top:auto;font-size:10px;color:#ffb74d;text-align:center;padding:2px 0">⚠️ ${dt('needCategoriaFirst')}</div>
+         <button class="btn btn-sm btn-outline-teal" disabled title="${dt('needCategoriaFirst')}">${dt('assignStay')}</button>`}
   </div>`;
 }
 
