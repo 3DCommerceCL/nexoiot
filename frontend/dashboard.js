@@ -623,6 +623,25 @@ async function loadCategoriasCache() {
   } catch { categoriasCache = []; }
 }
 
+// Botón manual de actualizar (🔄 en la barra superior) — la app ya se autorefresca
+// sola cada 15s para habitaciones, pero eso es muy lento para confirmar al toque un
+// cambio recién hecho (ej. asignar categoría y volver a Habitaciones).
+async function manualRefresh() {
+  const btn = $('btn-refresh');
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  try {
+    await loadRooms();
+    navigate(state.view);
+    fcInstance?.refetchEvents();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.classList.remove('spinning');
+    btn.disabled = false;
+  }
+}
+
 // ── SOLICITUDES DE HUÉSPEDES ──────────────────────────────────────────────────
 let requests = [];
 
@@ -4384,6 +4403,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
   $('logout-btn').addEventListener('click', logout);
   $('btn-new-stay').addEventListener('click', () => openNewStayModal());
+  $('btn-refresh').addEventListener('click', manualRefresh);
 
   $('sb-toggle').addEventListener('click', () => {
     if (window.innerWidth <= 900) {
