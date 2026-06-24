@@ -2384,7 +2384,7 @@ app.delete('/api/admin/canales/mappings/:mappingId', requireRoleOrPermiso(['owne
 });
 
 // ── ADMIN: POST /api/admin/rooms/:roomId/bloqueo ──────────────────────────────
-app.post('/api/admin/rooms/:roomId/bloqueo', requireAuth('owner'), (req, res) => {
+app.post('/api/admin/rooms/:roomId/bloqueo', requireRoleOrPermiso(['owner', 'recepcion'], 'reservas.gestionar'), (req, res) => {
   const room = rooms.getRooms()[req.params.roomId];
   if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
   if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
@@ -2399,7 +2399,7 @@ app.post('/api/admin/rooms/:roomId/bloqueo', requireAuth('owner'), (req, res) =>
 });
 
 // ── ADMIN: DELETE /api/admin/bloqueos/:id ─────────────────────────────────────
-app.delete('/api/admin/bloqueos/:id', requireAuth('owner'), (req, res) => {
+app.delete('/api/admin/bloqueos/:id', requireRoleOrPermiso(['owner', 'recepcion'], 'reservas.gestionar'), (req, res) => {
   const bloqueo = bloqueos.getById(req.params.id);
   if (!bloqueo) return res.status(404).json({ error: 'Bloqueo no encontrado' });
   if (!assertHotelAccess(req, bloqueo.hotel_id)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
@@ -2409,7 +2409,7 @@ app.delete('/api/admin/bloqueos/:id', requireAuth('owner'), (req, res) => {
 });
 
 // ── ADMIN: GET /api/admin/rooms/:roomId/bloqueos ──────────────────────────────
-app.get('/api/admin/rooms/:roomId/bloqueos', requireAuth('owner', 'recepcion'), (req, res) => {
+app.get('/api/admin/rooms/:roomId/bloqueos', requireRoleOrPermiso(['owner', 'recepcion'], 'reservas.gestionar'), (req, res) => {
   const room = rooms.getRooms()[req.params.roomId];
   if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
   if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
@@ -2418,7 +2418,7 @@ app.get('/api/admin/rooms/:roomId/bloqueos', requireAuth('owner', 'recepcion'), 
 
 // ── ADMIN: GET /api/admin/bloqueos ────────────────────────────────────────────
 // ?hotel=<id>&from=YYYY-MM-DD&to=YYYY-MM-DD — bloqueos del hotel en un rango (para el calendario)
-app.get('/api/admin/bloqueos', requireAuth('owner', 'recepcion'), (req, res) => {
+app.get('/api/admin/bloqueos', requireRoleOrPermiso(['owner', 'recepcion'], 'reservas.gestionar'), (req, res) => {
   const { hotel, from, to } = req.query;
   if (!hotel || !from || !to) return res.status(400).json({ error: 'Requeridos: hotel, from, to' });
   if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
