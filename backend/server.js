@@ -1176,6 +1176,31 @@ app.get('/api/admin/reservas/precio', requireRoleOrPermiso(['owner', 'recepcion'
   });
 });
 
+// ── ADMIN: GET /api/admin/rooms/:roomId/tarifas-cobertura ─────────────────────
+// ?from=YYYY-MM-DD&to=YYYY-MM-DD — por cada día indica si tiene tarifa definida.
+// Usado por el calendario del modal "Nueva estadía" para deshabilitar días sin tarifa.
+app.get('/api/admin/rooms/:roomId/tarifas-cobertura', requireRoleOrPermiso(['owner', 'recepcion'], 'reservas.gestionar'), (req, res) => {
+  const { from, to } = req.query;
+  if (!from || !to) return res.status(400).json({ error: 'Requeridos: from, to' });
+  const room = rooms.getRooms()[req.params.roomId];
+  if (!room) return res.status(404).json({ error: 'Habitación no encontrada' });
+  if (!assertHotelAccess(req, room.hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const tarifasActivas = tarifas.getActivasEnRango(room.hotelId, from, to);
+  const overridesRoom = tarifasDia.getEnRango(room.hotelId, 'room', [room.id], from, to);
+  const overridesCategoria = tarifasDia.getEnRango(room.hotelId, 'categoria', room.categoriaId ? [room.categoriaId] : [], from, to);
+  const cobertura = {};
+  let d = new Date(from + 'T00:00:00Z');
+  const end = new Date(to + 'T00:00:00Z');
+  while (d <= end) {
+    const fecha = d.toISOString().slice(0, 10);
+    const override = tarifasDia.resolverOverride(room.id, room.categoriaId, fecha, overridesRoom, overridesCategoria);
+    const tarifaRango = tarifas.resolverTarifaRango(room.id, room.categoriaId, fecha, tarifasActivas);
+    cobertura[fecha] = (override?.precio_uf ?? tarifaRango?.precio_uf ?? null) !== null;
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  res.json({ cobertura });
+});
+
 // ── ADMIN: POST /api/admin/reservas ──────────────────────────────────────────
 app.post('/api/admin/reservas', requireRoleOrPermiso(['owner', 'recepcion'], 'reservas.gestionar'), (req, res) => {
   const { hotelId, roomId, guestName, checkin, checkout, guestEmail, guestPhone, notes, plan, source, lang, accessibility } = req.body;
@@ -1872,6 +1897,30 @@ app.put('/api/admin/tarifas/grid/celda', requireRoleOrPermiso(['owner'], 'tarifa
   if (precioUF <= 0) return res.status(400).json({ error: 'precioUF debe ser mayor a 0' });
   invalidarCacheDisponibilidad(hotelId);
   res.json(tarifasDia.setPrecio(hotelId, ambito, ambitoId, fecha, precioUF));
+});
+
+// ── ADMIN: POST /api/admin/tarifas/grid/rango-dias ────────────────────────────
+// Aplica el mismo precio override (tarifas_dia) a todos los días [desde, hasta].
+// Body: { hotelId, ambito, ambitoId, desde, hasta, precioUF }
+app.post('/api/admin/tarifas/grid/rango-dias', requireRoleOrPermiso(['owner'], 'tarifas.gestionar'), (req, res) => {
+  const { hotelId, ambito, ambitoId, desde, hasta, precioUF } = req.body;
+  if (!hotelId || !ambito || !ambitoId || !desde || !hasta || !precioUF)
+    return res.status(400).json({ error: 'Requeridos: hotelId, ambito, ambitoId, desde, hasta, precioUF' });
+  if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  if (!['room', 'categoria'].includes(ambito)) return res.status(400).json({ error: "ambito debe ser 'room' o 'categoria'" });
+  const precio = parseFloat(precioUF);
+  if (isNaN(precio) || precio <= 0) return res.status(400).json({ error: 'precioUF inválido' });
+  if (desde > hasta) return res.status(400).json({ error: 'desde debe ser <= hasta' });
+  let d = new Date(desde + 'T00:00:00Z');
+  const end = new Date(hasta + 'T00:00:00Z');
+  let count = 0;
+  while (d <= end && count < 90) {
+    tarifasDia.setPrecio(hotelId, ambito, ambitoId, d.toISOString().slice(0, 10), precio);
+    d.setUTCDate(d.getUTCDate() + 1);
+    count++;
+  }
+  invalidarCacheDisponibilidad(hotelId);
+  res.json({ success: true, count });
 });
 
 // ── ADMIN: DELETE /api/admin/tarifas/grid/celda ───────────────────────────────

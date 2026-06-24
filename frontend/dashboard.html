@@ -133,6 +133,25 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .gt-cell-opciones{display:flex;flex-direction:column;gap:3px;align-items:stretch}
 .gt-cell-opciones .btn{padding:3px 6px;font-size:10px;white-space:nowrap}
 .gt-rowname{white-space:nowrap;font-weight:600}
+.gt-cell.gt-sel{background:var(--teal-l)!important;outline:1px solid var(--teal)}
+.gt-cell.gt-sel-start{background:var(--teal)!important;color:#fff}
+.gt-rango-form{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--teal-l);border:1px solid var(--teal);border-radius:8px;margin-bottom:8px;font-size:13px;flex-wrap:wrap}
+.gt-rango-form input[type=number]{width:90px;padding:5px 8px;border-radius:6px;border:1px solid var(--teal);background:var(--bg);color:var(--text);font-size:13px;font-family:var(--font)}
+/* Mini calendario en modal nueva estadía */
+.ns-cal-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:8px}
+.ns-cal-nav-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.ns-cal-title{font-size:12px;font-weight:700;color:var(--text)}
+.ns-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;text-align:center;margin-top:4px}
+.ns-cal-dow{font-size:10px;color:var(--text2);padding:3px 0;font-weight:600}
+.ns-cal-day{padding:5px 2px;font-size:12px;border-radius:4px;cursor:pointer;user-select:none;line-height:1.3}
+.ns-cal-day.has:hover{background:var(--teal-l)}
+.ns-cal-day.no{opacity:.35;cursor:not-allowed;pointer-events:none}
+.ns-cal-day.past{opacity:.2;cursor:not-allowed;pointer-events:none}
+.ns-cal-day.ns-ci{background:var(--teal);color:#fff;border-radius:4px 0 0 4px}
+.ns-cal-day.ns-co{background:var(--teal);color:#fff;border-radius:0 4px 4px 0}
+.ns-cal-day.ns-range{background:var(--teal-l);border-radius:0}
+.ns-cal-day.ns-both{background:var(--teal);color:#fff;border-radius:4px}
+.ns-tarifa-warn{font-size:11px;color:var(--alert);margin-top:4px;min-height:14px}
 
 /* ── DÍAS DE SEMANA (selector compacto en modales de tarifa) ── */
 .dias-semana-row{display:flex;gap:4px}
@@ -700,8 +719,9 @@ select.form-input option{background:var(--card);color:var(--text)}
         <button class="btn btn-outline btn-sm" id="gt-prev">← Semana</button>
         <span class="form-note" id="gt-rango" style="margin:0 4px"></span>
         <button class="btn btn-outline btn-sm" id="gt-next">Semana →</button>
+        <button class="btn btn-outline btn-sm" id="btn-gt-range" style="margin-left:auto" title="Seleccionar un rango de días para asignarles el mismo precio">📅 Rango</button>
       </div>
-      <div class="form-note" style="margin-bottom:10px">Click en una celda, escribe el precio y elige "Solo este día" (precio puntual) o "Hasta fecha…" (aplica el mismo precio desde ese día hasta una fecha que elijas). Las celdas resaltadas tienen un precio especial distinto de la tarifa de rango.</div>
+      <div class="form-note" id="gt-ayuda" style="margin-bottom:10px">Click en una celda para editar un precio puntual ("Solo este día") o de rango ("Hasta fecha…"). Con el botón <strong>📅 Rango</strong> haz clic en el primer día y luego en el último para asignar el mismo precio a todos los días del intervalo. Las celdas resaltadas tienen precio especial.</div>
       <div style="overflow-x:auto">
         <table class="rl-table" id="gt-table"></table>
       </div>

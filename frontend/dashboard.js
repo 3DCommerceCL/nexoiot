@@ -2098,6 +2098,77 @@ window.openNewStayModal = function(preselectId = null) {
   $('modal-new-stay').classList.remove('hidden');
 };
 
+// ── MINI-CALENDARIO DE NUEVA ESTADÍA ─────────────────────────────────────────
+let nsCoverage = {};   // { "YYYY-MM-DD": true/false }
+let nsCalY = 0, nsCalM = 0;
+let nsCiStr = '', nsCoStr = ''; // "YYYY-MM-DD" seleccionadas
+
+async function nsCargarCobertura(roomId) {
+  nsCoverage = {};
+  if (!roomId) { nsRenderCal(); return; }
+  const today = new Date().toISOString().slice(0, 10);
+  const toDate = new Date(Date.now() + 90 * 86400000).toISOString().slice(0, 10);
+  try {
+    const { cobertura } = await apiFetch(`/admin/rooms/${encodeURIComponent(roomId)}/tarifas-cobertura?from=${today}&to=${toDate}`);
+    nsCoverage = cobertura || {};
+  } catch { /* sin categoría o error → todos los días quedan como desconocidos */ }
+  nsRenderCal();
+}
+
+function nsRenderCal() {
+  const wrap = $('ns-cal-wrap');
+  if (!wrap) return;
+  const daysInMonth = new Date(nsCalY, nsCalM + 1, 0).getDate();
+  const firstDow    = (new Date(nsCalY, nsCalM, 1).getDay() + 6) % 7; // 0=Lun
+  const today       = new Date().toISOString().slice(0, 10);
+  const title       = new Date(nsCalY, nsCalM, 1).toLocaleDateString('es-CL', { month: 'long', year: 'numeric' });
+  $('ns-cal-title').textContent = title.charAt(0).toUpperCase() + title.slice(1);
+
+  const dows = ['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'];
+  let html = dows.map(d => `<div class="ns-cal-dow">${d}</div>`).join('');
+  for (let i = 0; i < firstDow; i++) html += '<div></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${nsCalY}-${String(nsCalM + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const isPast = ds < today;
+    const cob    = nsCoverage[ds]; // true / false / undefined
+    const isCi   = ds === nsCiStr, isCo = ds === nsCoStr;
+    const inRng  = nsCiStr && nsCoStr && ds > nsCiStr && ds < nsCoStr;
+
+    let cls = 'ns-cal-day';
+    if (isPast) cls += ' past';
+    else if (cob === false) cls += ' no';
+    else cls += ' has';
+
+    if (!isPast && cob !== false) {
+      if (isCi && isCo) cls += ' ns-both';
+      else if (isCi)    cls += ' ns-ci';
+      else if (isCo)    cls += ' ns-co';
+      else if (inRng)   cls += ' ns-range';
+    }
+
+    const tip = cob === false ? ' title="Falta definir tarifa"' : '';
+    html += `<div class="${cls}" data-d="${ds}"${tip}>${d}</div>`;
+  }
+
+  $('ns-cal-grid').innerHTML = html;
+}
+
+function nsSelFecha(ds) {
+  if (!nsCiStr || (nsCiStr && nsCoStr)) {
+    nsCiStr = ds; nsCoStr = '';
+    $('ns-checkin').value  = `${ds}T15:00`;
+    $('ns-checkout').value = '';
+  } else {
+    if (ds <= nsCiStr) { nsCoStr = nsCiStr; nsCiStr = ds; }
+    else                { nsCoStr = ds; }
+    $('ns-checkin').value  = `${nsCiStr}T15:00`;
+    $('ns-checkout').value = `${nsCoStr}T11:00`;
+    actualizarMontoEstimadoNuevaEstadia();
+  }
+  nsRenderCal();
+}
+
 function renderNewStayForm(preselectId) {
   const avail = availableRooms();
   if (avail.length === 0) {
@@ -2132,6 +2203,21 @@ function renderNewStayForm(preselectId) {
         <label class="form-label">${dt('fCheckout')}</label>
         <input class="form-input" id="ns-checkout" type="datetime-local" value="${toLocalInputValue(tomorrow)}">
       </div>
+      <div class="form-group full">
+        <div class="ns-cal-wrap" id="ns-cal-wrap">
+          <div class="ns-cal-nav-row">
+            <button type="button" class="btn btn-outline btn-sm" id="ns-cal-prev" style="padding:2px 8px">‹</button>
+            <span class="ns-cal-title" id="ns-cal-title"></span>
+            <button type="button" class="btn btn-outline btn-sm" id="ns-cal-next" style="padding:2px 8px">›</button>
+          </div>
+          <div class="ns-cal-grid" id="ns-cal-grid"></div>
+          <div style="font-size:10px;color:var(--text2);margin-top:5px;display:flex;gap:10px">
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;border-radius:2px;background:var(--teal-l);border:1px solid var(--teal);display:inline-block"></span>Con tarifa</span>
+            <span style="display:flex;align-items:center;gap:3px"><span style="width:10px;height:10px;border-radius:2px;background:var(--border);display:inline-block;opacity:.4"></span>Sin tarifa (no seleccionable)</span>
+          </div>
+        </div>
+        <div class="ns-tarifa-warn" id="ns-tarifa-warn"></div>
+      </div>
       <div class="form-group">
         <label class="form-label">${dt('guestLang')}</label>
         <select class="form-input" id="ns-lang">${langOpts}</select>
@@ -2164,29 +2250,70 @@ function renderNewStayForm(preselectId) {
     </p>
   `;
 
+  // Inicializar calendario
+  const today = new Date();
+  nsCalY = today.getFullYear(); nsCalM = today.getMonth();
+  nsCiStr = toLocalInputValue(now).slice(0, 10);
+  nsCoStr = toLocalInputValue(tomorrow).slice(0, 10);
+
   $('ns-submit').addEventListener('click', submitNewStay);
   $('ns-pago-tipo').addEventListener('change', () => {
     const necesitaMonto = $('ns-pago-tipo').value !== 'despues';
     $('ns-monto-wrap').style.display = necesitaMonto ? '' : 'none';
     if (necesitaMonto) actualizarMontoEstimadoNuevaEstadia();
   });
-  $('ns-room').addEventListener('change', actualizarMontoEstimadoNuevaEstadia);
-  $('ns-checkin').addEventListener('change', actualizarMontoEstimadoNuevaEstadia);
-  $('ns-checkout').addEventListener('change', actualizarMontoEstimadoNuevaEstadia);
+  $('ns-room').addEventListener('change', () => {
+    nsCiStr = ''; nsCoStr = '';
+    $('ns-checkin').value = ''; $('ns-checkout').value = '';
+    $('ns-cal-wrap').style.display = 'none';
+    nsCargarCobertura($('ns-room').value);
+    actualizarMontoEstimadoNuevaEstadia();
+  });
+  $('ns-checkin').addEventListener('change', () => {
+    nsCiStr = $('ns-checkin').value?.slice(0, 10) || '';
+    nsRenderCal();
+    actualizarMontoEstimadoNuevaEstadia();
+  });
+  $('ns-checkout').addEventListener('change', () => {
+    nsCoStr = $('ns-checkout').value?.slice(0, 10) || '';
+    nsRenderCal();
+    actualizarMontoEstimadoNuevaEstadia();
+  });
   $('ns-monto').addEventListener('input', () => { $('ns-monto').dataset.manual = '1'; });
+  $('ns-cal-prev').addEventListener('click', () => {
+    nsCalM--; if (nsCalM < 0) { nsCalM = 11; nsCalY--; } nsRenderCal();
+  });
+  $('ns-cal-next').addEventListener('click', () => {
+    nsCalM++; if (nsCalM > 11) { nsCalM = 0; nsCalY++; } nsRenderCal();
+  });
+  $('ns-cal-grid').addEventListener('click', e => {
+    const day = e.target.closest('.ns-cal-day.has');
+    if (day) nsSelFecha(day.dataset.d);
+  });
+
+  // Cargar cobertura del room preseleccionado
+  nsCargarCobertura($('ns-room').value);
 }
 
 async function actualizarMontoEstimadoNuevaEstadia() {
   const montoInput = $('ns-monto');
-  if ($('ns-pago-tipo').value === 'despues' || montoInput.dataset.manual === '1') return;
+  const warn       = $('ns-tarifa-warn');
+  if (warn) warn.textContent = '';
+  if (!montoInput || $('ns-pago-tipo').value === 'despues' || montoInput.dataset.manual === '1') return;
   const roomId   = $('ns-room').value;
   const checkin  = $('ns-checkin').value;
   const checkout = $('ns-checkout').value;
   if (!roomId || !checkin || !checkout || checkout <= checkin) return;
   try {
     const { totalCLP } = await apiFetch(`/admin/reservas/precio?roomId=${encodeURIComponent(roomId)}&checkin=${encodeURIComponent(checkin)}&checkout=${encodeURIComponent(checkout)}`);
-    if (totalCLP !== null && montoInput.dataset.manual !== '1') montoInput.value = totalCLP;
-  } catch { /* sin tarifa definida — el staff completa el monto a mano */ }
+    if (totalCLP !== null && montoInput.dataset.manual !== '1') {
+      montoInput.value = totalCLP;
+      if (warn) warn.textContent = '';
+    } else if (totalCLP === null) {
+      montoInput.value = '';
+      if (warn) warn.textContent = '⚠️ Algún día del período no tiene tarifa definida. Define precios en la grilla de tarifas.';
+    }
+  } catch { /* sin categoría o error de red */ }
 }
 
 async function submitNewStay() {
@@ -3085,6 +3212,81 @@ function renderGridTarifas() {
       }).join('')}
     </tr>`).join('')}</tbody>`;
   $('gt-table').innerHTML = thead + tbody;
+}
+
+// ── GRID: SELECCIÓN DE RANGO ─────────────────────────────────────────────────
+let gtRangeMode = false;
+let gtRangeStart = null; // { ambitoId, fecha }
+
+function toggleGtRangeMode() {
+  gtRangeMode = !gtRangeMode;
+  $('btn-gt-range').classList.toggle('active', gtRangeMode);
+  $('gt-ayuda').classList.toggle('hidden', gtRangeMode);
+  if (gtRangeMode) {
+    gtCancelarRango();
+    showToast('Haz clic en el primer día del rango', 'info');
+  }
+}
+
+function gtHandleRangeClick(td) {
+  const ambitoId = td.dataset.ambitoId;
+  const fecha    = td.dataset.fecha;
+  if (!gtRangeStart) {
+    gtRangeStart = { ambitoId, fecha };
+    td.classList.add('gt-sel-start');
+    showToast('Ahora haz clic en el último día del rango', 'info');
+  } else if (ambitoId !== gtRangeStart.ambitoId) {
+    showToast('El rango debe ser de la misma fila', 'warn');
+  } else {
+    const desde = gtRangeStart.fecha < fecha ? gtRangeStart.fecha : fecha;
+    const hasta = gtRangeStart.fecha < fecha ? fecha : gtRangeStart.fecha;
+    gtRangeStart = null;
+    document.querySelectorAll('.gt-cell.gt-sel-start').forEach(el => el.classList.remove('gt-sel-start'));
+    const cells = Array.from(document.querySelectorAll(`.gt-cell[data-ambito-id="${ambitoId}"]`))
+      .filter(c => c.dataset.fecha >= desde && c.dataset.fecha <= hasta);
+    cells.forEach(c => c.classList.add('gt-sel'));
+    gtMostrarFormularioRango(ambitoId, desde, hasta, cells.length);
+  }
+}
+
+function gtMostrarFormularioRango(ambitoId, desde, hasta, count) {
+  $('gt-rango-form')?.remove();
+  const form = document.createElement('div');
+  form.id = 'gt-rango-form';
+  form.className = 'gt-rango-form';
+  form.innerHTML = `
+    <span>Precio para <strong>${count} día${count !== 1 ? 's' : ''}</strong> (${desde} → ${hasta}):</span>
+    <input type="number" step="0.01" min="0.01" id="gt-rango-precio" placeholder="UF">
+    <button class="btn btn-primary btn-sm" id="gt-rango-aplicar">Aplicar</button>
+    <button class="btn btn-outline btn-sm" id="gt-rango-cancel">✕ Cancelar</button>`;
+  const tableWrap = $('gt-table').parentElement;
+  tableWrap.insertBefore(form, $('gt-table'));
+  $('gt-rango-precio').focus();
+  $('gt-rango-aplicar').onclick  = () => gtAplicarRango(ambitoId, desde, hasta);
+  $('gt-rango-cancel').onclick   = gtCancelarRango;
+  $('gt-rango-precio').onkeydown = e => { if (e.key === 'Enter') gtAplicarRango(ambitoId, desde, hasta); if (e.key === 'Escape') gtCancelarRango(); };
+}
+
+async function gtAplicarRango(ambitoId, desde, hasta) {
+  const precioUF = parseFloat($('gt-rango-precio')?.value);
+  if (!precioUF || precioUF <= 0) { showToast('Ingresa un precio válido en UF', 'warn'); return; }
+  try {
+    const { count } = await apiFetch('/admin/tarifas/grid/rango-dias', {
+      method: 'POST',
+      body: JSON.stringify({ hotelId: HOTEL_ID, ambito: gtData.ambito, ambitoId, desde, hasta, precioUF }),
+    });
+    gtCancelarRango();
+    await loadGrid();
+    showToast(`Precio aplicado a ${count} días`, 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+function gtCancelarRango() {
+  document.querySelectorAll('.gt-cell.gt-sel, .gt-cell.gt-sel-start').forEach(el => el.classList.remove('gt-sel', 'gt-sel-start'));
+  $('gt-rango-form')?.remove();
+  gtRangeStart = null;
 }
 
 async function gtEditarCelda(td) {
@@ -4490,6 +4692,7 @@ document.addEventListener('DOMContentLoaded', () => {
   $('logout-btn').addEventListener('click', logout);
   $('btn-new-stay').addEventListener('click', () => openNewStayModal());
   $('btn-refresh').addEventListener('click', manualRefresh);
+  $('btn-gt-range').addEventListener('click', toggleGtRangeMode);
   $('btn-bulk-toggle').addEventListener('click', () => setBulkMode(!bulkMode));
   $('bulk-apply').addEventListener('click', applyBulkCategoria);
   $('bulk-categoria').addEventListener('change', updateBulkBar);
@@ -4583,12 +4786,14 @@ document.addEventListener('DOMContentLoaded', () => {
   $('tfa-modo-ui').addEventListener('change', updateTfaModoUI);
   $('tfa-derivada-ambito').addEventListener('change', updateTfaDerivadaAmbitoFields);
 
-  $('gt-ambito').addEventListener('change', loadGrid);
-  $('gt-prev').addEventListener('click', () => { gtDesde = new Date(new Date(gtDesde).getTime() - 7 * 86400000).toISOString().slice(0, 10); loadGrid(); });
-  $('gt-next').addEventListener('click', () => { gtDesde = new Date(new Date(gtDesde).getTime() + 7 * 86400000).toISOString().slice(0, 10); loadGrid(); });
+  $('gt-ambito').addEventListener('change', () => { gtCancelarRango(); loadGrid(); });
+  $('gt-prev').addEventListener('click', () => { gtCancelarRango(); gtDesde = new Date(new Date(gtDesde).getTime() - 7 * 86400000).toISOString().slice(0, 10); loadGrid(); });
+  $('gt-next').addEventListener('click', () => { gtCancelarRango(); gtDesde = new Date(new Date(gtDesde).getTime() + 7 * 86400000).toISOString().slice(0, 10); loadGrid(); });
   $('gt-table').addEventListener('click', e => {
     const td = e.target.closest('.gt-cell');
-    if (td && !td.querySelector('input')) gtEditarCelda(td);
+    if (!td || td.querySelector('input')) return;
+    if (gtRangeMode) gtHandleRangeClick(td);
+    else gtEditarCelda(td);
   });
 
   ['tf-dias-semana', 'tfa-dias-semana'].forEach(id => {
