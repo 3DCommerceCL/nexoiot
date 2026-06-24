@@ -741,8 +741,19 @@ function notificarProblemaApp(request) {
   }).catch(err => console.error('[app_problem] No se pudo notificar al admin:', err.message));
 }
 
+// Rate limiter estricto para control de dispositivos físicos — misma ventana que
+// publicLimiter (30/min) para mantener coherencia con el resto de rutas sensibles.
+const commandLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados comandos seguidos. Espera un momento.' },
+  keyGenerator: req => `cmd:${req.ip}:${req.params.token}`,
+});
+
 // ── API: POST /api/room/:token/command ────────────────────────────────────────
-app.post('/api/room/:token/command', async (req, res) => {
+app.post('/api/room/:token/command', commandLimiter, async (req, res) => {
   const result = rooms.getRoomByToken(req.params.token);
   if (!result) {
     return res.status(401).json({ error: 'Token inválido o expirado', code: 'TOKEN_INVALID' });
@@ -766,8 +777,10 @@ app.post('/api/room/:token/command', async (req, res) => {
 
   try {
     await tuya.sendCommand(devConfig.deviceId, tuyaCmds);
+    rooms.addActivity(room.id, 'device_command', `${device}: ${command}`);
     res.json({ success: true });
   } catch (err) {
+    rooms.addActivity(room.id, 'device_command_error', `${device}: ${command} — ${err.message}`);
     res.status(500).json({ error: 'Error al ejecutar el comando', detail: err.message });
   }
 });
