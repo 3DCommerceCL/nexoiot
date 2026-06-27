@@ -1,5 +1,5 @@
 'use strict';
-// backend/informes.js — Informes de rendimiento: ADR, ALOS, ocupación, ingresos, comparación de período
+// backend/informes.js — Informes de rendimiento: ADR, RevPAR, ALOS, ocupación, ingresos, comparación de período
 
 const db = require('./db');
 
@@ -27,17 +27,20 @@ function metricas(hotelId, from, to, totalRooms) {
   `).get(hotelId, hotelId, from, to).total;
 
   const roomNightsDisponibles = totalRooms * dias;
-  const adr        = nochesOcupadas > 0 ? Math.round(ingresos / nochesOcupadas) : 0;
-  const alos        = activas.length > 0 ? +(nochesOcupadas / activas.length).toFixed(1) : 0;
-  const ocupacion   = roomNightsDisponibles > 0 ? +((nochesOcupadas / roomNightsDisponibles) * 100).toFixed(1) : 0;
+  const adr      = nochesOcupadas > 0 ? Math.round(ingresos / nochesOcupadas) : 0;
+  const revpar   = roomNightsDisponibles > 0 ? Math.round(ingresos / roomNightsDisponibles) : 0;
+  const alos     = activas.length > 0 ? +(nochesOcupadas / activas.length).toFixed(1) : 0;
+  const ocupacion = roomNightsDisponibles > 0 ? +((nochesOcupadas / roomNightsDisponibles) * 100).toFixed(1) : 0;
 
   return {
     periodo: { from, to, dias },
     totalReservas: activas.length,
     canceladas: canceladas.length,
     nochesOcupadas,
+    roomNightsDisponibles,
     ingresosCLP: ingresos,
     adrCLP: adr,
+    revparCLP: revpar,
     alosNoches: alos,
     ocupacionPct: ocupacion,
   };
@@ -51,4 +54,17 @@ function periodoAnterior(from, to) {
   return { prevFrom, prevTo };
 }
 
-module.exports = { metricas, periodoAnterior };
+// Divide el período en segmentos semanales para el gráfico de tendencia.
+function tendenciaSemanal(hotelId, from, to, totalRooms) {
+  const resultado = [];
+  let d = new Date(from + 'T00:00:00Z');
+  const end = new Date(to + 'T00:00:00Z');
+  while (d < end) {
+    const segEnd = new Date(Math.min(d.getTime() + 7 * 86400000, end.getTime()));
+    resultado.push(metricas(hotelId, d.toISOString().slice(0, 10), segEnd.toISOString().slice(0, 10), totalRooms));
+    d = segEnd;
+  }
+  return resultado;
+}
+
+module.exports = { metricas, periodoAnterior, tendenciaSemanal };

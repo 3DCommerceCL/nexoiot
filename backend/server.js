@@ -2053,7 +2053,9 @@ app.get('/api/admin/informes/rendimiento', requireRoleOrPermiso(['owner'], 'info
   const actual = informes.metricas(hotel, from, to, totalRooms);
   const { prevFrom, prevTo } = informes.periodoAnterior(from, to);
   const anterior = informes.metricas(hotel, prevFrom, prevTo, totalRooms);
-  res.json({ actual, anterior });
+  const dias = Math.round((new Date(to) - new Date(from)) / 86400000);
+  const tendencia = dias > 13 ? informes.tendenciaSemanal(hotel, from, to, totalRooms) : [];
+  res.json({ actual, anterior, tendencia });
 });
 
 // ── ADMIN: GET /api/admin/huespedes ───────────────────────────────────────────

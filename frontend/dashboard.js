@@ -499,6 +499,7 @@ const state = {
   view: 'overview',
   filter: 'all',
   search: '',
+  hkFilter: '',
   sidebarCollapsed: false,
   currentRoom: null,   // { id, token, devices, plan }
   placeholder: {},     // estado local de funciones del plan (no conectadas a dispositivos reales)
@@ -587,6 +588,11 @@ function applyRoleVisibility(rol, permisos) {
   const back = $('back-to-nexo');
   if (back) back.classList.toggle('hidden', rol !== 'superadmin');
   $('btn-bulk-toggle')?.classList.toggle('hidden', !fullAccess);
+  // Roles personalizados con solo housekeeping → aterrizar directo en vista Aseo
+  if (!fullAccess && rol !== 'recepcion' &&
+      currentPermisos.length === 1 && currentPermisos[0] === 'housekeeping.gestionar') {
+    setTimeout(() => navigate('housekeeping'), 0);
+  }
 }
 
 function logout() {
@@ -986,6 +992,7 @@ const viewTitle = view =>
     reservaslist: 'Reservas', servicios: 'Servicios',
     informes: 'Informes', mensajes: 'Mensajes',
     'grid-tarifas': 'Grid de tarifas',
+    housekeeping: 'Aseo',
   }[view] || view);
 
 // ── SIDEBAR MÓVIL (off-canvas) ───────────────────────────────────────────────
@@ -1029,6 +1036,7 @@ function navigate(view) {
   if (view === 'equipo') loadEquipo();
   if (view === 'mensajes') loadMensajesLog();
   if (view === 'grid-tarifas') loadGrid();
+  if (view === 'housekeeping') loadHousekeeping().then(renderHousekeeping);
 }
 
 // ── IDIOMA DEL PANEL ──────────────────────────────────────────────────────────
@@ -3386,10 +3394,69 @@ async function saveHousekeeping(roomId, estado, notas) {
     const idx = housekeepingCache.findIndex(h => h.room_id === roomId);
     if (idx >= 0) housekeepingCache[idx] = updated; else housekeepingCache.push(updated);
     if (state.view === 'overview' || state.view === 'rooms') renderRooms(state.view, state.filter);
+    if (state.view === 'housekeeping') renderHousekeeping();
   } catch (err) {
     showToast(err.message, 'error');
   }
 }
+
+// ── HOUSEKEEPING MÓVIL ────────────────────────────────────────────────────────
+function renderHousekeeping() {
+  if (!HOTEL_ID) return;
+  const filter = state.hkFilter || '';
+  const allRooms = rooms.filter(r => !r.demo);
+
+  const counts = { limpia: 0, sucia: 0, en_proceso: 0, inspeccion: 0 };
+  allRooms.forEach(r => {
+    const est = housekeepingCache.find(h => h.room_id === r.id)?.estado || 'limpia';
+    if (counts[est] !== undefined) counts[est]++;
+  });
+
+  const summaryBar = $('hk-summary-bar');
+  if (summaryBar) {
+    summaryBar.classList.remove('hidden');
+    summaryBar.innerHTML =
+      `<span class="hk-summary-chip">🏨 ${allRooms.length} hab</span>` +
+      `<span class="hk-summary-chip" style="color:#059669">🟢 ${counts.limpia} limpias</span>` +
+      `<span class="hk-summary-chip" style="color:#dc3545">🔴 ${counts.sucia} sucias</span>` +
+      `<span class="hk-summary-chip" style="color:#a16207">🟡 ${counts.en_proceso} en proceso</span>` +
+      `<span class="hk-summary-chip" style="color:#4f46e5">🔵 ${counts.inspeccion} inspección</span>`;
+  }
+
+  const filtered = filter ? allRooms.filter(r => (housekeepingCache.find(h => h.room_id === r.id)?.estado || 'limpia') === filter) : allRooms;
+
+  if (!filtered.length) {
+    $('hk-list').innerHTML = `<div class="placeholder-view" style="height:180px"><div class="ph-ico">🧹</div><p>Sin habitaciones en este estado.</p></div>`;
+    return;
+  }
+
+  const fDate = iso => new Date(iso).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+  $('hk-list').innerHTML = filtered.map(r => {
+    const hk = housekeepingCache.find(h => h.room_id === r.id);
+    const est = hk?.estado || 'limpia';
+    const guestHtml = r.guest
+      ? `<div class="hk-guest">👤 ${r.guest.guestName}<span class="hk-checkout">🕐 Checkout: ${fDate(r.guest.checkout)}</span></div>`
+      : `<div class="hk-guest hk-libre">Habitación libre</div>`;
+    const updatedHtml = hk ? `<div class="hk-updated">${hk.usuario_nombre ? hk.usuario_nombre + ' · ' : ''}${fDate(hk.updated_at)}</div>` : '';
+    const btns = Object.entries(HK_ESTADO_LABEL).map(([k, v]) =>
+      `<button class="hk-btn ${k === est ? `hk-active ${k}` : ''}" onclick="window.setHkMovil('${r.id}','${k}')">${v}</button>`
+    ).join('');
+    return `<div class="hk-card">
+      <div class="hk-card-header">
+        <span class="hk-room-name">${r.name}</span>
+        <span class="hk-badge hk-badge-${est}">${HK_ESTADO_LABEL[est]}</span>
+      </div>
+      ${guestHtml}${updatedHtml}
+      <div class="hk-btns">${btns}</div>
+    </div>`;
+  }).join('');
+}
+
+window.setHkMovil = function(roomId, estado) {
+  const hk = housekeepingCache.find(h => h.room_id === roomId);
+  saveHousekeeping(roomId, estado, hk?.notas || '');
+};
 
 // ── COBROS (Webpay / Mercado Pago / manual) ──────────────────────────────────
 const TRANS_TIPO_LABEL = { webpay: 'Tarjeta', mercadopago: 'Mercado Pago', efectivo: 'Efectivo', transferencia: 'Transferencia' };
@@ -4476,13 +4543,15 @@ async function submitServicio() {
 }
 
 // ── INFORMES DE RENDIMIENTO (ADR / ALOS / ocupación / ingresos) ──────────────
-function deltaBadge(actual, anterior) {
+function deltaBadge(actual, anterior, invert = false) {
   if (!anterior) return '';
   const diff = actual - anterior;
   if (diff === 0) return '<span class="kpi-sub">= vs período anterior</span>';
   const pct = anterior !== 0 ? Math.round((diff / anterior) * 100) : null;
+  const positive = invert ? diff < 0 : diff > 0;
   const signo = diff > 0 ? '▲' : '▼';
-  return `<span class="kpi-sub">${signo} ${pct !== null ? Math.abs(pct) + '%' : Math.abs(diff)} vs período anterior</span>`;
+  const color = positive ? 'color:var(--teal)' : 'color:var(--alert)';
+  return `<span class="kpi-sub" style="${color}">${signo} ${pct !== null ? Math.abs(pct) + '%' : Math.abs(diff)} vs período anterior</span>`;
 }
 
 async function loadInformes() {
@@ -4491,21 +4560,41 @@ async function loadInformes() {
   const hasta = $('inf-hasta').value;
   if (!desde || !hasta) return;
   try {
-    const { actual, anterior } = await apiFetch(`/admin/informes/rendimiento?hotel=${encodeURIComponent(HOTEL_ID)}&from=${desde}&to=${hasta}`);
+    const { actual, anterior, tendencia } = await apiFetch(`/admin/informes/rendimiento?hotel=${encodeURIComponent(HOTEL_ID)}&from=${desde}&to=${hasta}`);
+    const fCLP = v => `$${v.toLocaleString('es-CL')}`;
     const cards = [
-      { label: 'Ingresos', val: `$${actual.ingresosCLP.toLocaleString('es-CL')}`, a: actual.ingresosCLP, b: anterior.ingresosCLP },
-      { label: 'ADR (tarifa promedio/noche)', val: `$${actual.adrCLP.toLocaleString('es-CL')}`, a: actual.adrCLP, b: anterior.adrCLP },
-      { label: 'ALOS (noches/estadía)', val: actual.alosNoches, a: actual.alosNoches, b: anterior.alosNoches },
+      { label: 'Ingresos', val: fCLP(actual.ingresosCLP), a: actual.ingresosCLP, b: anterior.ingresosCLP },
+      { label: 'RevPAR', val: fCLP(actual.revparCLP), a: actual.revparCLP, b: anterior.revparCLP, hint: 'Revenue per Available Room — ingresos / noches disponibles' },
+      { label: 'ADR (tarifa promedio)', val: fCLP(actual.adrCLP), a: actual.adrCLP, b: anterior.adrCLP, hint: 'Average Daily Rate — ingresos / noches ocupadas' },
       { label: 'Ocupación', val: `${actual.ocupacionPct}%`, a: actual.ocupacionPct, b: anterior.ocupacionPct },
+      { label: 'ALOS (noches/estadía)', val: actual.alosNoches, a: actual.alosNoches, b: anterior.alosNoches },
       { label: 'Reservas', val: actual.totalReservas, a: actual.totalReservas, b: anterior.totalReservas },
-      { label: 'Canceladas', val: actual.canceladas, a: actual.canceladas, b: anterior.canceladas },
+      { label: 'Canceladas', val: actual.canceladas, a: actual.canceladas, b: anterior.canceladas, invertDelta: true },
     ];
     $('inf-kpi-grid').innerHTML = cards.map(c => `
-      <div class="kpi-card">
+      <div class="kpi-card" ${c.hint ? `title="${c.hint}"` : ''}>
         <div class="kpi-label">${c.label}</div>
         <div class="kpi-value">${c.val}</div>
-        ${deltaBadge(c.a, c.b)}
+        ${deltaBadge(c.a, c.b, c.invertDelta)}
       </div>`).join('');
+
+    const trendWrap = $('inf-trend-wrap');
+    if (tendencia && tendencia.length > 1) {
+      trendWrap.classList.remove('hidden');
+      const thead = `<thead><tr><th>Semana</th><th>Reservas</th><th>Noches ocu.</th><th>Ocupación</th><th>ADR</th><th>RevPAR</th><th>Ingresos</th></tr></thead>`;
+      const tbody = `<tbody>${tendencia.map(p => `<tr>
+        <td style="white-space:nowrap;font-size:11px">${p.periodo.from.slice(5)} → ${p.periodo.to.slice(5)}</td>
+        <td>${p.totalReservas}</td>
+        <td>${p.nochesOcupadas}</td>
+        <td>${p.ocupacionPct}%</td>
+        <td>${fCLP(p.adrCLP)}</td>
+        <td>${fCLP(p.revparCLP)}</td>
+        <td>${fCLP(p.ingresosCLP)}</td>
+      </tr>`).join('')}</tbody>`;
+      $('inf-trend-table').innerHTML = thead + tbody;
+    } else {
+      trendWrap.classList.add('hidden');
+    }
   } catch (err) {
     showToast(err.message, 'error');
   }
@@ -4864,6 +4953,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Mensajes / registro de solicitudes
   $('msg-filtrar').addEventListener('click', loadMensajesLog);
   $('msg-estado').addEventListener('change', loadMensajesLog);
+
+  // Housekeeping móvil — filtros por estado
+  document.querySelectorAll('#hk-filter-bar .hk-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.hkFilter = btn.dataset.hkf;
+      document.querySelectorAll('#hk-filter-bar .hk-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderHousekeeping();
+    });
+  });
 
   applyDashLang();
   startClock();

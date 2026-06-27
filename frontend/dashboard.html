@@ -137,6 +137,31 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .gt-cell.gt-sel-start{background:var(--teal)!important;color:#fff}
 .gt-rango-form{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--teal-l);border:1px solid var(--teal);border-radius:8px;margin-bottom:8px;font-size:13px;flex-wrap:wrap}
 .gt-rango-form input[type=number]{width:90px;padding:5px 8px;border-radius:6px;border:1px solid var(--teal);background:var(--bg);color:var(--text);font-size:13px;font-family:var(--font)}
+/* ── HOUSEKEEPING MÓVIL ── */
+.hk-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:var(--shadow)}
+.hk-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px}
+.hk-room-name{font-size:17px;font-weight:700;color:var(--text)}
+.hk-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.3px}
+.hk-badge-limpia{background:rgba(16,185,129,.12);color:#059669}
+.hk-badge-sucia{background:rgba(220,53,69,.1);color:#dc3545}
+.hk-badge-en_proceso{background:rgba(234,179,8,.12);color:#a16207}
+.hk-badge-inspeccion{background:rgba(99,102,241,.1);color:#4f46e5}
+.hk-guest{font-size:12px;color:var(--text2);margin-bottom:5px;display:flex;gap:10px;flex-wrap:wrap}
+.hk-libre{font-style:italic}
+.hk-updated{font-size:10px;color:var(--text3);margin-bottom:8px}
+.hk-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.hk-btn{padding:11px 4px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg);color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;text-align:center;transition:background .15s,border-color .15s,color .15s;line-height:1.3}
+.hk-btn:active{opacity:.8}
+.hk-btn.hk-active{font-weight:700}
+.hk-btn.hk-active.limpia{border-color:#059669;background:rgba(16,185,129,.1);color:#059669}
+.hk-btn.hk-active.sucia{border-color:#dc3545;background:rgba(220,53,69,.08);color:#dc3545}
+.hk-btn.hk-active.en_proceso{border-color:#a16207;background:rgba(234,179,8,.1);color:#a16207}
+.hk-btn.hk-active.inspeccion{border-color:#4f46e5;background:rgba(99,102,241,.08);color:#4f46e5}
+.hk-summary-bar{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin-bottom:10px;padding:8px 12px;background:var(--card);border-radius:8px;border:1px solid var(--border)}
+.hk-summary-chip{display:flex;align-items:center;gap:4px;font-weight:600}
+/* ── INFORMES: tabla de tendencia ── */
+.inf-trend-wrap{margin-top:16px}
+.inf-trend-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px}
 /* Mini calendario en modal nueva estadía */
 .ns-cal-wrap{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:8px}
 .ns-cal-nav-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
@@ -521,6 +546,10 @@ select.form-input option{background:var(--card);color:var(--text)}
       <span class="nav-icon">🏨</span>
       <span class="nav-label" data-i18n="navRooms">Habitaciones</span>
     </div>
+    <div class="nav-item" data-view="housekeeping" data-role="owner" data-permiso="housekeeping.gestionar">
+      <span class="nav-icon">🧹</span>
+      <span class="nav-label">Aseo</span>
+    </div>
     <div class="nav-item" data-view="categorias" data-role="owner">
       <span class="nav-icon">🛏️</span>
       <span class="nav-label">Categorías</span>
@@ -735,6 +764,23 @@ select.form-input option{background:var(--card);color:var(--text)}
         <button class="btn btn-outline btn-sm" id="inf-filtrar">Calcular</button>
       </div>
       <div class="kpi-grid" id="inf-kpi-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px"></div>
+      <div class="inf-trend-wrap hidden" id="inf-trend-wrap">
+        <div class="inf-trend-title">Tendencia semanal</div>
+        <div style="overflow-x:auto"><table class="rl-table" id="inf-trend-table"></table></div>
+      </div>
+    </div>
+
+    <!-- VIEW: HOUSEKEEPING MÓVIL -->
+    <div class="view" id="view-housekeeping">
+      <div class="rl-filters" id="hk-filter-bar">
+        <button class="btn btn-outline btn-sm hk-filter active" data-hkf="">Todas</button>
+        <button class="btn btn-outline btn-sm hk-filter" data-hkf="sucia">🔴 Sucias</button>
+        <button class="btn btn-outline btn-sm hk-filter" data-hkf="en_proceso">🟡 En proceso</button>
+        <button class="btn btn-outline btn-sm hk-filter" data-hkf="inspeccion">🔵 Inspección</button>
+        <button class="btn btn-outline btn-sm hk-filter" data-hkf="limpia">🟢 Limpias</button>
+      </div>
+      <div class="hk-summary-bar hidden" id="hk-summary-bar"></div>
+      <div id="hk-list"></div>
     </div>
 
     <!-- VIEW: LOG MAESTRO (owner) -->
