@@ -1238,6 +1238,90 @@ app.post('/api/admin/reservas', requireRoleOrPermiso(['owner', 'recepcion'], 're
   res.status(201).json(r);
 });
 
+// ── ADMIN: POST /api/admin/reservas/importar-csv ─────────────────────────────
+app.post('/api/admin/reservas/importar-csv', requireRoleOrPermiso(['owner', 'recepcion'], 'reservas.gestionar'), (req, res) => {
+  const { hotelId, csv } = req.body;
+  if (!hotelId || !csv) return res.status(400).json({ error: 'Requeridos: hotelId, csv' });
+  if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+
+  const hotelRooms = Object.values(rooms.getRooms()).filter(r => r.hotelId === hotelId && !r.demo);
+  const roomByName = new Map(hotelRooms.map(r => [r.name.toLowerCase().trim(), r]));
+
+  // Parsear CSV: soporte coma y punto y coma como separador
+  const lines = csv.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+  if (lines.length < 2) return res.status(400).json({ error: 'El CSV no tiene datos. Revisa el formato.' });
+
+  const sep = lines[0].includes(';') ? ';' : ',';
+  const parseRow = line => {
+    const result = [];
+    let cur = '', inQ = false;
+    for (const ch of line) {
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === sep && !inQ) { result.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    result.push(cur.trim());
+    return result;
+  };
+
+  const headers = parseRow(lines[0]).map(h => h.toLowerCase().replace(/[\s_]/g, '_').replace(/[^a-z_]/g, ''));
+  const idx = h => headers.indexOf(h);
+  const REQUIRED = ['checkin', 'checkout', 'nombre', 'habitacion'];
+  const missing = REQUIRED.filter(h => idx(h) < 0);
+  if (missing.length) return res.status(400).json({ error: `Faltan columnas requeridas: ${missing.join(', ')}` });
+
+  const importadas = [];
+  const omitidas = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    const row = parseRow(lines[i]);
+    const g = k => (row[idx(k)] || '').trim();
+    const fila = i + 1;
+
+    const checkin  = g('checkin');
+    const checkout = g('checkout');
+    const nombre   = g('nombre');
+    const habNombre = g('habitacion');
+
+    if (!checkin || !checkout || !nombre || !habNombre) {
+      omitidas.push({ fila, nombre: nombre || '—', razon: 'Faltan campos requeridos' }); continue;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(checkin) || !/^\d{4}-\d{2}-\d{2}$/.test(checkout)) {
+      omitidas.push({ fila, nombre, razon: 'Fechas deben ser YYYY-MM-DD' }); continue;
+    }
+    if (checkin >= checkout) {
+      omitidas.push({ fila, nombre, razon: 'checkin debe ser anterior a checkout' }); continue;
+    }
+
+    const room = roomByName.get(habNombre.toLowerCase());
+    if (!room) {
+      omitidas.push({ fila, nombre, razon: `Habitación '${habNombre}' no encontrada` }); continue;
+    }
+
+    if (!reservas.checkDisponibilidad(room.id, checkin, checkout)) {
+      omitidas.push({ fila, nombre, razon: `Habitación '${habNombre}' no disponible ${checkin}→${checkout}` }); continue;
+    }
+
+    const montoCLP = parseInt(g('monto_clp') || g('monto') || '0', 10) || 0;
+    const source = g('fuente') || 'importacion';
+    let r = reservas.createReserva(hotelId, room.id, nombre, checkin, checkout, {
+      guestEmail: g('email'), guestPhone: g('telefono'), notes: g('notas'),
+      source, plan: room.plan,
+    });
+    generarTokenParaReserva(r, g('telefono'), null, null);
+    if (montoCLP > 0) {
+      const db = require('./db');
+      db.prepare(`INSERT INTO transacciones (id,hotel_id,reserva_id,tipo,estado,monto_clp,ref_externa,created_at)
+        VALUES (?,?,?,'transferencia','aprobado',?,?,datetime('now'))`)
+        .run(require('crypto').randomUUID(), hotelId, r.id, montoCLP, 'importacion-csv');
+    }
+    importadas.push({ id: r.id, nombre, checkin, checkout, habitacion: room.name });
+  }
+
+  invalidarCacheDisponibilidad(hotelId);
+  res.json({ importadas: importadas.length, omitidas, detalle: importadas });
+});
+
 // ── ADMIN: PATCH /api/admin/reservas/:id ─────────────────────────────────────
 app.patch('/api/admin/reservas/:id', requireRoleOrPermiso(['owner', 'recepcion'], 'reservas.gestionar'), (req, res) => {
   const existing = reservas.getById(req.params.id);

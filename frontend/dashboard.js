@@ -4543,6 +4543,58 @@ async function submitServicio() {
 }
 
 // ── INFORMES DE RENDIMIENTO (ADR / ALOS / ocupación / ingresos) ──────────────
+// ── IMPORTACIÓN CSV ──────────────────────────────────────────────────────────
+let csvImportFile = null;
+
+function openImportCsvModal() {
+  csvImportFile = null;
+  $('csv-file-input').value = '';
+  $('csv-drop-label').textContent = 'Haz clic aquí o arrastra tu archivo CSV';
+  $('csv-error').textContent = '';
+  $('csv-result').style.display = 'none';
+  $('csv-import-btn').disabled = true;
+  openModal('modal-import-csv');
+}
+
+function descargarPlantillaCSV() {
+  const header = 'checkin,checkout,nombre,habitacion,email,telefono,monto_clp,notas,fuente';
+  const ej1 = '2026-07-01,2026-07-03,Juan Pérez,101,juan@mail.com,+56912345678,150000,,Booking.com';
+  const ej2 = '2026-07-05,2026-07-07,María García,102,,,,Cama extra,';
+  const content = [header, ej1, ej2].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'plantilla_reservas.csv';
+  a.click();
+}
+
+async function ejecutarImportCsv() {
+  if (!csvImportFile || !HOTEL_ID) return;
+  $('csv-error').textContent = '';
+  $('csv-result').style.display = 'none';
+  $('csv-import-btn').disabled = true;
+  $('csv-import-btn').textContent = 'Importando…';
+  try {
+    const csv = await csvImportFile.text();
+    const res = await apiFetch('/admin/reservas/importar-csv', {
+      method: 'POST',
+      body: JSON.stringify({ hotelId: HOTEL_ID, csv }),
+    });
+    const wrap = $('csv-result');
+    wrap.style.display = '';
+    const errorsHtml = res.omitidas.length
+      ? `<div class="csv-result-errors"><strong>${res.omitidas.length} fila${res.omitidas.length !== 1 ? 's' : ''} omitida${res.omitidas.length !== 1 ? 's' : ''}:</strong>
+          <table>${res.omitidas.map(o => `<tr><td>Fila ${o.fila} — ${o.nombre}</td><td>${o.razon}</td></tr>`).join('')}</table></div>`
+      : '';
+    wrap.innerHTML = `<div class="csv-result-ok">✅ ${res.importadas} reserva${res.importadas !== 1 ? 's' : ''} importada${res.importadas !== 1 ? 's' : ''} correctamente.</div>${errorsHtml}`;
+    if (res.importadas > 0) loadReservasLista();
+  } catch (err) {
+    $('csv-error').textContent = err.message;
+  } finally {
+    $('csv-import-btn').textContent = 'Importar';
+    $('csv-import-btn').disabled = !csvImportFile;
+  }
+}
+
 function deltaBadge(actual, anterior, invert = false) {
   if (!anterior) return '';
   const diff = actual - anterior;
@@ -4909,6 +4961,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
   $('inf-filtrar').addEventListener('click', loadInformes);
   $('log-filtrar').addEventListener('click', loadLogMaestro);
+
+  // Importación CSV
+  $('rl-importar-csv').addEventListener('click', openImportCsvModal);
+  $('csv-plantilla-btn').addEventListener('click', descargarPlantillaCSV);
+  $('csv-import-btn').addEventListener('click', ejecutarImportCsv);
+  ['modal-import-csv'].forEach(id => {
+    $(id).addEventListener('click', e => { if (e.target === $(id)) closeModal(id); });
+  });
+
+  const csvDrop = $('csv-drop-zone');
+  const csvInput = $('csv-file-input');
+  csvDrop.addEventListener('click', () => csvInput.click());
+  csvDrop.addEventListener('dragover', e => { e.preventDefault(); csvDrop.classList.add('drag-over'); });
+  csvDrop.addEventListener('dragleave', () => csvDrop.classList.remove('drag-over'));
+  csvDrop.addEventListener('drop', e => {
+    e.preventDefault();
+    csvDrop.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f) { csvImportFile = f; $('csv-drop-label').textContent = `📄 ${f.name}`; $('csv-import-btn').disabled = false; }
+  });
+  csvInput.addEventListener('change', () => {
+    const f = csvInput.files[0];
+    if (f) { csvImportFile = f; $('csv-drop-label').textContent = `📄 ${f.name}`; $('csv-import-btn').disabled = false; }
+  });
 
   let crmSearchTimer = null;
   $('crm-search').addEventListener('input', () => {

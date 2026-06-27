@@ -159,6 +159,16 @@ body{display:flex;font-family:var(--font);background:var(--bg);color:var(--text)
 .hk-btn.hk-active.inspeccion{border-color:#4f46e5;background:rgba(99,102,241,.08);color:#4f46e5}
 .hk-summary-bar{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;margin-bottom:10px;padding:8px 12px;background:var(--card);border-radius:8px;border:1px solid var(--border)}
 .hk-summary-chip{display:flex;align-items:center;gap:4px;font-weight:600}
+/* ── IMPORTACIÓN CSV ── */
+.csv-drop-zone{border:2px dashed var(--border);border-radius:10px;padding:22px 16px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;color:var(--text2);font-size:13px}
+.csv-drop-zone.drag-over{border-color:var(--teal);background:var(--teal-l)}
+.csv-drop-zone input[type=file]{display:none}
+.csv-format-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;font-family:monospace;overflow-x:auto;margin:8px 0;line-height:1.7;color:var(--text2)}
+.csv-result-ok{font-size:13px;color:#059669;font-weight:600;margin-bottom:6px}
+.csv-result-errors{font-size:12px;color:var(--text2)}
+.csv-result-errors table{width:100%;border-collapse:collapse;margin-top:6px}
+.csv-result-errors td{padding:4px 6px;border-bottom:1px solid var(--border);vertical-align:top}
+.csv-result-errors td:first-child{white-space:nowrap;color:var(--text3)}
 /* ── INFORMES: tabla de tendencia ── */
 .inf-trend-wrap{margin-top:16px}
 .inf-trend-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:8px}
@@ -718,6 +728,7 @@ select.form-input option{background:var(--card);color:var(--text)}
         <input type="date" id="rl-desde">
         <input type="date" id="rl-hasta">
         <button class="btn btn-outline btn-sm" id="rl-filtrar">Filtrar</button>
+        <button class="btn btn-outline btn-sm" id="rl-importar-csv" style="margin-left:auto" title="Importar reservas desde un archivo CSV">📥 Importar CSV</button>
       </div>
       <div class="rl-count" id="rl-count"></div>
       <table class="rl-table">
@@ -1665,6 +1676,32 @@ select.form-input option{background:var(--card);color:var(--text)}
     <div class="modal-actions">
       <button class="btn btn-outline" id="bq-cancel">Cancelar</button>
       <button class="btn btn-primary" id="bq-save">Bloquear habitación</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: IMPORTAR CSV -->
+<div class="modal-overlay hidden" id="modal-import-csv">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">Importar reservas desde CSV</div>
+      <button class="modal-close" onclick="closeModal('modal-import-csv')">✕</button>
+    </div>
+    <div style="padding:0 24px 20px">
+      <p style="font-size:13px;color:var(--text2);margin:0 0 10px">El archivo debe tener estos encabezados (en el mismo orden). El separador puede ser coma o punto y coma:</p>
+      <div class="csv-format-box">checkin,checkout,nombre,habitacion,email,telefono,monto_clp,notas,fuente<br>2026-07-01,2026-07-03,Juan Pérez,101,juan@mail.com,+56912345678,150000,,Booking<br>2026-07-05,2026-07-07,María García,102,,,,Cama extra,</div>
+      <p style="font-size:11px;color:var(--text3);margin:0 0 12px">Campos requeridos: <strong>checkin, checkout, nombre, habitacion</strong>. Los demás son opcionales. La habitación se busca por nombre (ej. "101", "Suite 2").</p>
+      <button class="btn btn-outline btn-sm" id="csv-plantilla-btn" style="margin-bottom:14px">⬇ Descargar plantilla</button>
+      <div class="csv-drop-zone" id="csv-drop-zone">
+        <input type="file" id="csv-file-input" accept=".csv,.txt">
+        <div id="csv-drop-label">Haz clic aquí o arrastra tu archivo CSV</div>
+      </div>
+      <div class="modal-error" id="csv-error" style="margin-top:10px"></div>
+      <div id="csv-result" style="margin-top:12px;display:none"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-import-csv')">Cerrar</button>
+      <button class="btn btn-primary" id="csv-import-btn" disabled>Importar</button>
     </div>
   </div>
 </div>
