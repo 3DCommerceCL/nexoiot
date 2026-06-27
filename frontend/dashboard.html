@@ -874,6 +874,46 @@ select.form-input option{background:var(--card);color:var(--text)}
         <button class="btn btn-primary btn-sm" id="btn-add-canal">+ Agregar canal</button>
       </div>
       <div class="canal-grid" id="canal-grid"></div>
+
+      <!-- Conexión PMS externo: Cloudbeds -->
+      <div class="analytics-card" style="margin-top:20px" id="cb-card">
+        <div class="sec-header" style="margin-bottom:12px">
+          <span class="sec-title">🔗 Importación automática desde PMS externo</span>
+          <span class="status-badge" id="cb-status-badge" style="display:none"></span>
+        </div>
+        <p class="form-note" style="margin-bottom:14px">Conecta tu cuenta de Cloudbeds para que las reservas se importen automáticamente a NexoSuite en tiempo real, sin intervención manual.</p>
+
+        <div id="cb-connected-view" class="hidden">
+          <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--teal-l);border:1px solid var(--teal);border-radius:10px;margin-bottom:14px">
+            <span style="font-size:22px">✅</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--teal-d)">Cloudbeds conectado</div>
+              <div class="form-note" id="cb-prop-label" style="margin:2px 0 0"></div>
+              <div class="form-note" id="cb-sync-label" style="margin:2px 0 0"></div>
+            </div>
+          </div>
+          <div class="form-note" id="cb-webhook-note" style="margin-bottom:12px;display:none"></div>
+          <button class="btn btn-outline btn-sm" id="cb-disconnect-btn" style="color:var(--alert);border-color:var(--alert)">Desconectar Cloudbeds</button>
+        </div>
+
+        <div id="cb-connect-form">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div class="form-group">
+              <label class="form-label">API Key de Cloudbeds <span style="color:var(--alert)">*</span></label>
+              <input class="form-input" id="cb-api-key" type="password" placeholder="cb_api_…" autocomplete="off">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Property ID <span style="color:var(--alert)">*</span></label>
+              <input class="form-input" id="cb-property-id" placeholder="12345">
+            </div>
+          </div>
+          <div class="form-note" style="margin-bottom:12px">
+            Encuentra estos valores en <strong>Cloudbeds → Apps & Marketplace → API Access</strong>. La API key solo se necesita al conectar; no se muestra completa después.
+          </div>
+          <div class="modal-error" id="cb-error" style="margin-bottom:10px"></div>
+          <button class="btn btn-primary btn-sm" id="cb-connect-btn">Conectar Cloudbeds</button>
+        </div>
+      </div>
     </div>
 
     <!-- VIEW: MOTOR DE RESERVAS (solo owner/superadmin) -->

@@ -396,8 +396,26 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_trial_status ON trial_solicitudes(status);
 `);
 
+// ── CLOUDBEDS CONFIG ──────────────────────────────────────────────────────────
+db.exec(`
+  CREATE TABLE IF NOT EXISTS cloudbeds_config (
+    hotel_id        TEXT PRIMARY KEY,
+    api_key         TEXT NOT NULL,
+    property_id     TEXT NOT NULL,
+    webhook_secret  TEXT,
+    webhook_id      TEXT,
+    enabled         INTEGER NOT NULL DEFAULT 1,
+    last_sync_at    TEXT,
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+  );
+`);
+
 // ── MIGRACIONES: columnas agregadas a tablas ya existentes ───────────────────
 // CREATE TABLE IF NOT EXISTS no altera tablas que ya existían antes de este campo.
+try { db.exec('ALTER TABLE reservas ADD COLUMN external_id   TEXT'); } catch { /* ya existe */ }
+try { db.exec('ALTER TABLE reservas ADD COLUMN external_source TEXT'); } catch { /* ya existe */ }
+try { db.exec("CREATE INDEX IF NOT EXISTS idx_reservas_ext ON reservas(external_source, external_id)"); } catch { /* ya existe */ }
 try { db.exec('ALTER TABLE tarifas ADD COLUMN categoria_id TEXT'); } catch { /* ya existe */ }
 try { db.exec('ALTER TABLE tarifas ADD COLUMN derivada_de_id TEXT'); } catch { /* ya existe */ }
 try { db.exec("ALTER TABLE tarifas ADD COLUMN derivada_modo TEXT"); } catch { /* ya existe */ }

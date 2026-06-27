@@ -15,6 +15,7 @@ const reservas  = require('./reservas');
 const bloqueos  = require('./bloqueos');
 const canales       = require('./canales');
 const cm            = require('./channel-manager');
+const cloudbeds     = require('./cloudbeds');
 const tarifas       = require('./tarifas');
 const tarifasDia    = require('./tarifas-dia');
 const categorias    = require('./categorias');
@@ -2435,6 +2436,174 @@ app.post('/api/webhook/reserva/:canalId', express.json({ type: '*/*' }), (req, r
   cm.procesarReservaOTA(req.body, req.params.canalId)
     .catch(err => console.error('[webhook] Error procesando reserva OTA:', err.message));
 });
+
+// ── CLOUDBEDS: GET /api/admin/cloudbeds/config ───────────────────────────────
+app.get('/api/admin/cloudbeds/config', requireRoleOrPermiso(['owner'], 'canales.gestionar'), (req, res) => {
+  const { hotel } = req.query;
+  if (!hotel) return res.status(400).json({ error: 'hotel requerido' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const cfg = cloudbeds.getConfig(hotel);
+  if (!cfg) return res.json({ conectado: false });
+  // No devolver la API key completa al frontend — solo los últimos 4 chars para confirmar cuál está guardada
+  res.json({
+    conectado: !!cfg.enabled,
+    propertyId: cfg.property_id,
+    apiKeyPreview: cfg.api_key ? `••••${cfg.api_key.slice(-4)}` : null,
+    webhookId: cfg.webhook_id,
+    lastSyncAt: cfg.last_sync_at,
+  });
+});
+
+// ── CLOUDBEDS: POST /api/admin/cloudbeds/config ──────────────────────────────
+app.post('/api/admin/cloudbeds/config', requireRoleOrPermiso(['owner'], 'canales.gestionar'), async (req, res) => {
+  const { hotelId, apiKey, propertyId } = req.body;
+  if (!hotelId || !apiKey || !propertyId)
+    return res.status(400).json({ error: 'Requeridos: hotelId, apiKey, propertyId' });
+  if (!assertHotelAccess(req, hotelId)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+
+  const publicUrl = process.env.PUBLIC_URL || process.env.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+    : null;
+
+  let webhookId = null;
+  let webhookWarning = null;
+
+  if (publicUrl) {
+    try {
+      const callbackUrl = `${publicUrl}/api/webhook/cloudbeds/${hotelId}`;
+      // Eliminar webhook anterior si existía
+      const prev = cloudbeds.getConfig(hotelId);
+      if (prev?.webhook_id) await cloudbeds.eliminarWebhook(prev.api_key, prev.webhook_id);
+      const resp = await cloudbeds.registrarWebhook(apiKey, propertyId, callbackUrl);
+      webhookId = resp.webhookID || resp.id || resp.webhook_id || null; /* CB_FIELD */
+    } catch (err) {
+      webhookWarning = `Credenciales guardadas, pero el registro del webhook falló: ${err.message}. Puedes registrarlo manualmente desde el panel de Cloudbeds apuntando a /api/webhook/cloudbeds/${hotelId}`;
+      console.warn('[cloudbeds] Registro webhook falló:', err.message);
+    }
+  } else {
+    webhookWarning = 'PUBLIC_URL no configurada — no se pudo registrar el webhook automáticamente. Configúralo manualmente en Cloudbeds.';
+  }
+
+  cloudbeds.saveConfig(hotelId, { apiKey, propertyId, webhookId, enabled: 1 });
+  res.json({ ok: true, webhookId, warning: webhookWarning || null });
+});
+
+// ── CLOUDBEDS: DELETE /api/admin/cloudbeds/config ────────────────────────────
+app.delete('/api/admin/cloudbeds/config', requireRoleOrPermiso(['owner'], 'canales.gestionar'), async (req, res) => {
+  const { hotel } = req.query;
+  if (!hotel) return res.status(400).json({ error: 'hotel requerido' });
+  if (!assertHotelAccess(req, hotel)) return res.status(403).json({ error: 'Sin acceso a este hotel' });
+  const cfg = cloudbeds.getConfig(hotel);
+  if (cfg?.webhook_id) await cloudbeds.eliminarWebhook(cfg.api_key, cfg.webhook_id).catch(() => {});
+  cloudbeds.deleteConfig(hotel);
+  res.json({ ok: true });
+});
+
+// ── WEBHOOK: POST /api/webhook/cloudbeds/:hotelId ────────────────────────────
+// Cloudbeds llama aquí al crear/modificar/cancelar una reserva.
+// Se responde 200 inmediatamente (Cloudbeds exige ACK rápido) y se procesa async.
+app.post('/api/webhook/cloudbeds/:hotelId',
+  express.raw({ type: '*/*' }),   // raw body para verificar firma HMAC
+  (req, res) => {
+    const hotelId = req.params.hotelId;
+    const cfg = cloudbeds.getConfig(hotelId);
+    if (!cfg || !cfg.enabled) return res.status(404).json({ error: 'Hotel no conectado' });
+
+    const rawBody = req.body;
+    if (!cloudbeds.verificarFirma(rawBody, req.headers, cfg.webhook_secret)) {
+      console.warn('[cloudbeds] Firma inválida para hotel', hotelId);
+      return res.status(401).json({ error: 'Firma inválida' });
+    }
+
+    res.json({ received: true }); // ACK inmediato
+
+    // Procesar en background
+    setImmediate(() => procesarEventoCloudbeds(hotelId, cfg, rawBody));
+  }
+);
+
+function procesarEventoCloudbeds(hotelId, cfg, rawBody) {
+  try {
+    const evento = JSON.parse(rawBody.toString());
+    // Cloudbeds puede enviar el evento en distintas estructuras según la versión
+    const accion     = evento.event || evento.action || evento.type || ''; /* CB_FIELD */
+    const cbReserva  = evento.reservation || evento.data?.reservation || evento.data || {}; /* CB_FIELD */
+    const r          = cloudbeds.mapearReserva(cbReserva);
+
+    if (!r.cbId || !r.checkin || !r.checkout || !r.nombre) {
+      console.warn('[cloudbeds] Payload incompleto, ignorando:', evento);
+      return;
+    }
+
+    const hotelRooms = Object.values(rooms.getRooms()).filter(rm => rm.hotelId === hotelId && !rm.demo);
+    const room = hotelRooms.find(rm => rm.name.toLowerCase().trim() === r.roomName.toLowerCase().trim());
+
+    const db = require('./db');
+
+    // Buscar reserva existente por external_id
+    const existing = db.prepare(
+      "SELECT * FROM reservas WHERE external_source='cloudbeds' AND external_id=?"
+    ).get(r.cbId);
+
+    if (accion.includes('cancel')) {
+      // Cancelar reserva
+      if (existing) {
+        reservas.updateReserva(existing.id, { status: 'cancelled' });
+        console.log(`[cloudbeds] Reserva ${r.cbId} cancelada → ${existing.id}`);
+      }
+      cloudbeds.setLastSync(hotelId);
+      return;
+    }
+
+    if (existing) {
+      // Actualizar reserva existente
+      reservas.updateReserva(existing.id, {
+        guest_name:  r.nombre,
+        guest_email: r.email || existing.guest_email,
+        guest_phone: r.telefono || existing.guest_phone,
+        checkin:     r.checkin,
+        checkout:    r.checkout,
+        notes:       r.notas || existing.notes,
+        status:      r.status,
+        ...(room ? { room_id: room.id } : {}),
+      });
+      console.log(`[cloudbeds] Reserva ${r.cbId} actualizada → ${existing.id}`);
+    } else {
+      // Crear reserva nueva
+      if (!room) {
+        console.warn(`[cloudbeds] Habitación '${r.roomName}' no encontrada para hotel ${hotelId}`);
+        return;
+      }
+      if (r.checkin >= r.checkout) {
+        console.warn(`[cloudbeds] Fechas inválidas en reserva ${r.cbId}`);
+        return;
+      }
+      const nueva = reservas.createReserva(hotelId, room.id, r.nombre, r.checkin, r.checkout, {
+        guestEmail: r.email,
+        guestPhone: r.telefono,
+        notes: r.notas,
+        source: 'cloudbeds',
+        plan: room.plan,
+      });
+      // Guardar external_id
+      db.prepare("UPDATE reservas SET external_id=?, external_source='cloudbeds' WHERE id=?")
+        .run(r.cbId, nueva.id);
+      // Registrar pago si viene monto
+      if (r.montoCLP > 0) {
+        db.prepare(`INSERT INTO transacciones (id,hotel_id,reserva_id,tipo,estado,monto_clp,ref_externa,created_at,updated_at)
+          VALUES (?,?,?,'transferencia','aprobado',?,?,datetime('now'),datetime('now'))`)
+          .run(require('crypto').randomUUID(), hotelId, nueva.id, r.montoCLP, `cloudbeds-${r.cbId}`);
+      }
+      generarTokenParaReserva(nueva, r.telefono, null, null);
+      invalidarCacheDisponibilidad(hotelId);
+      console.log(`[cloudbeds] Reserva ${r.cbId} creada → ${nueva.id}`);
+    }
+
+    cloudbeds.setLastSync(hotelId);
+  } catch (err) {
+    console.error('[cloudbeds] Error procesando webhook:', err.message, err.stack);
+  }
+}
 
 // ── ADMIN: GET /api/admin/canales ─────────────────────────────────────────────
 // ?hotel=<hotelId> — lista canales del hotel

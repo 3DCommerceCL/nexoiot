@@ -3724,6 +3724,81 @@ async function loadCanales() {
   } catch (err) {
     showToast('Error cargando canales: ' + err.message, 'error');
   }
+  loadCloudbedsStatus();
+}
+
+// ── CLOUDBEDS CONNECT ─────────────────────────────────────────────────────────
+async function loadCloudbedsStatus() {
+  if (!HOTEL_ID) return;
+  try {
+    const data = await apiFetch(`/admin/cloudbeds/config?hotel=${encodeURIComponent(HOTEL_ID)}`);
+    renderCloudbedsStatus(data);
+  } catch { /* silencioso */ }
+}
+
+function renderCloudbedsStatus(data) {
+  const badge    = $('cb-status-badge');
+  const connView = $('cb-connected-view');
+  const formView = $('cb-connect-form');
+  if (!badge) return;
+
+  if (data?.conectado) {
+    badge.style.display = '';
+    badge.textContent   = '● Conectado';
+    badge.style.cssText += ';color:#059669;font-size:11px;font-weight:700';
+    connView.classList.remove('hidden');
+    formView.classList.add('hidden');
+    $('cb-prop-label').textContent = `Property ID: ${data.propertyId}  ·  API key: ${data.apiKeyPreview}`;
+    $('cb-sync-label').textContent = data.lastSyncAt
+      ? `Última reserva recibida: ${new Date(data.lastSyncAt).toLocaleString('es-CL')}`
+      : 'Esperando primera reserva de Cloudbeds…';
+    const webhookNote = $('cb-webhook-note');
+    if (data.webhookId) {
+      webhookNote.style.display = 'none';
+    } else {
+      webhookNote.style.display = '';
+      webhookNote.textContent = `⚠️ Webhook no registrado automáticamente. Regístralo manualmente en Cloudbeds → Apps & Marketplace → Webhooks, apuntando a: ${window.location.origin}/api/webhook/cloudbeds/${HOTEL_ID}`;
+    }
+  } else {
+    badge.style.display = 'none';
+    connView.classList.add('hidden');
+    formView.classList.remove('hidden');
+  }
+}
+
+async function conectarCloudbeds() {
+  const apiKey     = $('cb-api-key').value.trim();
+  const propertyId = $('cb-property-id').value.trim();
+  $('cb-error').textContent = '';
+  if (!apiKey || !propertyId) { $('cb-error').textContent = 'Ingresa la API key y el Property ID.'; return; }
+  $('cb-connect-btn').disabled = true;
+  $('cb-connect-btn').textContent = 'Conectando…';
+  try {
+    const res = await apiFetch('/admin/cloudbeds/config', {
+      method: 'POST',
+      body: JSON.stringify({ hotelId: HOTEL_ID, apiKey, propertyId }),
+    });
+    $('cb-api-key').value = '';
+    if (res.warning) showToast(res.warning, 'warn');
+    else showToast('Cloudbeds conectado. Las reservas se importarán automáticamente.', 'success');
+    await loadCloudbedsStatus();
+  } catch (err) {
+    $('cb-error').textContent = err.message;
+  } finally {
+    $('cb-connect-btn').disabled = false;
+    $('cb-connect-btn').textContent = 'Conectar Cloudbeds';
+  }
+}
+
+async function desconectarCloudbeds() {
+  if (!confirm('¿Desconectar Cloudbeds? Las reservas ya importadas se mantienen.')) return;
+  try {
+    await apiFetch(`/admin/cloudbeds/config?hotel=${encodeURIComponent(HOTEL_ID)}`, { method: 'DELETE' });
+    showToast('Cloudbeds desconectado.', 'success');
+    renderCloudbedsStatus({ conectado: false });
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
 }
 
 function renderCanales(lista) {
@@ -4890,6 +4965,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (panelLangSelect) panelLangSelect.addEventListener('change', e => setDashLang(e.target.value));
 
   // Canales OTA
+  $('cb-connect-btn').addEventListener('click', conectarCloudbeds);
+  $('cb-disconnect-btn').addEventListener('click', desconectarCloudbeds);
   $('btn-add-canal').addEventListener('click', openAddCanalModal);
   $('ac-cancel').addEventListener('click', () => closeModal('modal-add-canal'));
   $('ac-save').addEventListener('click', submitAddCanal);
