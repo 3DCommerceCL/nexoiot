@@ -27,6 +27,49 @@ function validarPasos(pasos, campo) {
   if (pasos.length > MAX_PASOS) throw new Error(`Máximo ${MAX_PASOS} pasos en ${campo}`);
 }
 
+// Devuelve true si la nueva programación se superpone en horario Y fecha con alguna activa
+// del mismo dispositivo (descripcion) en la misma habitación.
+function detectarConflicto(roomId, descripcion, horaInicio, horaFin, repetir, fecha, diasSemana) {
+  const existentes = db.prepare(
+    "SELECT * FROM comandos_programados WHERE room_id=? AND descripcion=? AND estado='activo'"
+  ).all(roomId, descripcion);
+
+  for (const ex of existentes) {
+    // Chequeo de solapamiento horario
+    const nFin = horaFin  || null;
+    const eFin = ex.hora_fin || null;
+    let overlap;
+    if (!nFin && !eFin) {
+      overlap = horaInicio === ex.hora_inicio;
+    } else if (!nFin) {
+      overlap = horaInicio >= ex.hora_inicio && horaInicio < eFin;
+    } else if (!eFin) {
+      overlap = ex.hora_inicio >= horaInicio && ex.hora_inicio < nFin;
+    } else {
+      overlap = horaInicio < eFin && ex.hora_inicio < nFin;
+    }
+    if (!overlap) continue;
+
+    // Chequeo de solapamiento de fecha
+    let dateOverlap = false;
+    if (repetir === 'once' && ex.repetir === 'once') {
+      dateOverlap = (fecha === ex.fecha);
+    } else if (repetir === 'once' && ex.repetir === 'weekly') {
+      const dia = new Date(fecha + 'T12:00:00').getDay();
+      dateOverlap = JSON.parse(ex.dias_semana || '[]').includes(dia);
+    } else if (repetir === 'weekly' && ex.repetir === 'once') {
+      const dia = new Date(ex.fecha + 'T12:00:00').getDay();
+      dateOverlap = (diasSemana || []).includes(dia);
+    } else {
+      const exDias = JSON.parse(ex.dias_semana || '[]');
+      dateOverlap = (diasSemana || []).some(d => exDias.includes(d));
+    }
+
+    if (dateOverlap) return true;
+  }
+  return false;
+}
+
 function crear({ hotelId, roomId, descripcion, pasosInicio, pasosFin, horaInicio, horaFin, repetir, fecha, diasSemana, origen, creadoPor }) {
   if (!descripcion || !descripcion.trim()) throw new Error('descripcion requerida');
   validarPasos(pasosInicio, 'pasosInicio');
@@ -47,6 +90,10 @@ function crear({ hotelId, roomId, descripcion, pasosInicio, pasosFin, horaInicio
     }
   } else {
     throw new Error("repetir debe ser 'once' o 'weekly'");
+  }
+
+  if (detectarConflicto(roomId, descripcion.trim(), horaInicio, horaFin || null, repetir, fecha, diasSemana || [])) {
+    throw new Error('Ya existe una programación para este dispositivo que se superpone en horario y fecha. Cancela la anterior primero.');
   }
 
   const id = genId();
