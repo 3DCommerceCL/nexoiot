@@ -497,10 +497,20 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
 .color-wheel-wrap {
   display: flex; justify-content: center; margin-top: 12px;
 }
+/* Contenedor que captura todos los eventos de pointer */
 .color-wheel {
   position: relative;
-  width: 112px; height: 112px; border-radius: 50%;
-  cursor: pointer;
+  width: 140px; height: 140px;
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+/* Anillo de color — conic-gradient con hueco central via mask */
+.color-wheel::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: 50%;
   background: conic-gradient(
     from 0deg,
     hsl(0,100%,50%), hsl(30,100%,50%), hsl(60,100%,50%), hsl(90,100%,50%),
@@ -508,15 +518,28 @@ input[type=range]:disabled { opacity: .4; pointer-events: none; }
     hsl(240,100%,50%), hsl(270,100%,50%), hsl(300,100%,50%), hsl(330,100%,50%),
     hsl(360,100%,50%)
   );
-  box-shadow: 0 0 0 3px rgba(255,255,255,.35);
+  -webkit-mask: radial-gradient(transparent 40px, black 41px);
+  mask: radial-gradient(transparent 40px, black 41px);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.2);
+  pointer-events: none;
+}
+/* Preview del color seleccionado en el centro del anillo */
+.color-wheel-center {
+  position: absolute; top: 50%; left: 50%;
+  width: 72px; height: 72px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 2px rgba(255,255,255,.25), 0 2px 8px rgba(0,0,0,.4);
+  transition: background 0.12s;
+  pointer-events: none;
 }
 .color-wheel-cursor {
   position: absolute; top: 50%; left: 50%;
-  width: 18px; height: 18px; border-radius: 50%;
-  margin: -9px 0 0 -9px;
-  border: 2px solid #fff;
-  box-shadow: 0 1px 4px rgba(16,24,40,.3);
+  width: 20px; height: 20px; border-radius: 50%;
+  margin: -10px 0 0 -10px;
+  border: 2.5px solid #fff;
+  box-shadow: 0 1px 5px rgba(0,0,0,.5);
   pointer-events: none;
+  transition: transform 0.05s;
 }
 
 /* ── CURTAIN CARD ─────────────────────────────────────────────────────────── */

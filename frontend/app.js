@@ -1176,6 +1176,7 @@ function renderApp(data) {
   grid.addEventListener('click',  handleGridClick);
   grid.addEventListener('input',  handleGridInput);
   grid.addEventListener('change', handleGridInput);
+  setupColorWheelDrag(grid);
   // La TV vive dentro de Controles inteligentes (no es un dispositivo Tuya
   // real, es un placeholder) — reusa el mismo manejador que las demás
   // funciones del plan, así que también se enlaza acá.
@@ -1202,6 +1203,7 @@ function renderApp(data) {
   climateContent.addEventListener('click',  handlePlanGridClick);
   climateContent.addEventListener('input',  handlePlanGridInput);
   climateContent.addEventListener('change', handlePlanGridInput);
+  setupColorWheelDrag(climateContent);
 
   // Delegación de eventos para la vista de Seguridad (armar/desarmar alarma)
   document.getElementById('security-content').addEventListener('click', handleGridClick);
@@ -2449,7 +2451,7 @@ function buildLightCard(key) {
 }
 
 // ── LED RGB CARD ──────────────────────────────────────────────────────────────
-const WHEEL_RADIUS = 56; // px, debe coincidir con el tamaño definido en CSS
+const WHEEL_RADIUS = 55; // radio medio del anillo: (70px outer + 40px inner) / 2
 
 function buildLEDCard(key) {
   const s   = app.devices[key] || {};
@@ -2500,6 +2502,7 @@ function buildLEDCard(key) {
       <div class="color-wheel-wrap">
         <div class="color-wheel" data-key="${key}" data-action="pick-color">
           <div class="color-wheel-cursor" style="transform: translate(${cx}px, ${cy}px); background:${colorPreview}"></div>
+          <div class="color-wheel-center" style="background:${colorPreview}"></div>
         </div>
       </div>` : ''}` : ''}
     ${manualRow(key)}
@@ -2716,6 +2719,7 @@ function buildBathroomCard() {
     <div class="color-wheel-wrap">
       <div class="color-wheel" data-feature="bathroom" data-action="pick-color">
         <div class="color-wheel-cursor" style="transform: translate(${cx}px, ${cy}px); background:${colorPreview}"></div>
+        <div class="color-wheel-center" style="background:${colorPreview}"></div>
       </div>
     </div>` : ''}` : ''}
     <div class="manual-row">
@@ -2914,22 +2918,6 @@ function handlePlanGridClick(e) {
     return;
   }
 
-  const bathroomWheel = e.target.closest('[data-feature="bathroom"][data-action="pick-color"]');
-  if (bathroomWheel) {
-    const rect = bathroomWheel.getBoundingClientRect();
-    const dx = e.clientX - (rect.left + rect.width / 2);
-    const dy = e.clientY - (rect.top + rect.height / 2);
-    let hue = Math.atan2(dx, -dy) * (180 / Math.PI);
-    if (hue < 0) hue += 360;
-    const s = app._placeholder.bathroom;
-    s.hue = Math.round(hue);
-    s.saturation = 1000;
-    s.mode = 'colour';
-    s.lightOn = true;
-    rerenderFeature('bathroom');
-    showPreviewToast();
-    return;
-  }
 
   const presence = e.target.closest('[data-action="presence"]');
   if (presence) {
@@ -3127,19 +3115,6 @@ function handleGridClick(e) {
     return;
   }
 
-  // Click en la rueda de color → calcular hue desde el ángulo
-  const wheel = e.target.closest('[data-action="pick-color"]');
-  if (wheel) {
-    const key  = wheel.dataset.key;
-    const rect = wheel.getBoundingClientRect();
-    const dx   = e.clientX - (rect.left + rect.width / 2);
-    const dy   = e.clientY - (rect.top  + rect.height / 2);
-    let hue    = Math.atan2(dx, -dy) * (180 / Math.PI);
-    if (hue < 0) hue += 360;
-    doCmd(key, { on: true, hue: Math.round(hue), saturation: 1000, mode: 'colour' });
-    return;
-  }
-
   // AC +/−
   const acBtn = e.target.closest('[data-temp]');
   if (acBtn && !acBtn.disabled) {
@@ -3181,6 +3156,71 @@ function handleGridInput(e) {
       doCmd(key, { position: pos });
     }, 250);
   }
+}
+
+// ── COLOR WHEEL DRAG ─────────────────────────────────────────────────────────
+// Permite arrastrar el cursor sobre el anillo para cambiar el color en tiempo real.
+// Usa PointerEvents (captura mouse + touch con una sola API).
+let _wheelDragging = false;
+
+function applyColorFromWheel(wheel, clientX, clientY) {
+  const rect = wheel.getBoundingClientRect();
+  const dx = clientX - (rect.left + rect.width / 2);
+  const dy = clientY - (rect.top  + rect.height / 2);
+  let hue = Math.atan2(dx, -dy) * (180 / Math.PI);
+  if (hue < 0) hue += 360;
+  hue = Math.round(hue);
+
+  // Actualizar cursor y centro optimistamente sin esperar re-render
+  const cursor = wheel.querySelector('.color-wheel-cursor');
+  const center = wheel.querySelector('.color-wheel-center');
+  const color  = `hsl(${hue}, 100%, 50%)`;
+  const angle  = (hue * Math.PI) / 180;
+  const cx = Math.sin(angle) * WHEEL_RADIUS;
+  const cy = -Math.cos(angle) * WHEEL_RADIUS;
+  if (cursor) cursor.style.transform = `translate(${cx}px, ${cy}px)`;
+  if (center) center.style.background = color;
+  if (cursor) cursor.style.background = color;
+
+  // Enviar comando (con debounce propio de doCmd)
+  const key     = wheel.dataset.key;
+  const feature = wheel.dataset.feature;
+  if (key) {
+    clearTimeout(app._timers[`wheel-${key}`]);
+    app._timers[`wheel-${key}`] = setTimeout(
+      () => doCmd(key, { on: true, hue, saturation: 1000, mode: 'colour' }), 80
+    );
+  } else if (feature === 'bathroom') {
+    clearTimeout(app._timers['wheel-bathroom']);
+    app._timers['wheel-bathroom'] = setTimeout(
+      () => setBathroomColor(hue), 80
+    );
+  }
+}
+
+function setBathroomColor(hue) {
+  const s = app._placeholder.bathroom;
+  s.hue = hue; s.saturation = 1000; s.mode = 'colour'; s.lightOn = true;
+  rerenderFeature('bathroom');
+  showPreviewToast();
+}
+
+function setupColorWheelDrag(container) {
+  container.addEventListener('pointerdown', e => {
+    const wheel = e.target.closest('[data-action="pick-color"]');
+    if (!wheel) return;
+    _wheelDragging = true;
+    wheel.setPointerCapture(e.pointerId);
+    applyColorFromWheel(wheel, e.clientX, e.clientY);
+  });
+  container.addEventListener('pointermove', e => {
+    if (!_wheelDragging) return;
+    const wheel = e.target.closest('[data-action="pick-color"]');
+    if (!wheel) return;
+    applyColorFromWheel(wheel, e.clientX, e.clientY);
+  });
+  container.addEventListener('pointerup',    () => { _wheelDragging = false; });
+  container.addEventListener('pointercancel',() => { _wheelDragging = false; });
 }
 
 // ── ESCENAS ───────────────────────────────────────────────────────────────────
