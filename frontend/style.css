@@ -91,6 +91,13 @@ body {
   font-size: 18px; line-height: 1; cursor: pointer; padding: 2px;
   -webkit-tap-highlight-color: transparent;
 }
+.hdr-icon-btn {
+  background: rgba(255,255,255,.12); border: none; color: #fff;
+  font-size: 16px; line-height: 1; cursor: pointer; padding: 5px 7px;
+  border-radius: 8px; -webkit-tap-highlight-color: transparent;
+  transition: background .15s;
+}
+.hdr-icon-btn:hover { background: rgba(255,255,255,.22); }
 .room-name  { font-size: 22px; font-weight: 800; letter-spacing: -.5px; color: #fff; }
 .guest-name { font-size: 13px; color: rgba(255,255,255,.65); margin-top: 1px; }
 .checkout-info {
@@ -359,6 +366,7 @@ body {
   padding: 16px 14px;
   min-width: 0;
   color: #fff;
+  cursor: pointer;
   transition: background .2s, box-shadow .2s;
   -webkit-tap-highlight-color: transparent;
 }

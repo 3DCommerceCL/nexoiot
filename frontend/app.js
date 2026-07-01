@@ -259,6 +259,7 @@ const I18N = {
     reportOptionsTitle: '¿Cuál es el problema?',
     reportNoOptionToast: 'Elige una opción antes de enviar',
     reportOtherTitle: 'Cuéntanos qué pasa',
+    reportPickDevice: '¿Qué dispositivo tiene el problema?',
     reportOtherPlaceholder: 'Describe el problema (opcional)',
     reportOptOtra: 'Otra',
     reportOptNoEnciende: 'No enciende',
@@ -510,6 +511,7 @@ const I18N = {
     reportOptionsTitle: 'What\'s the problem?',
     reportNoOptionToast: 'Choose an option before sending',
     reportOtherTitle: 'Tell us what\'s happening',
+    reportPickDevice: 'Which device has the problem?',
     reportOtherPlaceholder: 'Describe the problem (optional)',
     reportOptOtra: 'Other',
     reportOptNoEnciende: 'Doesn\'t turn on',
@@ -761,6 +763,7 @@ const I18N = {
     reportOptionsTitle: 'Qual é o problema?',
     reportNoOptionToast: 'Escolha uma opção antes de enviar',
     reportOtherTitle: 'Conte o que está acontecendo',
+    reportPickDevice: 'Qual dispositivo tem o problema?',
     reportOtherPlaceholder: 'Descreva o problema (opcional)',
     reportOptOtra: 'Outro',
     reportOptNoEnciende: 'Não liga',
@@ -1594,7 +1597,7 @@ const REPORT_OPTION_LABELS = {
 let reportState = null; // { key, step, option, otherText }
 
 function openReportModal(key) {
-  reportState = { key, step: 'intro', option: null, otherText: '' };
+  reportState = { key, step: key ? 'intro' : 'pick-device', option: null, otherText: '' };
   renderReportModal();
   document.getElementById('report-modal-overlay').classList.remove('hidden');
 }
@@ -1610,6 +1613,25 @@ function renderReportModal() {
   const cfg   = app.config[key] || {};
   const label = featureOrDeviceLabel(key);
   const card  = document.getElementById('report-modal-card');
+
+  if (step === 'pick-device') {
+    const devOpts = Object.entries(app.config)
+      .map(([k, cfg]) => `<button type="button" class="report-option" data-pick="${k}">${devLabel(k, cfg)}</button>`)
+      .join('');
+    card.innerHTML = `
+      <div class="onboarding-ico">⚠️</div>
+      <h2>${t('reportTitle')}</h2>
+      <p class="scene-modal-desc">${t('reportPickDevice')}</p>
+      <div class="report-options" id="report-pick-list">${devOpts}</div>
+      <div class="scene-modal-actions">
+        <button class="support-btn" id="report-modal-back">${t('reportBackBtn')}</button>
+      </div>`;
+    document.getElementById('report-pick-list').querySelectorAll('[data-pick]').forEach(btn => {
+      btn.onclick = () => { reportState.key = btn.dataset.pick; reportState.step = 'intro'; renderReportModal(); };
+    });
+    document.getElementById('report-modal-back').onclick = closeReportModal;
+    return;
+  }
 
   if (step === 'intro') {
     card.innerHTML = `
@@ -2135,6 +2157,13 @@ function initNav() {
   document.getElementById('app-problem-cancel')?.addEventListener('click', closeAppProblemModal);
   document.getElementById('app-problem-send')?.addEventListener('click', submitAppProblem);
 
+  // Botones globales del header: ⚠️ reportar y ❓ tutorial
+  document.getElementById('btn-global-report')?.addEventListener('click', () => openReportModal(null));
+  document.getElementById('btn-global-tutorial')?.addEventListener('click', () => {
+    document.getElementById('onboarding-overlay')?.classList.add('hidden');
+    document.getElementById('tutorial-choice-overlay')?.classList.remove('hidden');
+  });
+
   // Onboarding: al cerrar el mensaje de bienvenida, ofrecer el tutorial guiado
   document.getElementById('onboarding-dismiss')?.addEventListener('click', () => {
     document.getElementById('onboarding-overlay')?.classList.add('hidden');
@@ -2239,14 +2268,11 @@ function enlargeBtn(key) {
 // que el interruptor principal nunca se vea forzado a compartir espacio con ellos
 // (eso era lo que rompía el layout cuando la etiqueta del dispositivo era larga).
 function cardIconsRow(key, scheduleHtml, channel) {
-  return `<div class="card-icons-row">${favBtn(key, channel)}${scheduleHtml}${reportBtn(key)}${helpBtn(key)}${enlargeBtn(key)}</div>`;
+  return `<div class="card-icons-row">${favBtn(key, channel)}${scheduleHtml}</div>`;
 }
 
-// Para las "funciones del plan" (TV, baño inteligente, bidé, alfombra) — no son
-// dispositivos reales, así que no llevan favorito ni programar, solo
-// reportar/ayuda/agrandar, igual que cualquier otra tarjeta de Controles.
-function featureIconsRow(key) {
-  return `<div class="card-icons-row">${reportBtn(key)}${helpBtn(key)}${enlargeBtn(key)}</div>`;
+function featureIconsRow(_key) {
+  return '';
 }
 
 const HELP_TEXT_BY_TYPE = {
@@ -3134,6 +3160,13 @@ function handleGridClick(e) {
     const newTemp = Math.min(30, Math.max(16, (app.devices[key]?.temp ?? 22) + delta));
     doCmd(key, { temp: newTemp });
     return;
+  }
+
+  // Click en el fondo de la tarjeta (no en un control interactivo) → modal ampliado
+  const cardEl = e.target.closest('.device-card');
+  if (cardEl && !e.target.closest('button, input, label, select, [data-action], [data-curtain], [data-ct], [data-temp]')) {
+    const raw = cardEl.id.replace(/^(card-|feature-)/, '');
+    if (raw) openEnlargeModal(raw);
   }
 }
 
