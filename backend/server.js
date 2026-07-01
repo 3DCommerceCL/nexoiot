@@ -1959,6 +1959,7 @@ app.get('/api/admin/tarifas/grid', requireRoleOrPermiso(['owner'], 'tarifas.gest
 
   const tarifasActivas = tarifas.getActivasEnRango(hotel, from, to);
   const overrides = tarifasDia.getEnRango(hotel, ambito, ambitoIds, from, to);
+  const allRooms = rooms.getRooms();
 
   const dias = [];
   let d = new Date(from + 'T00:00:00Z');
@@ -1970,8 +1971,10 @@ app.get('/api/admin/tarifas/grid', requireRoleOrPermiso(['owner'], 'tarifas.gest
     precios[id] = {};
     for (const fecha of dias) {
       const override = overrides.find(o => o.ambito_id === id && o.fecha === fecha);
+      // Para grid por habitación, pasar el categoriaId real para que el fallback
+      // a tarifa de categoría funcione correctamente.
       const rango = ambito === 'room'
-        ? tarifas.resolverTarifaRango(id, null, fecha, tarifasActivas)
+        ? tarifas.resolverTarifaRango(id, allRooms[id]?.categoriaId || null, fecha, tarifasActivas)
         : tarifas.resolverTarifaRango(null, id, fecha, tarifasActivas);
       precios[id][fecha] = {
         precioUF: override?.precio_uf ?? rango?.precio_uf ?? null,

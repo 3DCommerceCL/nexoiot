@@ -132,7 +132,9 @@ function resolverTarifaRango(roomId, categoriaId, fecha, tarifasActivas) {
     if (!t.dias_semana) return true;
     return t.dias_semana.split(',').map(Number).includes(dow);
   });
-  return aplicables.find(t => t.room_id === roomId)
+  // Guardia explícita: solo buscar por roomId si es un valor real (no null),
+  // para evitar que null === null coincida con tarifas de otras categorías.
+  return (roomId ? aplicables.find(t => t.room_id === roomId) : null)
     || (categoriaId ? aplicables.find(t => t.categoria_id === categoriaId) : null)
     || aplicables.find(t => !t.room_id && !t.categoria_id)
     || null;
