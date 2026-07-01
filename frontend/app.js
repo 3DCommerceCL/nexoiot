@@ -134,11 +134,12 @@ const I18N = {
     toastSensorAlarmOn: 'Aviso de sensor activado',
     toastSensorAlarmOff: 'Aviso de sensor desactivado',
     toastAcAutoOff: 'Ventana abierta detectada: el aire acondicionado se apagó automáticamente',
-    onbTitle: '¡Bienvenido!',
+    onbTitle: 'Bienvenido a {hotel}',
+    onbGreet: 'Estimado/a {name}, es un placer recibirle. Esperamos que su estadía sea cómoda y memorable. Desde esta app puede controlar su habitación con total comodidad.',
     onbScenes: 'Activa tus aparatos inteligentes desde aquí',
     onbSettings: 'Cambia idioma y accesibilidad desde Ajustes',
     onbSupport: 'Pide servicios o ayuda desde Soporte',
-    onbGotIt: 'Entendido',
+    onbGotIt: 'Comenzar',
     tutChoiceTitle: '¿Sabes usar los controles smart?',
     tutChoiceDesc: 'Podemos guiarte paso a paso para encender una luz y mover la cortina.',
     tutStartBtn: '🎓 Iniciar tutorial',
@@ -379,11 +380,12 @@ const I18N = {
     toastSensorAlarmOn: 'Sensor alert turned on',
     toastSensorAlarmOff: 'Sensor alert turned off',
     toastAcAutoOff: 'Open window detected: the AC turned off automatically',
-    onbTitle: 'Welcome!',
+    onbTitle: 'Welcome to {hotel}',
+    onbGreet: 'Dear {name}, it\'s a pleasure to have you with us. We hope your stay is comfortable and memorable. From this app you can control your room at your convenience.',
     onbScenes: 'Control your smart devices from here',
     onbSettings: 'Change language and accessibility from Settings',
     onbSupport: 'Request services or help from Support',
-    onbGotIt: 'Got it',
+    onbGotIt: 'Get started',
     tutChoiceTitle: 'Do you know how to use smart controls?',
     tutChoiceDesc: 'We can walk you through turning on a light and moving the curtain.',
     tutStartBtn: '🎓 Start tutorial',
@@ -629,11 +631,12 @@ const I18N = {
     toastSensorAlarmOn: 'Aviso de sensor ativado',
     toastSensorAlarmOff: 'Aviso de sensor desativado',
     toastAcAutoOff: 'Janela aberta detectada: o ar-condicionado desligou automaticamente',
-    onbTitle: 'Bem-vindo!',
+    onbTitle: 'Bem-vindo ao {hotel}',
+    onbGreet: 'Caro/a {name}, é um prazer recebê-lo/a. Esperamos que sua estadia seja confortável e inesquecível. Por este app você pode controlar seu quarto com toda comodidade.',
     onbScenes: 'Controle seus dispositivos inteligentes a partir daqui',
     onbSettings: 'Altere idioma e acessibilidade em Configurações',
     onbSupport: 'Solicite serviços ou ajuda em Suporte',
-    onbGotIt: 'Entendi',
+    onbGotIt: 'Começar',
     tutChoiceTitle: 'Você sabe usar os controles smart?',
     tutChoiceDesc: 'Podemos te guiar passo a passo para ligar uma luz e mover a cortina.',
     tutStartBtn: '🎓 Iniciar tutorial',
@@ -1226,6 +1229,13 @@ function applyTexts() {
   const d = app.data;
   if (!d) return;
   const loc = LOCALES[app.lang] || 'es-CL';
+
+  // Onboarding: insertar nombre del hotel y saludo personalizado
+  const onbTitleEl = document.getElementById('onb-title');
+  const onbGreetEl = document.getElementById('onb-greet');
+  const guestFirst = (d.guestName || '').split(' ')[0] || t('welcome');
+  if (onbTitleEl) onbTitleEl.textContent = t('onbTitle', { hotel: d.hotelName });
+  if (onbGreetEl) onbGreetEl.textContent = t('onbGreet', { name: guestFirst, hotel: d.hotelName });
 
   document.getElementById('hotel-name').textContent = d.hotelName;
   document.getElementById('room-name').textContent  = d.roomName;
@@ -2026,8 +2036,9 @@ function showTutorialStep() {
   requestAnimationFrame(() => {
     const target = step.selector();
     if (!target) { tutorialStep++; return showTutorialStep(); }
-    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    setTimeout(() => positionTutorial(target, step), 300);
+    target.scrollIntoView({ behavior: 'instant', block: 'center' });
+    // rAF extra para que el browser confirme el layout después del scroll
+    requestAnimationFrame(() => positionTutorial(target, step));
   });
 }
 
